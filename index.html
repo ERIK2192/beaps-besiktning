@@ -1,0 +1,1345 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Besiktning">
+<meta name="theme-color" content="#F2F1ED">
+<title>Beaps Besiktning</title>
+<style>
+  :root{
+    --paper:#F2F1ED;
+    --card:#FFFFFF;
+    --ink:#16325C;
+    --ink2:#6E7C94;
+    --line:#E0DDD7;
+    --brand:#FFC629;
+    --brand-dark:#E9AF12;
+    --coral:#E8917D;
+    --rec:#C2352F;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;
+       padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+  h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+  h1{font-size:18px} h2{font-size:15px}
+  button{font-family:inherit;font-size:16px;cursor:pointer;border:0;background:none;color:inherit}
+  input,textarea{font-family:inherit;font-size:16px;width:100%;padding:12px 13px;border:1px solid var(--line);
+                 border-radius:10px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+  textarea{min-height:132px;resize:vertical;font-size:17px;line-height:1.5;padding:14px}
+  .back{font-size:27px;line-height:1;padding:0 12px 5px 0;margin-left:-4px;color:var(--ink);flex:none}
+  label{display:block;margin:0 0 6px}
+  .readonly{background:#F7F8F8;color:var(--ink2)}
+
+  .top{position:sticky;top:0;z-index:30;background:rgba(242,241,237,.93);backdrop-filter:blur(8px);
+       border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+  .top .row{display:flex;align-items:center;gap:12px;justify-content:space-between}
+  .logo{height:27px;width:auto;display:block;flex:none}
+  .hlogo{width:280px;max-width:78%;height:auto;display:block;margin:0 auto}
+  .logo-fallback{font-weight:700;font-size:15px;letter-spacing:.22em;text-transform:uppercase}
+  .progress{height:2px;background:var(--line);margin-top:10px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--ink);width:0;transition:width .3s}
+
+  .wrap{padding:16px;max-width:720px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+  .field{margin-bottom:12px} .field:last-child{margin-bottom:0}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 16px;border-radius:11px;
+       font-weight:650;width:100%;background:var(--brand);color:var(--ink);min-height:50px;
+       border:1px solid var(--brand-dark)}
+  .btn:active{background:var(--brand-dark)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:active{background:#F6F5F2}
+  .btn.small{padding:9px 13px;min-height:42px;font-size:14px;width:auto}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:550}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  .room{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+  .room .head{display:flex;align-items:stretch}
+  .room .headmain{flex:1;display:flex;align-items:center;gap:12px;padding:15px 6px 15px 14px;text-align:left;min-width:0}
+  .room .sub{font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+  .dot.filled{background:var(--ink)}
+  .room .icon{padding:0 12px;color:var(--ink);font-size:19px;line-height:1;display:flex;align-items:center}
+  .room .del{padding:0 14px;color:var(--ink2);font-size:20px;line-height:1;display:flex;align-items:center}
+  .room .body{padding:14px;border-top:1px solid var(--line)}
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;margin-top:10px}
+  .thumb{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:#f3f3f3}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .ts{position:absolute;left:0;right:0;bottom:0;background:rgba(16,19,20,.72);color:#fff;font-family:var(--mono);font-size:9px;padding:3px 4px}
+  .thumb .x{position:absolute;top:4px;right:4px;background:rgba(16,19,20,.8);color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;line-height:22px;text-align:center}
+  .addrow{display:flex;gap:8px;align-items:center} .addrow input{flex:1}
+  .crow{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px}
+  .crow.open{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
+  .clabel{font-size:15px;line-height:1.35;margin-bottom:10px}
+  .cbtns{display:flex;gap:8px;align-items:center}
+  .yn{border:1px solid var(--line);border-radius:9px;padding:10px 22px;font-weight:600;font-size:15px;min-width:74px;background:#fff}
+  .yn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .yn.on.no{background:var(--rec);border-color:var(--rec);color:#fff}
+  .clinks{margin-left:auto;display:flex;align-items:baseline;gap:14px}
+  .addc{margin:0;padding:0;background:none;border:0;line-height:1;font-family:var(--sans);font-size:13px;
+        color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+  .crow .thumbs{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}
+  .cinput{margin-top:10px;font-size:15px;padding:11px 12px}
+  .room.drop, .card.drop{outline:2px dashed var(--ink);outline-offset:-2px;background:#F6F7F7}
+  .room.dragging{opacity:.4}
+  .handle{padding:0 10px 0 12px;color:#BDB9B1;font-size:16px;cursor:grab;display:flex;align-items:center;touch-action:none}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;
+         background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;max-width:88vw;
+         text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.on{opacity:1}
+
+  .ticker{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--ink);color:#E9ECEB;
+          padding:10px 14px calc(10px + env(safe-area-inset-bottom));font-family:var(--mono);font-size:11px;
+          display:flex;gap:10px;align-items:center}
+  .ticker .live{width:7px;height:7px;border-radius:50%;background:var(--brand);flex:none}
+  .ticker .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ticker .cnt{opacity:.6}
+  .bar{position:fixed;left:0;right:0;bottom:calc(37px + env(safe-area-inset-bottom));z-index:39;padding:10px 16px;
+       background:linear-gradient(to top,var(--paper) 70%,rgba(242,241,237,0));display:flex;gap:10px;max-width:720px;margin:0 auto}
+  .logline{display:flex;gap:10px;font-family:var(--mono);font-size:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .logline b{font-weight:500;flex:none;color:var(--ink2)}
+
+  .sigpad{border:1px solid var(--line);border-radius:10px;background:#fff;touch-action:none;width:100%;height:180px;display:block}
+  .sigdone{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px}
+  .sigdone img{width:100%;display:block}
+  .sheet{position:fixed;inset:0;z-index:60;background:var(--paper);overflow:auto;padding-bottom:40px}
+  .hint{font-size:13px;color:var(--ink2);margin-top:6px}
+  .locknote{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--brand);border:1px solid var(--brand-dark);border-radius:6px;padding:6px 9px;display:inline-block}
+  .list-item{display:flex;gap:13px;align-items:center;padding:15px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;width:100%;text-align:left}
+  .list-item .chev{margin-left:auto;color:#BDB9B1;font-size:19px;line-height:1}
+  .rowwrap{display:flex;align-items:stretch;gap:8px;margin-bottom:8px}
+  .rowwrap .list-item{margin:0;flex:1;min-width:0}
+  .delbtn{width:54px;flex:none;border:1px solid #E3CDCB;border-radius:12px;background:#fff;color:var(--rec);font-size:22px;line-height:1}
+  .delbtn:active{background:#FBF2F1}
+  .listhead{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
+  .listhead button{font-size:14px;color:var(--ink2);text-decoration:underline}
+  .hero{padding:calc(38px + env(safe-area-inset-top)) 20px 26px;text-align:center}
+  .empty{text-align:center;padding:26px 18px;border:1px dashed #D3CFC7;border-radius:14px;background:#FBFAF8}
+  .bar.raised{bottom:calc(25vh + env(safe-area-inset-bottom));padding-bottom:16px}
+  body.start{padding-bottom:calc(25vh + 120px)}
+  body.start .ticker{display:none}
+  .hidden{display:none !important}
+
+  /* fotoläge */
+  .cam{position:fixed;inset:0;z-index:80;background:#000;color:#fff;display:flex;flex-direction:column}
+  .cam .camtop{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;font-size:15px}
+  .cam .view{position:relative;flex:1;min-height:0;background:#0A0A0A}
+  .cam video{width:100%;height:100%;object-fit:cover;display:block}
+  .cam .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .18s}
+  .cam .reclabel{position:absolute;top:12px;left:12px;background:var(--rec);color:#fff;font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:5px}
+  .cam .roomrow{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;-webkit-overflow-scrolling:touch}
+  .cam .rchip{border:1px solid #3A3D3E;color:#C9CDCE;border-radius:999px;padding:8px 14px;white-space:nowrap;font-size:14px;flex:none}
+  .cam .rchip.on{background:#fff;color:#000;border-color:#fff;font-weight:600}
+  .cam .strip{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px}
+  .cam .strip .t{position:relative;width:54px;height:54px;flex:none;border-radius:8px;overflow:hidden;background:#222}
+  .cam .strip .t img{width:100%;height:100%;object-fit:cover}
+  .cam .strip .t span{position:absolute;top:1px;right:1px;background:rgba(0,0,0,.7);width:18px;height:18px;border-radius:50%;font-size:11px;line-height:18px;text-align:center}
+  .cam .ctrl{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:6px 24px calc(16px + env(safe-area-inset-bottom))}
+  .shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:5px solid #4A4E4F;flex:none}
+  .shutter:active{transform:scale(.94)}
+  .recbtn{width:52px;height:52px;border-radius:50%;background:transparent;border:3px solid #6A6E6F;display:flex;align-items:center;justify-content:center;flex:none}
+  .recbtn i{width:20px;height:20px;border-radius:50%;background:var(--rec);display:block}
+  .recbtn.on i{border-radius:4px;width:18px;height:18px}
+  .camcount{font-family:var(--mono);font-size:13px;color:#C9CDCE;width:52px;text-align:center}
+
+  #print{display:none}
+  @media print{
+    body{background:#fff;padding:0}
+    #app,.ticker,.bar{display:none !important}
+    #print{display:block}
+    .p-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .p-photos img{width:100%;border:1px solid #ccc}
+    .p-room{page-break-inside:avoid;border-bottom:1px solid #ddd;padding:10px 0}
+    .p-sig img{max-width:260px;border-bottom:1px solid #333}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<div id="app"></div>
+<div id="print"></div>
+<div class="bar" id="bar"></div>
+<div class="ticker" id="ticker" onclick="openLog()">
+  <span class="live"></span><span class="txt" id="tickerTxt">Händelselogg</span><span class="cnt" id="tickerCnt"></span>
+</div>
+
+<script>
+/* Sätt LOGO till en data-URL när logotypfilen finns, annars visas ordmärket. */
+const LOGO_START = 'data:image/png;base64,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';
+const LOGO = 'data:image/png;base64,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';
+
+/* Inne i Claude används artifact-lagringen. Körs appen på egen domän eller som
+   hemskärmsapp används telefonens IndexedDB i stället, utan storleksgräns. */
+const NATIVE = !!(window.storage && typeof window.storage.get === 'function');
+const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+const idb = {
+  _db:null, _p:null,
+  open(){
+    if(this._db) return Promise.resolve(this._db);
+    if(this._p) return this._p;
+    this._p = new Promise((res,rej)=>{
+      const r = indexedDB.open('beaps-besiktning',1);
+      r.onupgradeneeded = ()=> r.result.createObjectStore('kv');
+      r.onsuccess = ()=>{
+        this._db = r.result;
+        this._db.onclose = ()=>{ this._db=null; this._p=null };
+        res(this._db);
+      };
+      r.onerror = ()=>{ this._p=null; rej(r.error) };
+    });
+    return this._p;
+  },
+  reset(){
+    try{ if(this._db) this._db.close() }catch(e){}
+    this._db = null; this._p = null;
+  },
+  async run(mode, fn, retried){
+    try{
+      const db = await withTimeout(this.open(), 4000);
+      return await withTimeout(new Promise((res,rej)=>{
+        const t = db.transaction('kv', mode), req = fn(t.objectStore('kv'));
+        t.oncomplete = ()=> res(req ? req.result : undefined);
+        t.onabort = t.onerror = ()=> rej(t.error || new Error('idb'));
+      }), 6000);
+    }catch(e){
+      if(!retried){ this.reset(); return this.run(mode, fn, true) }
+      throw e;
+    }
+  }
+};
+// iOS kan döda databasanslutningen när sidan legat i bakgrunden,
+// t.ex. medan kameran är öppen. Öppna om den när appen syns igen.
+if(!NATIVE){
+  window.addEventListener('pageshow', ()=> idb.reset());
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') idb.reset() });
+}
+const store = NATIVE ? {
+  async get(k){ try{ const r = await window.storage.get(k); return r? JSON.parse(r.value): null }catch(e){ return null } },
+  async set(k,v){ try{ await window.storage.set(k, JSON.stringify(v)); return true }catch(e){ return false } },
+  async del(k){ try{ await window.storage.delete(k) }catch(e){} },
+  async keys(p){ try{ const r = await window.storage.list(p); return r? r.keys: [] }catch(e){ return [] } }
+} : {
+  async get(k){ try{ const v = await idb.run('readonly', s=>s.get(k)); return v==null? null: JSON.parse(v) }catch(e){ return null } },
+  async set(k,v){ try{ await idb.run('readwrite', s=>s.put(JSON.stringify(v), k)); return true }catch(e){ return false } },
+  async del(k){ try{ await idb.run('readwrite', s=>s.delete(k)) }catch(e){} },
+  async keys(p){ try{ const all = await idb.run('readonly', s=>s.getAllKeys()); return (all||[]).filter(k=>String(k).startsWith(p)) }catch(e){ return [] } }
+};
+const K = { index:'bp:index', insp:id=>'bp:insp:'+id, photo:(i,p)=>'bp:ph:'+i+':'+p, video:i=>'bp:vid:'+i };
+
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2,9);
+const pad = n => String(n).padStart(2,'0');
+const stamp = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const clock = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mb = b => (b/1048576).toFixed(1)+' MB';
+
+let S=null, photoCache={}, videoURL=null, view='start', openRoom=null, saveTimer=null;
+
+const DEFAULT_ROOMS = ['Hall','Kök','Badrum','Sovrum'];
+const KEYS_ROOM = 'Nycklar';
+const EXTRA = ['Vardagsrum','Sovrum 2','Balkong','Förråd','Tvättstuga','Gäst-WC','Klädkammare','Uteplats','Garage'];
+const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Årlig':'', 'Skada':''};
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning'};
+const CHECKS = [
+  'Funkar portkoden och/eller blipparna',
+  'Rätt namn på entrétavlan?',
+  'Rätt namn på postboxen?',
+  'Postboxen tömd på post/reklam?',
+  'Finns tvättcylinder/blipp + postboxnyckel?',
+  'Rätt namn på dörren?',
+  'Testa att alla nycklar funkar',
+  'Är det lagom varmt i lägenheten?',
+  'Finns en termometer?',
+  'Funkar internet?',
+  'Behöver gammal router bytas?',
+  'Funkar TV + fjärrkontroll?',
+  'Alla sladdar snyggt ordnade?',
+  'Funkar spisen?',
+  'Funkar ugnen?',
+  'Funkar micron?',
+  'Är diskmaskinsvredet på?',
+  'Rinner det ut bra i avloppen i kök/badrum?',
+  'Fungerar spolningen på toaletten?',
+  'Är sängarna snyggt bäddade?',
+  'Finns handdukar, tofflor, tvål etc.?',
+  'Fungerar alla lampor?',
+  'Hänger gardinerna snyggt?',
+  'Är stolarna vingliga?',
+  'Fungerar brandvarnaren?',
+  'Om det finns öppen spis, finns skylt om att inte elda?',
+  'Är lägenheten bra städad?',
+  'Lämnat kuvert med bokningsbekräftelse och nycklar?',
+  'Har lägenheten säkerhetsdörr?',
+  'Om ja, finns skylt med instruktioner hur man låser?',
+  'Finns infosheet eller QR-kod på dörren?'
+];
+// Rader där Ja är avvikelsen: kommentarsfältet fälls ut på Ja och Ja färgas rött.
+const INVERT = new Set([
+  'Behöver gammal router bytas?',
+  'Är stolarna vingliga?'
+]);
+const badAnswer = c => INVERT.has(c.label) ? 'ja' : 'nej';
+const isCheck = () => !!S && S.type==='Upplåsning';
+function ensureChecks(){
+  if(isCheck() && !S.checks) S.checks = CHECKS.map(t=>({id:uid(), label:t, val:null, comment:'', photos:[]}));
+  if(S.checks) S.checks.forEach(c=>{ if(!c.photos) c.photos = [] });
+}
+const mkRoom = (name,fixed) => ({id:uid(), name, comment:'', photos:[], fixed:!!fixed});
+const keysRoom = () => S.rooms.find(r=>r.fixed);
+const keysOk = () => { const k = keysRoom(); return !!(k && k.photos.length) };
+
+function ref(){
+  const p = PREFIX[S.type]||'';
+  return `${p?p+' ':''}${S.address||''}${S.apt? ', '+S.apt:''}`.trim() || 'Ny besiktning';
+}
+function refOf(r){
+  const p = PREFIX[r.type]||'';
+  return `${p?p+' ':''}${r.address||'Utan adress'}${r.apt? ', '+r.apt:''}`.trim();
+}
+
+function log(txt){ if(!S) return; S.log.push({ts:Date.now(), txt}); paintTicker(); save() }
+function storeErr(){ toast('Telefonen nekade en skrivning. Ta en säkerhetskopia.') }
+async function flushSave(){
+  if(!S) return;
+  clearTimeout(saveTimer);
+  const ok = await store.set(K.insp(S.id), S);
+  if(!ok) return storeErr();
+  const idx = (await store.get(K.index)) || [];
+  const row = {id:S.id, address:S.address, apt:S.apt, type:S.type, created:S.created, locked:!!(S.signedAt||S.closedAt), signed:!!S.signedAt};
+  const i = idx.findIndex(x=>x.id===S.id);
+  if(i>=0) idx[i]=row; else idx.unshift(row);
+  if(!await store.set(K.index, idx)) storeErr();
+}
+function save(){
+  if(!S) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 600);
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') flushSave() });
+window.addEventListener('pagehide', flushSave);
+
+/* ---------- bilder ---------- */
+const TARGET = 720*1024;
+const bytesOf = d => Math.round((d.length - d.indexOf(',') - 1) * 0.75);
+function draw(src,w,h,maxDim,q){
+  const scale = Math.min(1, (maxDim||1600)/Math.max(w,h));
+  const c = document.createElement('canvas');
+  c.width=Math.max(1,Math.round(w*scale)); c.height=Math.max(1,Math.round(h*scale));
+  const ctx = c.getContext('2d',{alpha:false});
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  ctx.drawImage(src,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg', q||0.85);
+}
+async function decode(file){
+  try{ return await withTimeout(createImageBitmap(file,{imageOrientation:'from-image'}), 15000) }catch(e){}
+  try{ return await withTimeout(createImageBitmap(file), 15000) }catch(e){}
+  try{ return await withTimeout(new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=URL.createObjectURL(file) }), 15000) }catch(e){}
+  return null;
+}
+async function compressFile(file){
+  const src = await decode(file);
+  if(!src) return null;
+  const w = src.width||src.naturalWidth, h = src.height||src.naturalHeight;
+  let maxDim=1800, q=0.86, out=draw(src,w,h,maxDim,q), n=0;
+  while(bytesOf(out)>TARGET && n<6){
+    n++;
+    if(n===1) q = 0.8; else maxDim = Math.round(maxDim*0.85);
+    out = draw(src,w,h,maxDim,q);
+  }
+  if(src.close) src.close();
+  return {data:out, before:file.size, after:bytesOf(out)};
+}
+const target = id => (S.rooms||[]).find(r=>r.id===id) || (S.checks||[]).find(c=>c.id===id);
+async function savePhoto(roomId, data){
+  const room = target(roomId), pid = uid();
+  photoCache[pid] = data;
+  room.photos.push({id:pid, ts:Date.now()});
+  const ok = await store.set(K.photo(S.id,pid), data);
+  if(!ok){ storeErr(); room.photos = room.photos.filter(p=>p.id!==pid); delete photoCache[pid]; return false }
+  await flushSave();
+  return true;
+}
+async function addPhotos(roomId, files){
+  const list = [...files].filter(f=>!f.type || f.type.startsWith('image/'));
+  if(!list.length) return;
+  let before=0, after=0, fails=0, i=0;
+  for(const f of list){
+    i++;
+    if(list.length>2) toast(`Läser in ${i} av ${list.length}`);
+    try{
+      const r = await compressFile(f);
+      if(!r){ fails++; continue }
+      const ok = await savePhoto(roomId, r.data);
+      if(!ok){ fails++; continue }
+      before+=r.before; after+=r.after;
+      S.comp = S.comp || {in:0,out:0};
+      S.comp.in += r.before; S.comp.out += r.after;
+    }catch(e){ fails++ }
+  }
+  toast(`${list.length-fails} bilder · ${mb(before)} till ${mb(after)}${fails?` · ${fails} kunde inte läsas`:''}`);
+}
+function toast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t) }
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2800);
+}
+
+/* ---------- drag and drop ---------- */
+let dragRoomId = null;
+function dragStart(e,id){
+  dragRoomId = id;
+  e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',id);
+  const el = document.getElementById('rm_'+id); if(el) el.classList.add('dragging');
+}
+function dragEnd(){
+  dragRoomId = null;
+  document.querySelectorAll('.room').forEach(el=>el.classList.remove('dragging','drop'));
+}
+function overRoom(e,id){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = dragRoomId? 'move':'copy';
+  const el = document.getElementById('rm_'+id); if(el && id!==dragRoomId) el.classList.add('drop');
+}
+function leaveRoom(e,id){
+  if(e.currentTarget.contains(e.relatedTarget)) return;
+  const el = document.getElementById('rm_'+id); if(el) el.classList.remove('drop');
+}
+async function dropRoom(e,id){
+  e.preventDefault();
+  const el = document.getElementById('rm_'+id); if(el) el.classList.remove('drop');
+  if(dragRoomId){
+    const from = S.rooms.findIndex(r=>r.id===dragRoomId), to = S.rooms.findIndex(r=>r.id===id);
+    dragEnd();
+    if(from<0 || to<0 || from===to) return;
+    const [m] = S.rooms.splice(from,1); S.rooms.splice(to,0,m);
+    save(); render(); return;
+  }
+  const files = [...(e.dataTransfer.files||[])];
+  const vid = files.find(f=>f.type.startsWith('video/'));
+  if(vid) await saveVideo(vid);
+  await addPhotos(id, files);
+  render();
+}
+function overCard(e){ e.preventDefault(); e.currentTarget.classList.add('drop') }
+function leaveCard(e){ if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drop') }
+async function dropVideo(e){
+  e.preventDefault(); e.currentTarget.classList.remove('drop');
+  const f = [...(e.dataTransfer.files||[])].find(x=>x.type.startsWith('video/'));
+  if(!f) return toast('Släpp en videofil här');
+  await saveVideo(f); render();
+}
+window.addEventListener('dragover', e=>e.preventDefault());
+window.addEventListener('drop', e=>e.preventDefault());
+async function loadMedia(id){
+  for(const k of await store.keys('bp:ph:'+id+':')){
+    const v = await store.get(k); if(v) photoCache[k.split(':').pop()] = v;
+  }
+  if(S.video && S.video.stored){ const v = await store.get(K.video(id)); if(v) videoURL = v }
+}
+
+/* ---------- vyer ---------- */
+function paintTicker(){
+  if(!S || !S.log.length){ $('#tickerTxt').textContent='Händelselogg'; $('#tickerCnt').textContent=''; return }
+  const last = S.log[S.log.length-1];
+  $('#tickerTxt').textContent = clock(new Date(last.ts)) + '  ' + last.txt;
+  $('#tickerCnt').textContent = S.log.length;
+}
+const brand = () => LOGO ? `<img class="logo" src="${LOGO}" alt="Beaps">` : `<span class="logo-fallback">Beaps</span>`;
+function topbar(title, sub, pct, back){
+  return `<div class="top"><div class="row">
+    ${back?`<button class="back" onclick="${back}" aria-label="Tillbaka">‹</button>`:''}
+    <div style="min-width:0"><div class="eyebrow">${esc(sub||'')}</div><h1>${esc(title)}</h1></div>${brand()}
+  </div>${pct!=null?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}</div>`;
+}
+function leave(){ flushSave(); S=null; photoCache={}; videoURL=null; openRoom=null; view='start'; renderStart(); window.scrollTo(0,0) }
+
+async function render(){
+  const app=$('#app'), bar=$('#bar');
+  if(view==='start') return renderStart();
+
+  if(view==='object'){
+    app.innerHTML = topbar('Objekt','Steg 1 av 3',20,'leave()') + `<div class="wrap">
+      <div class="card">
+        <div class="field"><label class="eyebrow">Typ av besiktning</label>
+          <div class="chips">${Object.keys(PREFIX).map(t=>
+            `<button class="chip ${S.type===t?'on':''}" onclick="setType('${t}')">${TYPE_LABEL[t]||t}${PREFIX[t]?' · '+PREFIX[t]:''}</button>`).join('')}</div></div>
+        <div class="field"><label class="eyebrow">Adress</label><input id="f_address" value="${esc(S.address)}" autocomplete="off"></div>
+        <div class="field"><label class="eyebrow">Lägenhetsnummer</label><input id="f_apt" value="${esc(S.apt)}"></div>
+      </div>
+      <div class="card">
+        <div class="field"><label class="eyebrow">Besiktningsman</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
+        ${isCheck()? '' : `
+        <div class="field"><label class="eyebrow">Motpart, namn</label><input id="f_cname" value="${esc(S.counter.name)}"></div>
+        <div class="field"><label class="eyebrow">Motpart, företag eller roll</label><input id="f_crole" value="${esc(S.counter.role)}"></div>`}
+      </div>
+    </div>`;
+    bindRef('f_address','address'); bindRef('f_apt','apt');
+    bindPath('f_iname','inspector','name'); bindPath('f_cname','counter','name'); bindPath('f_crole','counter','role');
+    bar.innerHTML = `<button class="btn" onclick="go('rooms')">${isCheck()?'Till checklistan':'Till rummen'}</button>`;
+    return;
+  }
+
+  if(view==='rooms' && isCheck()){
+    const done = S.checks.filter(c=>c.val).length;
+    app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${S.checks.length} ifyllda`,
+      20+Math.round(done/S.checks.length*65), 'leave()') + `<div class="wrap">
+      ${S.checks.map(checkRow).join('')}
+    </div>`;
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">Objekt</button>
+      <button class="btn" onclick="go('sign')">Klar</button>`;
+    return;
+  }
+
+  if(view==='rooms'){
+    const started = S.rooms.filter(r=>r.photos.length||r.comment).length;
+    app.innerHTML = topbar(ref(), `${started}/${S.rooms.length} påbörjade`, 20+Math.round(started/Math.max(1,S.rooms.length)*65), 'leave()') +
+    `<div class="wrap">
+      <div class="card">
+        <button class="btn" onclick="openCam(S.rooms[0]&&S.rooms[0].id)">Fotoläge</button>
+        <div class="hint">Släpp bilder på ett rum för att lägga till dem. Dra i handtaget för att flytta rummet.</div>
+      </div>
+      ${S.rooms.map(roomCard).join('')}
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:9px">Lägg till rum</div>
+        <div class="addrow" style="margin-bottom:10px">
+          <input id="newroom" placeholder="Eget namn" onkeydown="if(event.key==='Enter')addCustom()">
+          <button class="btn small" onclick="addCustom()">Lägg till</button>
+        </div>
+        <div class="chips">${EXTRA.map(n=>`<button class="chip" onclick="addRoom('${n}')">+ ${n}</button>`).join('')}</div>
+      </div>
+      <div class="card" ondragover="overCard(event)" ondragleave="leaveCard(event)" ondrop="dropVideo(event)">
+        <div class="eyebrow" style="margin-bottom:9px">Lägg till video</div>
+        ${videoURL? `<video src="${videoURL}" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>
+          <div class="hint">${stamp(new Date(S.video.ts))} · ${esc(S.video.size?mb(S.video.size):'')}${S.video.stored?'':' · för stor för att sparas'}</div>
+          <button class="btn ghost small" style="margin-top:10px" onclick="delVideo()">Ta bort video</button>`
+        : `<div class="hint" style="margin:0 0 10px">Spela in en genomgång av hela lägenheten.</div>
+           <button class="btn ghost" onclick="openCam(S.rooms[0]&&S.rooms[0].id,true)">Lägg till video</button>`}
+      </div>
+    </div>`;
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">Objekt</button>
+      <button class="btn" onclick="go('sign')">Signera</button>`;
+    return;
+  }
+
+  if(view==='sign'){
+    const needSig = S.type==='Inflytt' || S.type==='Utflytt';
+    const locked = !!(S.signedAt || S.closedAt);
+
+    if(isCheck()){
+      const ja = S.checks.filter(c=>c.val==='ja').length;
+      const nej = S.checks.filter(c=>c.val==='nej').length;
+      const tom = S.checks.filter(c=>!c.val).length;
+      const avvik = S.checks.filter(c=>c.val && c.val===badAnswer(c));
+      app.innerHTML = topbar(locked?'Klart':'Klar att skicka','Shortstay upplåsning',96,'leave()') + `<div class="wrap">
+        <div class="card">
+          <h2 style="margin:0 0 8px">${esc(ref())}</h2>
+          <div style="font-size:14px;color:var(--ink2)">
+            ${ja} ja · ${nej} nej · ${tom} obesvarade · ${S.checks.filter(c=>c.comment).length} kommentarer · ${S.checks.reduce((a,c)=>a+(c.photos?c.photos.length:0),0)} bilder
+          </div>
+          <div class="hint">Utförd av ${esc(S.inspector.name||'namn saknas')}</div>
+        </div>
+        ${avvik.length? `<div class="card">
+          <div class="eyebrow" style="margin-bottom:8px">Avvikelser</div>
+          ${avvik.map(c=>
+            `<div style="font-size:14px;margin-bottom:6px">· ${esc(c.label)}${c.comment? ' <span style="color:var(--ink2)">'+esc(c.comment)+'</span>':''}</div>`).join('')}
+        </div>`:''}
+        ${locked? `<div class="card">
+          <span class="locknote">Avslutad ${stamp(new Date(S.closedAt||S.signedAt))}</span>
+          <div class="hint">Listan är låst. Lås upp om något behöver rättas.</div>
+          <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">Lås upp</button>
+        </div>`:''}
+      </div>`;
+      bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">Lista</button>
+        <button class="btn" onclick="sendToCamilla()">${locked?'Skicka igen':'Skicka till Camilla'}</button>`;
+      return;
+    }
+
+    app.innerHTML = topbar(locked?'Avslutat':'Avslut','Steg 3 av 3',96,'leave()') + `<div class="wrap">
+      <div class="card">
+        <div class="eyebrow">Sammanfattning</div>
+        <h2 style="margin:6px 0 8px">${esc(ref())}</h2>
+        <div style="font-size:14px;color:var(--ink2)">
+          ${S.rooms.length} utrymmen · ${S.rooms.reduce((a,r)=>a+r.photos.length,0)} bilder · ${S.rooms.filter(r=>r.comment).length} kommentarer${S.video?' · video bifogad':''}
+        </div>
+        ${S.comp&&S.comp.in? `<div class="hint">Bilder komprimerade från ${mb(S.comp.in)} till ${mb(S.comp.out)}.</div>`:''}
+        <div class="hint">${needSig? 'Signatur krävs för '+esc(S.type)+'.' : esc(S.type)+' kan avslutas utan signatur.'}</div>
+        <button class="btn ghost small" style="margin-top:12px" onclick="backup()">Säkerhetskopia</button>
+      </div>
+      ${locked? `<div class="card">
+        <span class="locknote">${S.signedAt? 'Signerat och låst '+stamp(new Date(S.signedAt)) : 'Avslutat utan signatur '+stamp(new Date(S.closedAt))}</span>
+        <div class="hint">Protokollet är låst för ändringar. Lås upp om något behöver rättas, då tas eventuella signaturer bort och det noteras i loggen.</div>
+        <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">Lås upp</button>
+      </div>`:''}
+      <div class="card">
+        <div class="eyebrow">Besiktningsman</div>
+        <h2 style="margin:4px 0 10px">${esc(S.inspector.name||'Namn saknas')}</h2>
+        ${locked && !S.sig.inspector? '<div class="hint">Ingen signatur.</div>' : sigBlock('inspector')}
+      </div>
+      <div class="card">
+        <div class="eyebrow">Motpart</div>
+        <h2 style="margin:4px 0 2px">${esc(S.counter.name||'Namn saknas')}</h2>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${esc(S.counter.role||'')}</div>
+        ${locked && !S.sig.counter? '<div class="hint">Ingen signatur.</div>' : sigBlock('counter')}
+      </div>
+      ${locked? '' : `<div class="card">
+        <button class="btn ghost" onclick="closeUnsigned()">Avsluta utan signatur</button>
+        <div class="hint">Låser protokollet med tomma signaturrader. Används för skade- och årsbesiktningar där motparten inte är på plats.</div>
+      </div>`}
+    </div>`;
+    if(!locked) ['inspector','counter'].forEach(w=>{ if(!S.sig[w]) initPad(w) });
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">Rum</button>
+      <button class="btn ghost small" onclick="doExport()">Dela</button>
+      <button class="btn" onclick="sendPdf()">Mejla PDF</button>`;
+    return;
+  }
+}
+
+function checkRow(c){
+  const bad = badAnswer(c);
+  const show = c.val===bad || c.comment || c.open;
+  const cls = v => c.val===v ? (v===bad ? ' on no' : ' on') : '';
+  return `<div class="crow${show?' open':''}">
+    <div class="clabel">${esc(c.label)}</div>
+    <div class="cbtns">
+      <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">Ja</button>
+      <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">Nej</button>
+      <span class="clinks">
+        <button class="addc" onclick="openCheckComment('${c.id}')">Kommentar</button>
+        <button class="addc" onclick="openCam('${c.id}')">Bild</button>
+      </span>
+    </div>
+    ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="Kommentar">`:''}
+    ${c.photos && c.photos.length? `<div class="thumbs">
+      ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
+          <div class="x" onclick="delPhoto('${c.id}','${ph.id}')">×</div></div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+function saveCheckComments(){
+  if(!S || !S.checks) return;
+  S.checks.forEach(c=>{
+    const el = document.getElementById('k_'+c.id);
+    if(el && el.value !== c.comment) c.comment = el.value;
+  });
+}
+function setCheck(id,v){
+  saveCheckComments();
+  const c = S.checks.find(x=>x.id===id);
+  c.val = c.val===v? null : v;
+  save(); render();
+}
+function openCheckComment(id){
+  const open = document.getElementById('k_'+id);
+  if(open) return open.focus();
+  saveCheckComments();
+  S.checks.find(x=>x.id===id).open = true;
+  render();
+  const el = document.getElementById('k_'+id); if(el) el.focus();
+}
+
+function roomCard(r){
+  const isOpen = openRoom===r.id, filled = r.photos.length||r.comment;
+  return `<div class="room" id="rm_${r.id}"
+      ondragover="overRoom(event,'${r.id}')" ondragleave="leaveRoom(event,'${r.id}')" ondrop="dropRoom(event,'${r.id}')">
+    <div class="head">
+      <span class="handle" draggable="true" ondragstart="dragStart(event,'${r.id}')" ondragend="dragEnd()" title="Dra för att flytta">⣿</span>
+      <button class="headmain" onclick="toggleRoom('${r.id}')">
+        <span class="dot ${filled?'filled':''}"></span>
+        <span style="min-width:0"><b>${esc(r.name)}</b>${r.comment?`<div class="sub">${esc(r.comment)}</div>`:''}</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink2)">${r.photos.length? r.photos.length+' bild ':''}${isOpen?'▲':'▼'}</span>
+      </button>
+      <button class="icon" onclick="openCam('${r.id}')" aria-label="Fotografera ${esc(r.name)}">◉</button>
+      <button class="del" onclick="delRoom('${r.id}')" aria-label="Ta bort ${esc(r.name)}">×</button>
+    </div>
+    ${isOpen?`<div class="body">
+      <textarea id="c_${r.id}" placeholder="${r.fixed?'Antal och typ av nycklar, brickor, portkod':'Kommentar'}">${esc(r.comment)}</textarea>
+      <div class="thumbs">
+        ${r.photos.map(p=>`<div class="thumb"><img src="${photoCache[p.id]||''}" alt="">
+            <div class="ts">${clock(new Date(p.ts))}</div>
+            <div class="x" onclick="delPhoto('${r.id}','${p.id}')">×</div></div>`).join('')}
+        <button class="thumb" style="display:flex;align-items:center;justify-content:center;border-style:dashed;background:#fafbfb;color:var(--ink2);font-size:13px" onclick="openCam('${r.id}')">+ Bild</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn ghost small" onclick="openCam('${r.id}')">Fotoläge</button>
+        <button class="btn ghost small" onclick="renameRoom('${r.id}')">Döp om</button>
+      </div>
+    </div>`:''}
+  </div>`;
+}
+
+/* ---------- fotoläge ---------- */
+let cam = {open:false, idx:0, stream:null, rec:null, chunks:[], t0:0, timer:null};
+
+async function openCam(roomId, startVideo){
+  const list = camItems();
+  if(!S || !list.length) return;
+  saveOpenComment(); saveCheckComments();
+  cam.idx = Math.max(0, list.findIndex(r=>r.id===roomId));
+  cam.open = true;
+  const el = document.createElement('div');
+  el.className='cam'; el.id='cam';
+  el.innerHTML = `
+    <div class="camtop">
+      <span id="camtitle" style="font-weight:600"></span>
+      <button onclick="closeCam()" style="font-size:15px">Klar</button>
+    </div>
+    <div class="view">
+      <video id="camview" playsinline muted autoplay></video>
+      <div class="flash" id="camflash"></div>
+      <div class="reclabel hidden" id="camrec">REC 0:00</div>
+      <div id="camfb" class="hidden" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#C9CDCE;font-size:14px">
+        <div style="max-width:310px;line-height:1.5">
+          <b>Livekameran startade inte</b><br>
+          <span id="camerr" style="color:#9AA0A1"></span>
+        </div>
+        <button class="btn" style="background:#fff;color:#000;max-width:260px" onclick="retryCam()">Försök igen</button>
+        <label class="btn" style="background:#fff;color:#000;max-width:260px">Välj bilder
+          <input type="file" accept="image/*" multiple class="hidden" id="fbphoto"></label>
+        <label class="btn ghost" style="background:transparent;color:#fff;border-color:#555;max-width:260px">Ta en bild
+          <input type="file" accept="image/*" capture="environment" class="hidden" id="fbshot"></label>
+        <label class="btn ghost" id="fbvideolabel" style="background:transparent;color:#fff;border-color:#555;max-width:260px">Lägg till video
+          <input type="file" accept="video/*" capture="environment" class="hidden" id="fbvideo"></label>
+      </div>
+    </div>
+    <div class="roomrow" id="camrooms"></div>
+    <div class="strip" id="camstrip"></div>
+    <div class="ctrl">
+      <button class="recbtn" id="camrecbtn" onclick="toggleRec()" aria-label="Spela in video"><i></i></button>
+      <button class="shutter" id="camshot" onclick="shoot()" aria-label="Ta bild"></button>
+      <span class="camcount" id="camcount"></span>
+    </div>`;
+  document.body.appendChild(el);
+  ['fbphoto','fbshot'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', async e=>{
+      await addPhotos(curRoom().id, e.target.files); paintCam();
+    });
+  });
+  document.getElementById('fbvideo').addEventListener('change', async e=>{
+    if(e.target.files[0]) await saveVideo(e.target.files[0]); paintCam();
+  });
+  paintCam();
+  await startStream(startVideo);
+}
+async function startStream(startVideo){
+  const fb = document.getElementById('camfb');
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw Object.assign(new Error('no api'), {name:'NoApi'});
+    }
+    cam.stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'}, width:{ideal:1920}}
+    });
+    const v = document.getElementById('camview');
+    v.srcObject = cam.stream; await v.play();
+    if(fb) fb.classList.add('hidden');
+    document.getElementById('camshot').style.opacity=1;
+    document.getElementById('camrecbtn').style.opacity=1;
+    if(startVideo) setTimeout(toggleRec, 400);
+    return true;
+  }catch(e){
+    if(fb){
+      fb.classList.remove('hidden');
+      document.getElementById('camerr').textContent = camReason(e);
+    }
+    document.getElementById('camshot').style.opacity=.3;
+    document.getElementById('camrecbtn').style.opacity=.3;
+    return false;
+  }
+}
+function camReason(e){
+  const n = e && e.name;
+  if(n==='NotAllowedError') return 'Telefonen nekade tillgång. Öppna Inställningar, Safari, Kamera och välj Tillåt för den här adressen. Kör du appen från hemskärmen kan du behöva ta bort ikonen och lägga till den igen efteråt.';
+  if(n==='NotFoundError' || n==='OverconstrainedError') return 'Ingen kamera hittades på enheten.';
+  if(n==='NotReadableError') return 'Kameran används av en annan app just nu. Stäng den och försök igen.';
+  if(n==='SecurityError' || n==='NoApi') return 'Kameran kräver en säker adress. Öppna appen via https, inte som lokal fil.';
+  return 'Okänt fel' + (n? ' ('+n+')' : '') + '. Använd knapparna nedan så länge.';
+}
+async function retryCam(){ await startStream(false) }
+async function ensureAudio(){
+  if(!cam.stream || cam.stream.getAudioTracks().length) return;
+  try{
+    const a = await navigator.mediaDevices.getUserMedia({audio:true});
+    a.getAudioTracks().forEach(t=>cam.stream.addTrack(t));
+  }catch(e){}
+}
+const camItems = () => ((isCheck()? S.checks : S.rooms) || []);
+const curRoom = () => camItems()[cam.idx];
+const shortName = t => (t||'').length>24? t.slice(0,23)+'…' : (t||'');
+function paintCam(){
+  if(!cam.open) return;
+  const r = curRoom();
+  document.getElementById('camtitle').textContent = shortName(r.name || r.label);
+  document.getElementById('camcount').textContent = r.photos.length? r.photos.length+' st':'';
+  document.getElementById('camrecbtn').style.visibility = isCheck()? 'hidden':'visible';
+  const fbv = document.getElementById('fbvideolabel'); if(fbv) fbv.style.display = isCheck()? 'none':'flex';
+  document.getElementById('camrooms').innerHTML = camItems().map((x,i)=>
+    `<button class="rchip ${i===cam.idx?'on':''}" onclick="setCamRoom(${i})">${esc(shortName(x.name || x.label))}${x.photos.length?' '+x.photos.length:''}</button>`).join('');
+  document.getElementById('camstrip').innerHTML = r.photos.slice().reverse().map(p=>
+    `<div class="t"><img src="${photoCache[p.id]||''}"><span onclick="delPhoto('${r.id}','${p.id}',true)">×</span></div>`).join('');
+  const on = document.querySelector('#camrooms .rchip.on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
+}
+function setCamRoom(i){ cam.idx=i; paintCam() }
+function shoot(){
+  const v = document.getElementById('camview');
+  if(!v || !v.videoWidth) return;
+  savePhoto(curRoom().id, draw(v, v.videoWidth, v.videoHeight)).then(paintCam);
+  const f = document.getElementById('camflash');
+  f.style.opacity=.85; setTimeout(()=>f.style.opacity=0,90);
+  if(navigator.vibrate) navigator.vibrate(12);
+}
+async function toggleRec(){
+  if(!cam.stream) return;
+  const btn = document.getElementById('camrecbtn'), lab = document.getElementById('camrec');
+  if(cam.rec){ cam.rec.stop(); return }
+  await ensureAudio();
+  try{
+    cam.chunks=[];
+    const mr = new MediaRecorder(cam.stream, {videoBitsPerSecond:900000});
+    mr.ondataavailable = e => e.data.size && cam.chunks.push(e.data);
+    mr.onstop = async ()=>{
+      clearInterval(cam.timer); cam.rec=null;
+      btn.classList.remove('on'); lab.classList.add('hidden');
+      await saveVideo(new Blob(cam.chunks,{type:mr.mimeType}), Math.round((Date.now()-cam.t0)/1000));
+      paintCam();
+    };
+    mr.start(1000); cam.rec=mr; cam.t0=Date.now();
+    btn.classList.add('on'); lab.classList.remove('hidden');
+    cam.timer = setInterval(()=>{
+      const s = Math.round((Date.now()-cam.t0)/1000);
+      lab.textContent = `REC ${Math.floor(s/60)}:${pad(s%60)}`;
+      if(s>=180) cam.rec && cam.rec.stop();
+    },500);
+  }catch(e){ alert('Videoinspelning stöds inte i den här webbläsaren.') }
+}
+async function saveVideo(blob, dur){
+  if(videoURL && videoURL.startsWith('blob:')) URL.revokeObjectURL(videoURL);
+  videoURL = URL.createObjectURL(blob);
+  S.video = {ts:Date.now(), size:blob.size, dur:dur||null, stored:false};
+  const limit = NATIVE ? 3.4*1048576 : 400*1048576;
+  if(blob.size < limit){
+    const data = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob) });
+    if(await store.set(K.video(S.id), data)){ S.video.stored = true; videoURL = data }
+  }
+  save();
+}
+function delVideo(){
+  if(!confirm('Ta bort videon?')) return;
+  store.del(K.video(S.id)); S.video=null; videoURL=null; save(); render();
+}
+function closeCam(){
+  cam.open=false;
+  if(cam.rec) try{cam.rec.stop()}catch(e){}
+  clearInterval(cam.timer);
+  if(cam.stream) cam.stream.getTracks().forEach(t=>t.stop());
+  cam.stream=null;
+  const el=document.getElementById('cam'); if(el) el.remove();
+  render();
+}
+
+/* ---------- signatur ---------- */
+function sigBlock(who){
+  const s = S.sig[who];
+  if(s) return `<div class="sigdone"><img src="${s.data}" alt="signatur"></div>
+    <div class="hint" style="font-family:var(--mono);font-size:11px">Signerat ${stamp(new Date(s.ts))}</div>`;
+  return `<canvas class="sigpad" id="pad_${who}"></canvas>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn ghost small" onclick="clearPad('${who}')">Rensa</button>
+      <button class="btn small" onclick="commitPad('${who}')">Godkänn signatur</button>
+    </div>`;
+}
+const pads = {};
+function initPad(who){
+  const c = document.getElementById('pad_'+who); if(!c) return;
+  const dpr = window.devicePixelRatio||1, r = c.getBoundingClientRect();
+  c.width=r.width*dpr; c.height=r.height*dpr;
+  const x = c.getContext('2d'); x.scale(dpr,dpr);
+  x.lineWidth=2.2; x.lineCap='round'; x.lineJoin='round'; x.strokeStyle='#16325C';
+  let drawing=false, empty=true;
+  const pt = e => { const b=c.getBoundingClientRect(); return [e.clientX-b.left, e.clientY-b.top] };
+  c.addEventListener('pointerdown', e=>{ drawing=true; empty=false; c.setPointerCapture(e.pointerId); const[a,b]=pt(e); x.beginPath(); x.moveTo(a,b) });
+  c.addEventListener('pointermove', e=>{ if(!drawing)return; const[a,b]=pt(e); x.lineTo(a,b); x.stroke() });
+  c.addEventListener('pointerup', ()=>drawing=false);
+  c.addEventListener('pointercancel', ()=>drawing=false);
+  pads[who]={c, isEmpty:()=>empty, reset:()=>{ x.clearRect(0,0,c.width,c.height); empty=true }};
+}
+function clearPad(w){ pads[w] && pads[w].reset() }
+async function sendToCamilla(){
+  saveCheckComments();
+  const tom = S.checks.filter(c=>!c.val).length;
+  if(tom && !confirm(`${tom} punkter är obesvarade. Skicka ändå?`)) return;
+  if(!S.closedAt){ S.closedAt = Date.now(); log('Upplåsning avslutad'); await flushSave(); render() }
+  toast('Bygger PDF');
+  const out = await buildPdf();
+  if(!out) return legacyPrint();
+  toast('Skickar');
+  const m = await mailPdf(out.blob, out.name);
+  if(m.ok){ toast('Mejlad till ' + mailTarget()); return }
+  if(m.reason==='quota') toast('Dagens mejlgräns nådd, öppnar delning');
+  else if(m.reason==='size') toast('För stor för mejl, öppnar delning');
+  await sharePdf(out.blob, out.name);
+}
+function closeUnsigned(){
+  const needSig = S.type==='Inflytt' || S.type==='Utflytt';
+  const msg = needSig
+    ? `Signatur krävs normalt för ${S.type}. Avsluta ändå utan signatur?`
+    : 'Avsluta protokollet utan signatur?';
+  if(!confirm(msg)) return;
+  S.closedAt = Date.now();
+  log('Avslutat utan signatur');
+  log('Protokollet låst');
+  flushSave(); render();
+}
+function unlock(){
+  if(!confirm(isCheck()? 'Lås upp listan så den går att ändra igen?' : 'Lås upp protokollet? Signaturerna tas bort och det noteras i loggen.')) return;
+  S.signedAt = null; S.closedAt = null; S.sig = {};
+  log(isCheck()? 'Listan upplåst' : 'Protokollet upplåst, signaturer borttagna');
+  flushSave(); view='rooms'; render(); window.scrollTo(0,0);
+}
+function commitPad(w){
+  const p = pads[w];
+  if(!p || p.isEmpty()) return alert('Rita signaturen i rutan först.');
+  S.sig[w] = {data:p.c.toDataURL('image/png'), ts:Date.now()};
+  log(`Signerad av ${w==='inspector'? (S.inspector.name||'besiktningsman') : (S.counter.name||'motpart')}`);
+  if(S.sig.inspector && S.sig.counter && !S.signedAt){ S.signedAt=Date.now(); log('Protokollet låst') }
+  save(); render();
+}
+
+/* ---------- actions ---------- */
+function go(v){
+  saveOpenComment(); saveCheckComments();
+  document.body.classList.remove('start');
+  $('#bar').className = 'bar';
+  view=v; render(); window.scrollTo(0,0);
+}
+function setType(t){ S.type=t; ensureChecks(); save(); render() }
+function toggleRoom(id){ saveOpenComment(); openRoom = openRoom===id? null:id; render() }
+function saveOpenComment(){
+  if(!openRoom || !S) return;
+  const el=document.getElementById('c_'+openRoom), r=S.rooms.find(x=>x.id===openRoom);
+  if(el && r && el.value!==r.comment){ r.comment=el.value; save() }
+}
+function addRoom(name){ if(!name) return; S.rooms.push(mkRoom(name)); save(); render() }
+function addCustom(){ const el=document.getElementById('newroom'); if(el&&el.value.trim()){ const v=el.value.trim(); el.value=''; addRoom(v) } }
+function renameRoom(id){ const r=S.rooms.find(x=>x.id===id), n=prompt('Nytt namn', r.name); if(!n) return; r.name=n; save(); render() }
+function delRoom(id){
+  const r=S.rooms.find(x=>x.id===id);
+  if((r.photos.length||r.comment) && !confirm(`Ta bort ${r.name} med innehåll?`)) return;
+  r.photos.forEach(p=>store.del(K.photo(S.id,p.id)));
+  S.rooms = S.rooms.filter(x=>x.id!==id);
+  if(openRoom===id) openRoom=null;
+  if(cam.idx >= S.rooms.length) cam.idx = Math.max(0,S.rooms.length-1);
+  save(); render();
+}
+function delPhoto(rid,pid,inCam){
+  const r=target(rid);
+  r.photos = r.photos.filter(p=>p.id!==pid);
+  store.del(K.photo(S.id,pid)); save();
+  inCam? paintCam() : render();
+}
+function bindPlain(id,key){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ S[key]=el.value; save() }) }
+function bindRef(id,key){
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener('input', ()=>{ S[key]=el.value });
+  el.addEventListener('change', save);
+}
+function bindPath(id,a,b){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ S[a][b]=el.value; save() }) }
+document.addEventListener('focusout', e=>{
+  if(e.target.id && e.target.id.startsWith('c_')) saveOpenComment();
+  if(e.target.id && e.target.id.startsWith('k_')){ saveCheckComments(); save() }
+});
+
+async function renderStart(){
+  document.body.classList.add('start');
+  const idx = (await store.get(K.index)) || [];
+  $('#app').innerHTML = `
+    <div class="hero">
+      <img class="hlogo" src="${LOGO_START}" alt="Beautiful Apartments Besiktningar">
+    </div>
+    <div class="wrap" style="padding-top:0">
+      ${idx.length? `<div class="listhead">
+          <span class="eyebrow">${idx.length} protokoll</span>
+          <button onclick="toggleEdit()">${editList?'Klar':'Redigera'}</button>
+        </div>` : ''}
+      ${idx.length? idx.map(r=>`<div class="rowwrap">
+          <button class="list-item" onclick="openInsp('${r.id}')">
+            <span class="dot ${r.locked?'filled':''}"></span>
+            <span style="min-width:0"><b>${esc(refOf(r))}</b>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--ink2)">
+              ${stamp(new Date(r.created))} · ${r.locked? (r.signed?'signerat':'avslutat'):'utkast'}</div></span>
+            <span class="chev">›</span>
+          </button>
+          ${editList? `<button class="delbtn" onclick="delInsp('${r.id}')" aria-label="Radera">×</button>`:''}
+        </div>`).join('')
+        : `<div class="empty">
+             <div style="font-size:15px;font-weight:600;margin-bottom:4px">Ingen besiktning påbörjad</div>
+             <div class="hint" style="margin:0">Tryck på knappen nedan för att skapa den första.</div>
+           </div>`}
+      ${editList && idx.length? `<button class="btn ghost small" style="width:100%;margin-top:6px;color:var(--rec)" onclick="delAll()">Radera alla ${idx.length} protokoll</button>`:''}
+    </div>`;
+  $('#bar').className = 'bar raised';
+  $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">Ny besiktning</button>`;
+  paintTicker();
+}
+let editList = false;
+function toggleEdit(){ editList = !editList; renderStart() }
+async function wipe(id){
+  for(const k of await store.keys('bp:ph:'+id+':')) await store.del(k);
+  await store.del(K.video(id));
+  await store.del(K.insp(id));
+}
+async function delInsp(id){
+  const idx = (await store.get(K.index)) || [];
+  const row = idx.find(x=>x.id===id) || {};
+  if(!confirm(`Radera ${refOf(row)}? Bilder och video försvinner och går inte att få tillbaka.`)) return;
+  await wipe(id);
+  await store.set(K.index, idx.filter(x=>x.id!==id));
+  toast('Raderat');
+  renderStart();
+}
+async function delAll(){
+  const idx = (await store.get(K.index)) || [];
+  if(!confirm(`Radera alla ${idx.length} protokoll i den här telefonen?`)) return;
+  if(!confirm('Säkert? Det går inte att ångra.')) return;
+  for(const r of idx) await wipe(r.id);
+  await store.set(K.index, []);
+  editList = false;
+  toast('Allt raderat');
+  renderStart();
+}
+async function newInsp(){
+  editList = false;
+  S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
+        inspector:{name:''}, counter:{name:'',role:''},
+        rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
+        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signedAt:null, closedAt:null, log:[] };
+  photoCache={}; videoURL=null; openRoom=null;
+  ensureChecks(); log('Besiktning skapad'); save(); go('object');
+}
+async function openInsp(id){
+  editList = false;
+  S = await store.get(K.insp(id));
+  if(!S) return alert('Kunde inte läsa besiktningen.');
+  photoCache={}; videoURL=null; openRoom=null;
+  if(!S.rooms.some(r=>r.fixed)) S.rooms.push(mkRoom(KEYS_ROOM,true));
+  if(!S.comp) S.comp = {in:0,out:0};
+  ensureChecks();
+  await loadMedia(id); paintTicker(); go((S.signedAt||S.closedAt)?'sign':'rooms');
+}
+function openLog(){
+  if(!S) return;
+  const el = document.createElement('div'); el.className='sheet';
+  el.innerHTML = topbar('Händelselogg', S.log.length+' poster') + `<div class="wrap"><div class="card">
+    ${S.log.map(l=>`<div class="logline"><b>${stamp(new Date(l.ts))}</b><span>${esc(l.txt)}</span></div>`).join('')}
+  </div><button class="btn ghost" onclick="this.closest('.sheet').remove()">Stäng</button></div>`;
+  document.body.appendChild(el);
+}
+
+/* ---------- PDF ---------- */
+function loadJsPDF(){
+  if(window.jspdf) return Promise.resolve(true);
+  return new Promise(res=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = ()=>res(!!window.jspdf); s.onerror = ()=>res(false);
+    document.head.appendChild(s);
+  });
+}
+const sizeCache = {};
+function imgSize(data){
+  if(sizeCache[data]) return Promise.resolve(sizeCache[data]);
+  return new Promise(res=>{
+    const im = new Image();
+    im.onload = ()=>{ sizeCache[data] = {w:im.naturalWidth, h:im.naturalHeight}; res(sizeCache[data]) };
+    im.onerror = ()=>res({w:4,h:3});
+    im.src = data;
+  });
+}
+function fileName(){
+  return (ref()||'Besiktning').replace(/[\/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() + '.pdf';
+}
+async function buildPdf(){
+  if(!await loadJsPDF()){ toast('Kunde inte ladda PDF-motorn, använder utskrift'); return null }
+  const doc = new window.jspdf.jsPDF({unit:'pt', format:'a4', compress:true});
+  const M = 34, W = 595, H = 842, CW = W - M*2;
+  let y = M;
+  const need = h => { if(y + h > H - 46){ doc.addPage(); y = M } };
+  const line = (txt, size, style, gap) => {
+    doc.setFont('helvetica', style||'normal'); doc.setFontSize(size||10);
+    const rows = doc.splitTextToSize(txt, CW);
+    need(rows.length*(size||10)*1.25);
+    doc.text(rows, M, y + (size||10));
+    y += rows.length*(size||10)*1.25 + (gap||0);
+  };
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text(isCheck()? 'SHORTSTAY UPPLÅSNING' : 'BESIKTNINGSPROTOKOLL', M, y+8);
+  doc.setFontSize(8);
+  doc.text(isCheck()? [stamp(new Date(S.created)), 'ID '+S.id]
+                    : [TYPE_LABEL[S.type]||S.type, stamp(new Date(S.created)), 'ID '+S.id],
+           W-M, y+8, {align:'right'});
+  y += 22;
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text(ref(), M, y+12); y += 24;
+  doc.setDrawColor(20); doc.setLineWidth(1.2); doc.line(M, y, W-M, y); y += 16;
+
+  const keys = isCheck()? null : S.rooms.find(r=>r.fixed || r.name.toLowerCase().startsWith('nyck'));
+  line(`Besiktningsman: ${S.inspector.name||'-'}`, 10);
+  if(!isCheck()) line(`Motpart: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
+  if(keys) line(`Nycklar: ${keys.comment||'-'}, ${keys.photos.length} bilder`, 10);
+  if(S.video) line(`Video bifogad ${stamp(new Date(S.video.ts))}`, 10);
+  y += 8;
+
+  if(isCheck()){
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('Checklista upplåsning', M, y+10); y += 22;
+    const IND = 14, cw = (CW - IND - 12)/2, maxH = 260, usable = H - 46 - M;
+    for(const c of S.checks){
+      // mät blocket först så att fråga, kommentar och bilder hålls ihop
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      const rows = doc.splitTextToSize(c.label, CW-80);
+      let blockH = rows.length*13 + 8;
+      let cmt = null;
+      if(c.comment){
+        doc.setFont('helvetica','italic'); doc.setFontSize(9);
+        cmt = doc.splitTextToSize(c.comment, CW-24);
+        blockH += cmt.length*11 + 2;
+      }
+      const shots = [];
+      for(const ph of (c.photos||[])){
+        const data = photoCache[ph.id]; if(!data) continue;
+        const sz = await imgSize(data);
+        let iw = cw, ih = cw * sz.h / sz.w;
+        if(ih > maxH){ ih = maxH; iw = ih * sz.w / sz.h }
+        shots.push({data, iw, ih});
+      }
+      for(let i=0;i<shots.length;i+=2){
+        blockH += Math.max(shots[i].ih, shots[i+1]? shots[i+1].ih : 0) + 8;
+      }
+      need(Math.min(blockH + 6, usable));
+
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.text(rows, M, y+9);
+      doc.setFont('helvetica','bold');
+      doc.text(c.val? (c.val==='ja'?'JA':'NEJ') : '-', W-M, y+9, {align:'right'});
+      let h = rows.length*13;
+      if(cmt){
+        doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
+        doc.text(cmt, M+14, y+h+9); doc.setTextColor(0);
+        h += cmt.length*11 + 2;
+      }
+      y += h + 6;
+
+      for(let i=0;i<shots.length;i+=2){
+        const pair = [shots[i], shots[i+1]].filter(Boolean);
+        const rowH = Math.max(...pair.map(x=>x.ih));
+        need(rowH + 10);
+        pair.forEach((x,col)=>{
+          const cx = M + IND + col*(cw+12) + (cw - x.iw)/2;
+          try{ doc.addImage(x.data, 'JPEG', cx, y, x.iw, x.ih) }catch(e){}
+        });
+        y += rowH + 8;
+      }
+      y += 2;
+      doc.setDrawColor(228); doc.setLineWidth(.5); doc.line(M, y-4, W-M, y-4);
+    }
+    y += 10;
+  }
+  const RCOL = 3, RGAP = 10, rcw = (CW - RGAP*(RCOL-1))/RCOL, rmaxH = 240;
+  for(const r of (isCheck()? [] : S.rooms)){
+    // mät bilderna först så att rubriken aldrig blir ensam längst ner
+    const shots = [];
+    for(const p of r.photos){
+      const data = photoCache[p.id]; if(!data) continue;
+      const sz = await imgSize(data);
+      let iw = rcw, ih = rcw * sz.h / sz.w;
+      if(ih > rmaxH){ ih = rmaxH; iw = ih * sz.w / sz.h }
+      shots.push({data, iw, ih, ts:p.ts});
+    }
+    const firstRow = shots.length? Math.max(...shots.slice(0,RCOL).map(x=>x.ih)) + 16 : 0;
+    let head = 20;
+    let cmt = null;
+    if(r.comment){
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      cmt = doc.splitTextToSize(r.comment, CW);
+      head += cmt.length*13;
+    }
+    need(head + firstRow);
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text(r.name, M, y+10); y += 20;
+    if(cmt){
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.text(cmt, M, y+9); y += cmt.length*13 + 2;
+    }
+
+    for(let i=0;i<shots.length;i+=RCOL){
+      const row = shots.slice(i, i+RCOL);
+      const rowH = Math.max(...row.map(x=>x.ih));
+      need(rowH + 16);
+      row.forEach((x,col)=>{
+        const cx = M + col*(rcw+RGAP) + (rcw - x.iw)/2;
+        try{ doc.addImage(x.data, 'JPEG', cx, y, x.iw, x.ih) }catch(e){}
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(120);
+        doc.text(stamp(new Date(x.ts)), cx, y + x.ih + 7);
+        doc.setTextColor(0);
+      });
+      y += rowH + 15;
+    }
+    y += 2;
+    doc.setDrawColor(215); doc.setLineWidth(.6); need(6); doc.line(M, y, W-M, y); y += 12;
+  }
+
+  if(isCheck()){
+    need(50);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(`Utförd av: ${S.inspector.name||'-'}`, M, y+10); y += 16;
+    if(S.closedAt){
+      doc.setFontSize(9); doc.setTextColor(90);
+      doc.text('Avslutad '+stamp(new Date(S.closedAt)), M, y+9); doc.setTextColor(0); y += 14;
+    }
+    y += 10;
+  } else {
+    need(150);
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Signaturer', M, y+10); y += 18;
+    if(S.closedAt && !S.signedAt){
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text('Avslutat utan signatur '+stamp(new Date(S.closedAt)), M, y+8);
+    }
+    y += 10;
+    const half = (CW - 20)/2;
+    [['inspector', S.inspector.name, ''], ['counter', S.counter.name, S.counter.role||'']].forEach((v,i)=>{
+      const x = M + i*(half+20), sg = S.sig[v[0]];
+      if(sg){ try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){} }
+      doc.setDrawColor(60); doc.setLineWidth(.8); doc.line(x, y+58, x+half, y+58);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text([v[1]||'', v[2]||'', sg? stamp(new Date(sg.ts)) : ''], x, y+70);
+    });
+    y += 110;
+  }
+
+  const logRows = isCheck()
+    ? [{ts:S.created, txt:'Besiktning skapad'}].concat(S.closedAt? [{ts:S.closedAt, txt:'Upplåsning avslutad'}] : [])
+    : S.log;
+  need(40);
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Händelselogg', M, y+10); y += 20;
+  doc.setFont('courier','normal'); doc.setFontSize(9);
+  logRows.forEach(l=>{ need(14); doc.text(`${stamp(new Date(l.ts))}   ${l.txt}`, M, y+9); y += 14 });
+
+  const pages = doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120);
+    doc.text(`${ref()}  ·  sida ${i} av ${pages}`, W/2, H-24, {align:'center'});
+  }
+
+  return {blob: doc.output('blob'), name: fileName()};
+}
+async function sharePdf(blob, name){
+  const file = new File([blob], name, {type:'application/pdf'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:name,
+      text: isCheck()? `Upplåsning ${ref()}` : `Besiktning ${ref()}` }); return }
+    catch(e){ if(e && e.name === 'AbortError') return }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+async function doExport(){
+  toast('Bygger PDF');
+  const out = await buildPdf();
+  if(!out) return legacyPrint();
+  await sharePdf(out.blob, out.name);
+}
+const mailTarget = () => isCheck()? 'guestservice@beaps.se' : 'longstay@beaps.se';
+async function mailPdf(blob, name){
+  if(blob.size > 4.2*1048576) return {ok:false, reason:'size'};
+  const b64 = await new Promise(res=>{ const fr = new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(blob) });
+  try{
+    const r = await withTimeout(fetch('/api/send-pdf', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        filename: name,
+        kind: isCheck()? 'upplasning' : 'besiktning',
+        subject: (isCheck()? 'UpplåsningPDF ' : 'BesiktningPDF ') + ref(),
+        pdf: b64
+      })
+    }), 25000);
+    if(r.status===429) return {ok:false, reason:'quota'};
+    if(!r.ok) return {ok:false, reason:'server '+r.status};
+    return {ok:true};
+  }catch(e){ return {ok:false, reason:'ingen kontakt'} }
+}
+async function sendPdf(){
+  toast('Bygger PDF');
+  const out = await buildPdf();
+  if(!out) return legacyPrint();
+  toast('Skickar');
+  const m = await mailPdf(out.blob, out.name);
+  if(m.ok){ toast('Mejlad till ' + mailTarget()); return }
+  if(m.reason==='size') toast('För stor för mejl, öppnar delning');
+  await sharePdf(out.blob, out.name);
+}
+
+async function backup(){
+  const data = {version:1, exported:Date.now(), inspection:S,
+    photos:Object.fromEntries(S.rooms.flatMap(r=>r.photos.map(p=>[p.id, photoCache[p.id]||null])))};
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const name = fileName().replace(/\.pdf$/,'') + '.json';
+  const file = new File([blob], name, {type:'application/json'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:name}); return }
+    catch(e){ if(e && e.name === 'AbortError') return }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+function legacyPrint(){
+  const rows = S.rooms.map(r=>`<div class="p-room">
+    <h3>${esc(r.name)}</h3>
+    ${r.comment?`<p style="font-size:13px">${esc(r.comment)}</p>`:''}
+    <div class="p-photos">${r.photos.map(p=>`<div><img src="${photoCache[p.id]||''}">
+      <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>
+  </div>`).join('');
+  $('#print').innerHTML = `
+    <div style="font-family:Helvetica,Arial;padding:24px;max-width:760px">
+      <div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px">
+        <div><div style="font:11px monospace;letter-spacing:.15em">BESIKTNINGSPROTOKOLL</div>
+        <h1 style="margin:4px 0">${esc(ref())}</h1></div>
+        <div style="font:11px monospace;text-align:right">${esc(S.type)}<br>${stamp(new Date(S.created))}<br>ID ${esc(S.id)}</div>
+      </div>
+      <p style="font-size:13px">
+        Nycklar: ${esc((keysRoom()&&keysRoom().comment)||'-')} · ${keysRoom()?keysRoom().photos.length:0} bilder${S.video?`<br>Video bifogad ${stamp(new Date(S.video.ts))}`:''}<br>
+        Besiktningsman: ${esc(S.inspector.name)}<br>
+        Motpart: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}
+      </p>
+      ${rows}
+      <h3 style="margin-top:20px">Signaturer</h3>
+      <div style="display:flex;gap:30px" class="p-sig">
+        <div>${S.sig.inspector?`<img src="${S.sig.inspector.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
+          <div style="font-size:12px">${esc(S.inspector.name)}<br>${S.sig.inspector?stamp(new Date(S.sig.inspector.ts)):''}</div></div>
+        <div>${S.sig.counter?`<img src="${S.sig.counter.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
+          <div style="font-size:12px">${esc(S.counter.name)}<br>${esc(S.counter.role||'')}<br>${S.sig.counter?stamp(new Date(S.sig.counter.ts)):''}</div></div>
+      </div>
+      <h3 style="margin-top:20px">Händelselogg</h3>
+      <table style="font:11px monospace;border-collapse:collapse;width:100%">
+        ${S.log.map(l=>`<tr><td style="padding:2px 8px 2px 0;white-space:nowrap">${stamp(new Date(l.ts))}</td><td>${esc(l.txt)}</td></tr>`).join('')}
+      </table>
+    </div>`;
+  setTimeout(()=>window.print(), 60);
+}
+
+renderStart();
+</script>

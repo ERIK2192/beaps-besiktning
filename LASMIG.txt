@@ -1,0 +1,47 @@
+BEAPS BESIKTNING - DEPLOY MED MEJLFUNKTION
+
+Mappens innehall:
+  index.html                     appen
+  netlify.toml                   pekar ut funktionsmappen
+  netlify/functions/send-pdf.mjs mejlar PDF (Resend eller SendGrid)
+
+DEPLOY:
+  Dra HELA den uppackade mappen till Deploys i Netlify.
+  Appen funkar direkt; mejlen aktiveras nar en av vagarna nedan ar klar.
+  Utan konfiguration oppnas delningsmenyn som vanligt - inget gar sonder.
+
+VAG A - RESEND VIA BEDOMA.SE (rekommenderas, ror inte beaps DNS):
+  1. Konto pa resend.com (gratis, 3000 mejl/man).
+  2. Domains > Add domain > bedoma.se. Lagg in DNS-posterna hos
+     bedoma.se:s DNS (din egen doman, tar 5 min).
+  3. API Keys > Create. Kopiera nyckeln.
+  4. Netlify > Project configuration > Environment variables:
+       RESEND_API_KEY = nyckeln
+       MAIL_FROM      = Beaps Besiktning <besiktning@bedoma.se>
+     Mottagare ar inbyggt: upplasningar till guestservice@beaps.se,
+     allt annat till longstay@beaps.se. Vill du byta adresser, satt
+     MAIL_TO_SHORTSTAY och/eller MAIL_TO_LONGSTAY.
+  5. Deploya om (dra in mappen igen).
+
+VAG B - SENDGRID UTAN NAGON DNS ALLS:
+  1. Konto pa sendgrid.com (gratis, 100 mejl/dag).
+  2. Settings > Sender Authentication > Single Sender Verification.
+     Lagg till en avsandaradress du kan lasa, klicka pa lanken i
+     bekraftelsemejlet. Ingen DNS behovs.
+  3. Settings > API Keys > Create API Key (Full access eller Mail Send).
+  4. Netlify > Environment variables:
+       SENDGRID_API_KEY = nyckeln
+       MAIL_FROM        = Beaps Besiktning <adressen fran steg 2>
+     Mottagare enligt samma regler som vag A.
+  5. Deploya om.
+  Obs: utan DNS-verifiering ar risken storre att mejlen hamnar i
+  skrappost. Be Camilla vitlista avsandaren forsta gangen.
+
+I APPEN:
+  Upplasning: Skicka till Camilla mejlar till guestservice@beaps.se.
+    Amne: "UpplasningPDF <adress>, <lgh>".
+  Ovriga typer: Mejla PDF skickar till longstay@beaps.se.
+    Amne: "BesiktningPDF <MIN/MOU> <adress>, <lgh>".
+    Dela oppnar delningsmenyn for t.ex. kund eller AirDrop.
+  Ar PDF:en over ca 4 MB (manga bilder) gar den inte via mejl-
+  funktionen; da oppnas delningsmenyn i stallet.

@@ -57,6 +57,21 @@ Signeringen behöver en plats att lägga protokollen på medan de väntar på si
 5. Lägg till den för **Production**. Vill du att förhandsvisningar också ska fungera,
    lägg till samma binding för **Preview**.
 
+## 3b. Lagring för bilder och video
+
+Galleriet — det som gör att mottagaren kan zooma i bilderna och spela videon — behöver
+en R2-bucket.
+
+1. **Storage & databases** → **R2 Object Storage** → **Create bucket**
+2. Namn: **`beaps-media`** — exakt så, koden är kopplad till det namnet
+3. Location: lämna som föreslaget. **Skapa inte** någon publik åtkomst; filerna serveras
+   genom appen så att bara den som har länken kommer åt dem.
+
+Bindningen ligger redan i [wrangler.jsonc](wrangler.jsonc), så du behöver inte koppla den
+någonstans. Den gäller vid nästa deploy.
+
+R2:s gratisnivå ger 10 GB, vilket räcker till ungefär 14 000 bilder.
+
 ## 4. Miljövariabler
 
 Pages-projektet → **Settings** → **Environment variables** → **Production** → **Add**:

@@ -606,6 +606,7 @@ async function render(){
           </div>
           <div class="hint">Utförd av ${esc(S.inspector.name||'namn saknas')}</div>
         </div>
+        ${galleryCard()}
         ${avvik.length? `<div class="card">
           <div class="eyebrow" style="margin-bottom:8px">Avvikelser</div>
           ${avvik.map(c=>
@@ -635,6 +636,7 @@ async function render(){
         <div class="hint">${needSig? 'Signatur krävs för '+esc(S.type)+'.' : esc(S.type)+' kan avslutas utan signatur.'}</div>
         <button class="btn ghost small" style="margin-top:12px" onclick="backup()">Säkerhetskopia</button>
       </div>
+      ${galleryCard()}
       ${locked? `<div class="card">
         <span class="locknote">${
           S.signedAt? 'Signerat och låst '+stamp(new Date(S.signedAt))
@@ -1120,6 +1122,104 @@ async function measureWifi(id){
   measuring = false;
 }
 
+/* ---------- galleri: bilder och video i full upplosning ---------- */
+// PDF:en maste rymmas i ett mejl, sa bilderna kramas ihop hart dar - med hundra bilder
+// blir det tio kilobyte styck och gar inte att zooma i. Galleriet lagger i stallet upp
+// bilderna som de ligger pa telefonen och satter en lank i protokollet. Videon kan
+// aldrig spelas i en PDF over huvud taget, sa den har ar enda vagen for den.
+let uploading = false;
+
+const galleryItems = () => {
+  const ut = [];
+  const barare = isCheck()? visibleChecks() : (S.rooms||[]);
+  barare.forEach(b=>{
+    (b.photos||[]).forEach((p,i)=>{
+      if(!photoCache[p.id]) return;
+      ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${b.name || b.label || 'Bild'} ${i+1}`});
+    });
+  });
+  if(S.video && S.video.stored && videoURL) ut.push({id:'video', kind:'video', ts:S.video.ts, name:'Genomgång'});
+  return ut;
+};
+
+const dataUrlToBlob = async d => (await fetch(d)).blob();
+
+async function uploadGallery(){
+  if(uploading) return toast('En uppladdning pågår redan');
+  if(!S) return;
+  const items = galleryItems();
+  if(!items.length) return toast('Det finns inga bilder att ladda upp');
+
+  const insp = S;
+  uploading = true;
+  try{
+    toast(`Förbereder ${items.length} filer`);
+    let r = await withTimeout(fetch('/api/media-init', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
+        inspector:S.inspector.name, items })
+    }), 30000);
+    if(!r.ok){
+      const t = (await r.text().catch(()=>'')).trim();
+      throw new Error(r.status===404? 'Galleriet är inte igång på servern än'
+                    : (t && t.length<160 && t.indexOf('<')<0)? t : 'Servern svarade '+r.status);
+    }
+    const g = await r.json();
+
+    let klara = 0, missade = 0;
+    for(const it of items){
+      if(S !== insp){ uploading = false; return toast('Uppladdningen avbröts, du bytte besiktning') }
+      try{
+        const blob = it.kind==='video'
+          ? await dataUrlToBlob(videoURL)
+          : await dataUrlToBlob(photoCache[it.id]);
+        const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
+          method:'PUT', headers:{'Content-Type':'application/octet-stream'}, body: blob
+        }), 120000);
+        if(put.ok) klara++; else missade++;
+      }catch(e){ missade++ }
+      if(klara % 5 === 0 || klara + missade === items.length) toast(`Laddar upp ${klara+missade} av ${items.length}`);
+    }
+
+    if(!klara) throw new Error('Ingen fil kunde laddas upp');
+    S.gallery = {token:g.token, url:g.url, count:klara, ts:Date.now()};
+    log(`Bilder uppladdade: ${klara} av ${items.length}${missade? ', '+missade+' misslyckades':''}`);
+    await flushSave(); render();
+    toast(missade? `Klart, men ${missade} filer misslyckades` : 'Bilderna är uppladdade');
+  }catch(e){
+    toast(String(e.message).slice(0,80));
+  }
+  uploading = false;
+}
+
+async function copyGalleryLink(){
+  if(!S || !S.gallery) return;
+  try{ await navigator.clipboard.writeText(S.gallery.url); toast('Länken kopierad') }
+  catch(e){ prompt('Kopiera länken:', S.gallery.url) }
+}
+
+function galleryCard(){
+  const antal = galleryItems().length;
+  const g = S.gallery;
+  if(!antal && !g) return '';
+  if(!g) return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:10px">Bilder i full upplösning</div>
+    <button class="btn ghost" onclick="uploadGallery()">Ladda upp ${antal} filer</button>
+    <div class="hint">I PDF:en krymps bilderna för att den ska rymmas i ett mejl. Ladda upp dem
+      så får protokollet en länk där mottagaren ser bilderna i full storlek och kan zooma —
+      och där videon går att spela, vilket den aldrig gör i en PDF.</div>
+  </div>`;
+  return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:8px">Bilder i full upplösning</div>
+    <div style="font-size:14px">${g.count} filer uppladdade ${stamp(new Date(g.ts))}</div>
+    <div class="hint">Länken följer med i PDF:en. Bilderna sparas i ett år.</div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn ghost small" onclick="copyGalleryLink()">Kopiera länk</button>
+      <button class="btn ghost small" onclick="uploadGallery()">Ladda upp igen</button>
+    </div>
+  </div>`;
+}
+
 /* ---------- signering pa distans ---------- */
 const okMail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s||'').trim());
 
@@ -1440,7 +1540,7 @@ async function newInsp(){
   S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
         inspector:{name:''}, counter:{name:'',role:''},
         rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
-        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null,
+        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null, gallery:null,
         signedAt:null, closedAt:null, log:[] };
   photoCache={}; videoURL=null; openRoom=null;
   ensureChecks(); log('Besiktning skapad'); save(); go('object');
@@ -1537,11 +1637,42 @@ async function buildPdf(){
   doc.text(ref(), M, y+12); y += 24;
   doc.setDrawColor(20); doc.setLineWidth(1.2); doc.line(M, y, W-M, y); y += 16;
 
+  // Länken högst upp, i en egen ruta. Bilderna längre ner är hopkramade för att
+  // dokumentet ska rymmas i ett mejl — där finns de som de togs, och videon går att
+  // spela, vilket den aldrig gör i en PDF.
+  if(S.gallery && S.gallery.url){
+    const harVideo = !!(S.video && S.video.stored);
+    const rubrik = harVideo
+      ? 'Se videon och zooma in i bilderna'
+      : 'Zooma in i bilderna';
+    const rader = [
+      harVideo ? 'Klicka på länken nedan för att se de inspelade videorna och bilderna i full storlek.'
+               : 'Klicka på länken nedan för att se bilderna i full storlek och zooma in i dem.',
+      'Bilderna i det här dokumentet är komprimerade för att rymmas i ett mejl.'
+    ];
+    const boxH = 30 + rader.length*11 + 16;
+    need(boxH + 8);
+    doc.setFillColor(250, 246, 232); doc.setDrawColor(233, 175, 18); doc.setLineWidth(.9);
+    doc.roundedRect(M, y, CW, boxH, 6, 6, 'FD');
+
+    let by = y + 17;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0);
+    doc.text(rubrik, M + 12, by); by += 14;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
+    rader.forEach(t=>{ doc.text(t, M + 12, by); by += 11 });
+    by += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20, 80, 170);
+    try{ doc.textWithLink(S.gallery.url, M + 12, by, {url: S.gallery.url}) }
+    catch(e){ doc.text(S.gallery.url, M + 12, by) }
+    doc.setTextColor(0); doc.setFont('helvetica','normal');
+    y += boxH + 16;
+  }
+
   const keys = isCheck()? null : S.rooms.find(r=>r.fixed || r.name.toLowerCase().startsWith('nyck'));
   line(`Besiktningsman: ${S.inspector.name||'-'}`, 10);
   if(!isCheck()) line(`Motpart: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
   if(keys) line(`Nycklar: ${keys.comment||'-'}, ${keys.photos.length} bilder`, 10);
-  if(S.video) line(`Video bifogad ${stamp(new Date(S.video.ts))}`, 10);
+  if(S.video) line(`Video inspelad ${stamp(new Date(S.video.ts))}`, 10);
   y += 8;
 
   if(isCheck()){

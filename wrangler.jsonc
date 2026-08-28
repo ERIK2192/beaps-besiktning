@@ -18,6 +18,16 @@
     }
   ],
 
+  // Bilder och video for galleriet. R2 och inte KV: filerna ar manga och stora, och
+  // KV:s skrivtak pa gratisnivan racker inte till ett hus med flera hundra bilder.
+  // Kraver att en R2-bucket med exakt det har namnet finns - se CLOUDFLARE.md.
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "beaps-media"
+    }
+  ],
+
   "vars": {
     "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>"
   }

@@ -278,6 +278,30 @@ adress och namn. Ingenting körs som kod — `esc()` håller.
 bara försiktighet: pdf-lib kastar på tecken utanför Latin-1, så ett bockmärke eller en pil
 i ett namn hade fällt hela signeringen.
 
+### 2026-08-28 — andra buggjakten
+
+En omgång till, riktad mot det första passet inte rörde: fotoläget, typbyten,
+säkerhetskopian och PDF:en i ytterlägen. **Inga nya fel i logiken.** Två ställen
+härdades ändå, båda sådana som hade kraschat eller tappat data om de nåtts:
+
+**`paintCam` kunde krascha om listan krympte.** Fotoläget indexerar i listan över
+synliga rader. Döljs en följdfråga medan kameran står öppen kunde indexet peka utanför
+listan, och `r.name` på `undefined` fäller hela vyn. Indexet klampas nu, och saknas raden
+stängs fotoläget i stället för att kasta.
+
+**`backup()` tog bara med rummens bilder.** För en upplåsning ligger bilderna på
+checklistraderna, så en säkerhetskopia hade blivit tyst ofullständig. Knappen visas i dag
+bara för rumsprotokoll, så felet gick inte att nå — men det hade väntat på den som lade
+till knappen. Funktionen tar nu med båda.
+
+Testat: fotoläget mot dolda följdfrågor och okända id:n, typbyte med en aktiv
+signeringslänk, bilder på en följdfråga som döljs (de ligger kvar i lagringen och kommer
+tillbaka), dubblettnycklar, en fråga från en äldre version som får egen rubrik, wifi-mätning
+när servern svarar med noll byte, samt PDF med fjärrsignatur, med enbart E/T och med
+fjorton avvikelser med långa kommentarer. 33 kontroller, alla gröna.
+
+**Totalt 201 automatiska kontroller** över fem sviter.
+
 ---
 
 ## 6. Kvar att göra
@@ -292,18 +316,33 @@ Inget beslutat just nu. Idéer som dykt upp men inte prioriterats:
 
 ## 7. Deploy
 
-Netlify är kopplat till GitHub. **Det som pushas till huvudgrenen går live automatiskt** —
-det finns inget manuellt deploy-steg och ingen paus mellan push och produktion. Granska
-därför innan du pushar, inte efter.
+**GitHub uppdaterar inte Netlify automatiskt.** Det mättes 2026-08-28: commit `841fbbe`
+låg på `origin/main`, men live-sajten svarade fortfarande med den gamla filen och
+oförändrad ETag efter fyra minuter. Sajten på `beaps-besiktning.netlify.app` har alltså
+inte en fungerande koppling till repot — den är deployad manuellt, eller så fallerar bygget.
+
+Innan nästa release måste det redas ut i Netlify, under **Deploys**:
+
+- **Syns en misslyckad deploy?** Då finns kopplingen men bygget går sönder. Läs loggen.
+  Troligaste orsaken är `npm install` av `@netlify/blobs` och `pdf-lib`, eller de nya
+  redirect-reglerna i `netlify.toml`.
+- **Syns ingen ny deploy alls?** Då är sajten inte länkad till GitHub. Koppla den under
+  Site configuration → Build & deploy → Continuous deployment → Link repository, och peka
+  på `ERIK2192/beaps-besiktning`, gren `main`.
+
+Så länge kopplingen saknas ligger den gamla versionen kvar och fungerar — inget är sönder,
+men ingenting nytt når heller ut.
 
 - `package.json` gör att Netlify installerar `@netlify/blobs` och `pdf-lib` åt funktionerna
   vid varje deploy. Appen själv har fortfarande inget byggsteg, den är statisk.
-- **Efter första deployen med de nya funktionerna:** kontrollera under Functions i Netlify
+- **Efter första lyckade deployen med de nya funktionerna:** kontrollera under Functions
   att `sign-request`, `sign-view`, `sign-complete` och `speedtest` finns där. Saknas de har
   installationen av beroendena fallerat. Då svarar signeringen och wifi-mätningen med ett
   felmeddelande i appen — resten av appen påverkas inte.
 - Skicka en signeringslänk till dig själv först. Funktionerna är testade mot stubbade anrop,
   men har aldrig körts mot riktiga Netlify Blobs eller Resend.
+- Ett snabbt sätt att se om en deploy gått fram: `/api/speed-ping` ska svara 200 och
+  `/sign.html` ska finnas. Ger de 404 är den nya versionen inte ute.
 
 ---
 

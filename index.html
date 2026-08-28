@@ -869,7 +869,10 @@ const curRoom = () => camItems()[cam.idx];
 const shortName = t => (t||'').length>24? t.slice(0,23)+'…' : (t||'');
 function paintCam(){
   if(!cam.open) return;
+  // listan kan ha krympt sedan fotolaget oppnades, t.ex. om en foljdfraga dolts
+  if(cam.idx >= camItems().length) cam.idx = Math.max(0, camItems().length - 1);
   const r = curRoom();
+  if(!r) return closeCam();
   document.getElementById('camtitle').textContent = shortName(r.name || r.label);
   document.getElementById('camcount').textContent = r.photos.length? r.photos.length+' st':'';
   document.getElementById('camrecbtn').style.visibility = isCheck()? 'hidden':'visible';
@@ -1765,8 +1768,11 @@ async function sendPdf(){
 }
 
 async function backup(){
+  // upplasningar har bilderna pa checklistraderna, ovriga typer pa rummen.
+  // Ta med bada, sa en sakerhetskopia aldrig blir tyst ofullstandig.
+  const barare = (S.rooms||[]).concat(S.checks||[]);
   const data = {version:1, exported:Date.now(), inspection:S,
-    photos:Object.fromEntries(S.rooms.flatMap(r=>r.photos.map(p=>[p.id, photoCache[p.id]||null])))};
+    photos:Object.fromEntries(barare.flatMap(r=>(r.photos||[]).map(p=>[p.id, photoCache[p.id]||null])))};
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const name = fileName().replace(/\.pdf$/,'') + '.json';
   const file = new File([blob], name, {type:'application/json'});

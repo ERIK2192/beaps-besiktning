@@ -322,6 +322,38 @@ Inget beslutat just nu. Idéer som dykt upp men inte prioriterats:
 
 ---
 
+## 6b. Appen körs på Cloudflare Pages sedan 2026-08-28
+
+`beaps-besiktning.pages.dev` är i drift med hela den nya versionen. Netlify ligger kvar
+orörd med all befintlig data. Uppsättningen står i [CLOUDFLARE.md](CLOUDFLARE.md).
+
+**Fällan som kostade en halv dag:** i Cloudflares nya dashboard hamnar man lätt i
+*Create a Worker* i stället för Pages. Det skapade ett andra projekt med **samma namn**,
+och KV-bindningen lades där i stället för på Pages-projektet. Två lyckade Pages-deployer
+i rad svarade ändå *"KV-lagringen SIGNSTORE ar inte kopplad"*, eftersom bindningen satt
+på fel projekt.
+
+Så skiljer man dem åt i byggloggen:
+
+| Pages, rätt | Worker, fel |
+|---|---|
+| `Installing project dependencies: npm install` | `Installing project dependencies: bun install` |
+| `Found Functions directory at /functions` | `Executing user deploy command: npx wrangler deploy` |
+| `Compiled Worker successfully` | `Missing entry-point to Worker script` |
+
+Worker-projektet är borttaget. Finns bara ett projekt går det inte att klicka fel igen.
+
+**Bindningen ligger numera i [wrangler.jsonc](wrangler.jsonc)**, inte i dashboarden. Den
+följer då med varje deploy och kan inte hamna på fel projekt eller fel miljö. Priset är
+att filen blir facit: när den finns läses **vanliga miljövariabler därifrån och inte från
+dashboarden**. Secrets — `RESEND_API_KEY` — ligger kvar i dashboarden och ska aldrig in
+i filen, eftersom den ligger i git.
+
+Det betyder att varje `MAIL_TO`-variabel måste stå i `vars` i wrangler.jsonc för att gälla.
+Slutar mejlen komma fram är det första stället att titta.
+
+---
+
 ## 7. Deploy
 
 Netlify **är** kopplat till GitHub — projektet står som *Deploys from GitHub*. En push till

@@ -316,22 +316,32 @@ Inget beslutat just nu. Idéer som dykt upp men inte prioriterats:
 
 ## 7. Deploy
 
-**GitHub uppdaterar inte Netlify automatiskt.** Det mättes 2026-08-28: commit `841fbbe`
-låg på `origin/main`, men live-sajten svarade fortfarande med den gamla filen och
-oförändrad ETag efter fyra minuter. Sajten på `beaps-besiktning.netlify.app` har alltså
-inte en fungerande koppling till repot — den är deployad manuellt, eller så fallerar bygget.
+Netlify **är** kopplat till GitHub — projektet står som *Deploys from GitHub*. En push till
+`main` ska alltså gå live av sig själv.
 
-Innan nästa release måste det redas ut i Netlify, under **Deploys**:
+**Men 2026-08-28 är produktionsdeployer pausade.** Teamet kör på operational credits, och
+Netlify skriver: *"Your published sites are still live, but production deploys and Agent
+Runners are paused."* Commit `841fbbe` och `55f1f56` ligger på `origin/main`, men live-sajten
+är oförändrad — det är inte ett trasigt bygge, Netlify vägrar bygga alls.
 
-- **Syns en misslyckad deploy?** Då finns kopplingen men bygget går sönder. Läs loggen.
-  Troligaste orsaken är `npm install` av `@netlify/blobs` och `pdf-lib`, eller de nya
-  redirect-reglerna i `netlify.toml`.
-- **Syns ingen ny deploy alls?** Då är sajten inte länkad till GitHub. Koppla den under
-  Site configuration → Build & deploy → Continuous deployment → Link repository, och peka
-  på `ERIK2192/beaps-besiktning`, gren `main`.
+Publicerade sajter fortsätter fungera, så inget är sönder för dem som använder appen. Men
+ingenting nytt når ut förrän någon av dessa är gjord:
 
-Så länge kopplingen saknas ligger den gamla versionen kvar och fungerar — inget är sönder,
-men ingenting nytt når heller ut.
+- **Vänta på nästa faktureringsperiod.** Deployerna återupptas av sig själva. Se
+  Usage & billing för vilket tak som slog i och när det nollställs.
+- **Uppgradera teamet.** Släpper loss deployerna direkt, kostar pengar.
+- **Deploy Preview på en gren.** Bara *production*-deployer är pausade, så en gren kan
+  fortfarande byggas och hamna på en egen adress. Bra för att testa — men se varningen nedan.
+
+**Varning om Deploy Previews:** en förhandsvisning ligger på en annan adress, och
+IndexedDB är knutet till adressen. Besiktningar som görs på förhandsvisningen finns
+alltså **inte** på den riktiga sajten. Använd den bara för att prova funktioner, aldrig
+för skarpa besiktningar.
+
+**Dra inte in mappen manuellt som ett kringgående.** Det har fungerat förr, men nu finns
+`package.json`. En manuell drop installerar inte beroendena, så `@netlify/blobs` och
+`pdf-lib` skulle saknas och signeringen vara trasig medan resten fungerar — sämsta sortens
+halvtrasigt. Bara ett riktigt bygge från Git installerar dem.
 
 - `package.json` gör att Netlify installerar `@netlify/blobs` och `pdf-lib` åt funktionerna
   vid varje deploy. Appen själv har fortfarande inget byggsteg, den är statisk.

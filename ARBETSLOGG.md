@@ -325,13 +325,41 @@ Runners are paused."* Commit `841fbbe` och `55f1f56` ligger på `origin/main`, m
 är oförändrad — det är inte ett trasigt bygge, Netlify vägrar bygga alls.
 
 Publicerade sajter fortsätter fungera, så inget är sönder för dem som använder appen. Men
-ingenting nytt når ut förrän någon av dessa är gjord:
+ingenting nytt når ut.
 
-- **Vänta på nästa faktureringsperiod.** Deployerna återupptas av sig själva. Se
-  Usage & billing för vilket tak som slog i och när det nollställs.
+**Budgeten, avläst 2026-08-28:**
+
+| Post | Förbrukning |
+|---|---|
+| Produktionsdeployer, 18 st | **270 credits** |
+| AI inference (OpenAI, 142K tokens) | 30,6 credits |
+| Compute | 2,6 credits |
+| Web requests + bandbredd | 0,2 credits |
+| **Totalt** | **303,4 av 300** |
+
+Det viktiga talet: **en produktionsdeploy kostar ungefär 15 credits**, alltså rymmer
+gratisplanens 300 credits bara **omkring 20 deployer i månaden**. Perioden löper
+21 augusti till 20 september och nollställs **21 september 2026**. Hela månadsbudgeten
+gick åt på en vecka.
+
+Två slutsatser att arbeta efter:
+
+- **Samla ihop ändringar innan du pushar.** Med tjugo deployer i månaden går det inte att
+  pusha per ändring. Testa lokalt, slå ihop, deploya en gång.
+- **Kontrollera vad AI inference är.** 30,6 credits gick till OpenAI via Netlifys AI Gateway
+  eller Agent Runners. Är det inget medvetet, stäng av det — det är två deployer i månaden.
+
+Alternativen just nu:
+
+- **Vänta till 21 september.** Gratis, deployerna återupptas av sig själva, och pushen
+  ligger redan på GitHub.
 - **Uppgradera teamet.** Släpper loss deployerna direkt, kostar pengar.
-- **Deploy Preview på en gren.** Bara *production*-deployer är pausade, så en gren kan
-  fortfarande byggas och hamna på en egen adress. Bra för att testa — men se varningen nedan.
+- **Deploy Preview på en gren.** Gratisplanen listar *Unlimited deploy previews*, så en
+  gren kan mycket väl gå att bygga även nu. Värt att prova — men se varningen nedan.
+- **Flytta till Cloudflare Pages.** Ingen kostnad per deploy och 500 byggen i månaden.
+  Kräver att funktionerna skrivs om: routingen använder Netlifys `config.path` och
+  lagringen använder Netlify Blobs, som får bli Cloudflare KV. Några timmars arbete.
+  Rimligt om deployerna tar slut igen.
 
 **Varning om Deploy Previews:** en förhandsvisning ligger på en annan adress, och
 IndexedDB är knutet till adressen. Besiktningar som görs på förhandsvisningen finns

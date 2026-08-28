@@ -3,3 +3,16 @@
 
 [functions]
   directory = "netlify/functions"
+
+# publish = "." serverar hela mappen, aven funktionernas kallkod och interna
+# anteckningar. Inga hemligheter ligger i koden - de ar miljovariabler - men det
+# finns ingen anledning att publicera dem. Funktionerna nas fortfarande pa /api/*.
+[[redirects]]
+  from = "/netlify/*"
+  status = 404
+  to = "/index.html"
+
+[[redirects]]
+  from = "/ARBETSLOGG.md"
+  status = 404
+  to = "/index.html"

@@ -75,12 +75,24 @@
   .thumb .x{position:absolute;top:4px;right:4px;background:rgba(16,19,20,.8);color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;line-height:22px;text-align:center}
   .addrow{display:flex;gap:8px;align-items:center} .addrow input{flex:1}
   .crow{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px}
+  .crow{transition:border-color .25s, box-shadow .25s}
   .crow.open{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
+  .crow.child{margin-left:16px}
+  .crow.flash{border-color:var(--ink);box-shadow:0 0 0 3px rgba(22,50,92,.13)}
+  .csec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 3px 9px;
+        font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+  .csec:first-child{margin-top:2px}
+  .ccount{opacity:.7;flex:none}
+  .nocmt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
+         border:1px solid var(--line);border-radius:5px;padding:2px 6px;white-space:nowrap}
+  .cwhen{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:5px}
   .clabel{font-size:15px;line-height:1.35;margin-bottom:10px}
-  .cbtns{display:flex;gap:8px;align-items:center}
-  .yn{border:1px solid var(--line);border-radius:9px;padding:10px 22px;font-weight:600;font-size:15px;min-width:74px;background:#fff}
+  .cbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:10px}
+  .ynrow{display:flex;gap:8px;flex:1 1 200px;min-width:0}
+  .yn{flex:1 1 0;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 8px;font-weight:600;font-size:15px;background:#fff}
   .yn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .yn.on.no{background:var(--rec);border-color:var(--rec);color:#fff}
+  .yn.on.na{background:var(--ink2);border-color:var(--ink2);color:#fff}
   .clinks{margin-left:auto;display:flex;align-items:baseline;gap:14px}
   .addc{margin:0;padding:0;background:none;border:0;line-height:1;font-family:var(--sans);font-size:13px;
         color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
@@ -246,50 +258,86 @@ const KEYS_ROOM = 'Nycklar';
 const EXTRA = ['Vardagsrum','Sovrum 2','Balkong','Förråd','Tvättstuga','Gäst-WC','Klädkammare','Uteplats','Garage'];
 const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Årlig':'', 'Skada':''};
 const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning'};
+// section: rubrik i listan och i PDF:en. Ordningen foljer rundan i lagenheten och ska
+//   inte kastas om, rubrikerna ar bara satta dar rundan naturligt byter plats.
+// showIf: raden visas bara när frågan med den nyckeln är besvarad med Ja.
 const CHECKS = [
-  'Funkar portkoden och/eller blipparna',
-  'Rätt namn på entrétavlan?',
-  'Rätt namn på postboxen?',
-  'Postboxen tömd på post/reklam?',
-  'Finns tvättcylinder/blipp + postboxnyckel?',
-  'Rätt namn på dörren?',
-  'Testa att alla nycklar funkar',
-  'Är det lagom varmt i lägenheten?',
-  'Finns en termometer?',
-  'Funkar internet?',
-  'Behöver gammal router bytas?',
-  'Funkar TV + fjärrkontroll?',
-  'Alla sladdar snyggt ordnade?',
-  'Funkar spisen?',
-  'Funkar ugnen?',
-  'Funkar micron?',
-  'Är diskmaskinsvredet på?',
-  'Rinner det ut bra i avloppen i kök/badrum?',
-  'Fungerar spolningen på toaletten?',
-  'Är sängarna snyggt bäddade?',
-  'Finns handdukar, tofflor, tvål etc.?',
-  'Fungerar alla lampor?',
-  'Hänger gardinerna snyggt?',
-  'Är stolarna vingliga?',
-  'Fungerar brandvarnaren?',
-  'Om det finns öppen spis, finns skylt om att inte elda?',
-  'Är lägenheten bra städad?',
-  'Lämnat kuvert med bokningsbekräftelse och nycklar?',
-  'Har lägenheten säkerhetsdörr?',
-  'Om ja, finns skylt med instruktioner hur man låser?',
-  'Finns infosheet eller QR-kod på dörren?'
+  {key:'portkod',             section:'Entré och post',      label:'Funkar portkoden och/eller blipparna'},
+  {key:'entretavla',          section:'Entré och post',      label:'Rätt namn på entrétavlan?'},
+  {key:'postbox_namn',        section:'Entré och post',      label:'Rätt namn på postboxen?'},
+  {key:'postbox_tom',         section:'Entré och post',      label:'Postboxen tömd på post/reklam?'},
+  {key:'tvattcylinder',       section:'Entré och post',      label:'Finns tvättcylinder/blipp + postboxnyckel?'},
+  {key:'dorr_namn',           section:'Dörr och nycklar',    label:'Rätt namn på dörren?'},
+  {key:'nycklar',             section:'Dörr och nycklar',    label:'Testa att alla nycklar funkar'},
+  {key:'temperatur',          section:'Klimat och teknik',   label:'Är det lagom varmt i lägenheten?'},
+  {key:'termometer',          section:'Klimat och teknik',   label:'Finns en termometer?'},
+  {key:'internet',            section:'Klimat och teknik',   label:'Funkar internet?'},
+  {key:'router',              section:'Klimat och teknik',   label:'Behöver gammal router bytas?'},
+  {key:'tv',                  section:'Klimat och teknik',   label:'Funkar TV + fjärrkontroll?'},
+  {key:'sladdar',             section:'Klimat och teknik',   label:'Alla sladdar snyggt ordnade?'},
+  {key:'spis',                section:'Kök',                 label:'Funkar spisen?'},
+  {key:'ugn',                 section:'Kök',                 label:'Funkar ugnen?'},
+  {key:'micro',               section:'Kök',                 label:'Funkar micron?'},
+  {key:'diskmaskin',          section:'Kök',                 label:'Är diskmaskinsvredet på?'},
+  {key:'avlopp',              section:'Vatten och avlopp',   label:'Rinner det ut bra i avloppen i kök/badrum?'},
+  {key:'spolning',            section:'Vatten och avlopp',   label:'Fungerar spolningen på toaletten?'},
+  {key:'sangar',              section:'Sovrum och textil',   label:'Är sängarna snyggt bäddade?'},
+  {key:'handdukar',           section:'Sovrum och textil',   label:'Finns handdukar, tofflor, tvål etc.?'},
+  {key:'lampor',              section:'Sovrum och textil',   label:'Fungerar alla lampor?'},
+  {key:'gardiner',            section:'Sovrum och textil',   label:'Hänger gardinerna snyggt?'},
+  {key:'stolar',              section:'Sovrum och textil',   label:'Är stolarna vingliga?'},
+  {key:'brandvarnare',        section:'Säkerhet',            label:'Fungerar brandvarnaren?'},
+  {key:'eldstad',             section:'Säkerhet',            label:'Finns öppen spis eller annan eldstad?'},
+  {key:'eldstad_skylt',       section:'Säkerhet',            label:'Finns skylt om att inte elda?', showIf:'eldstad'},
+  {key:'stadning',            section:'Städning och överlämning', label:'Är lägenheten bra städad?'},
+  {key:'kuvert',              section:'Städning och överlämning', label:'Lämnat kuvert med bokningsbekräftelse och nycklar?'},
+  {key:'sakerhetsdorr',       section:'Innan du går',        label:'Har lägenheten säkerhetsdörr?'},
+  {key:'sakerhetsdorr_skylt', section:'Innan du går',        label:'Finns skylt med instruktioner hur man låser?', showIf:'sakerhetsdorr'},
+  {key:'infosheet',           section:'Innan du går',        label:'Finns infosheet eller QR-kod på dörren?'}
 ];
 // Rader där Ja är avvikelsen: kommentarsfältet fälls ut på Ja och Ja färgas rött.
-const INVERT = new Set([
-  'Behöver gammal router bytas?',
-  'Är stolarna vingliga?'
-]);
-const badAnswer = c => INVERT.has(c.label) ? 'ja' : 'nej';
+const INVERT = new Set(['router','stolar']);
+const badAnswer = c => INVERT.has(c.key) ? 'ja' : 'nej';
 const isCheck = () => !!S && S.type==='Upplåsning';
+
+// Gamla besiktningar sparade bara etiketten. Etiketter som skrivits om mappas här,
+// övriga hittas på oförändrad text så att svar, kommentarer och bilder följer med.
+const LEGACY_KEY = {
+  'Om det finns öppen spis, finns skylt om att inte elda?':'eldstad_skylt',
+  'Om ja, finns skylt med instruktioner hur man låser?':'sakerhetsdorr_skylt'
+};
+const keyForLabel = lab => LEGACY_KEY[lab] || (CHECKS.find(d=>d.label===lab)||{}).key || null;
+
 function ensureChecks(){
-  if(isCheck() && !S.checks) S.checks = CHECKS.map(t=>({id:uid(), label:t, val:null, comment:'', photos:[]}));
-  if(S.checks) S.checks.forEach(c=>{ if(!c.photos) c.photos = [] });
+  if(!isCheck()){ if(S && S.checks) S.checks.forEach(c=>{ if(!c.photos) c.photos = [] }); return }
+  const old = (S.checks||[]), byKey = {}, used = new Set();
+  old.forEach(c=>{ const k = c.key || keyForLabel(c.label); if(k && !byKey[k]) byKey[k] = c });
+  const next = CHECKS.map(def=>{
+    const prev = byKey[def.key];
+    if(prev) used.add(prev);
+    return {
+      id: (prev && prev.id) || uid(),
+      key: def.key,
+      label: def.label,
+      section: def.section || null,
+      showIf: def.showIf || null,
+      val: (prev && prev.val) || null,
+      comment: (prev && prev.comment) || '',
+      open: !!(prev && prev.open),
+      photos: (prev && prev.photos) || []
+    };
+  });
+  // rader från en äldre version som inte matchar någon nyckel behålls sist, inget svar tappas
+  old.forEach(c=>{ if(!used.has(c)) next.push({...c, key:c.key||null, section:c.section||'Övrigt', showIf:null, photos:c.photos||[]}) });
+  S.checks = next;
 }
+const checkByKey = k => (S.checks||[]).find(c=>c.key===k);
+function checkVisible(c){
+  if(!c.showIf) return true;
+  const parent = checkByKey(c.showIf);
+  return !!parent && parent.val==='ja';
+}
+const visibleChecks = () => (S.checks||[]).filter(checkVisible);
 const mkRoom = (name,fixed) => ({id:uid(), name, comment:'', photos:[], fixed:!!fixed});
 const keysRoom = () => S.rooms.find(r=>r.fixed);
 const keysOk = () => { const k = keysRoom(); return !!(k && k.photos.length) };
@@ -488,12 +536,15 @@ async function render(){
   }
 
   if(view==='rooms' && isCheck()){
-    const done = S.checks.filter(c=>c.val).length;
-    app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${S.checks.length} ifyllda`,
-      20+Math.round(done/S.checks.length*65), 'leave()') + `<div class="wrap">
-      ${S.checks.map(checkRow).join('')}
+    const list = visibleChecks();
+    const done = list.filter(c=>c.val).length;
+    const tom = list.length - done;
+    app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${list.length} ifyllda`,
+      20+Math.round(done/Math.max(1,list.length)*65), 'leave()') + `<div class="wrap">
+      ${checkList(list)}
     </div>`;
     bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">Objekt</button>
+      ${tom? `<button class="btn ghost small" onclick="nextUnanswered()">Nästa · ${tom}</button>`:''}
       <button class="btn" onclick="go('sign')">Klar</button>`;
     return;
   }
@@ -534,22 +585,26 @@ async function render(){
     const locked = !!(S.signedAt || S.closedAt);
 
     if(isCheck()){
-      const ja = S.checks.filter(c=>c.val==='ja').length;
-      const nej = S.checks.filter(c=>c.val==='nej').length;
-      const tom = S.checks.filter(c=>!c.val).length;
-      const avvik = S.checks.filter(c=>c.val && c.val===badAnswer(c));
+      const list = visibleChecks();
+      const ja = list.filter(c=>c.val==='ja').length;
+      const nej = list.filter(c=>c.val==='nej').length;
+      const na = list.filter(c=>c.val==='na').length;
+      const tom = list.filter(c=>!c.val).length;
+      const avvik = list.filter(c=>c.val && c.val===badAnswer(c));
       app.innerHTML = topbar(locked?'Klart':'Klar att skicka','Shortstay upplåsning',96,'leave()') + `<div class="wrap">
         <div class="card">
           <h2 style="margin:0 0 8px">${esc(ref())}</h2>
           <div style="font-size:14px;color:var(--ink2)">
-            ${ja} ja · ${nej} nej · ${tom} obesvarade · ${S.checks.filter(c=>c.comment).length} kommentarer · ${S.checks.reduce((a,c)=>a+(c.photos?c.photos.length:0),0)} bilder
+            ${ja} ja · ${nej} nej · ${na} ej tillämpligt · ${tom} obesvarade · ${list.filter(c=>c.comment).length} kommentarer · ${list.reduce((a,c)=>a+(c.photos?c.photos.length:0),0)} bilder
           </div>
           <div class="hint">Utförd av ${esc(S.inspector.name||'namn saknas')}</div>
         </div>
         ${avvik.length? `<div class="card">
           <div class="eyebrow" style="margin-bottom:8px">Avvikelser</div>
           ${avvik.map(c=>
-            `<div style="font-size:14px;margin-bottom:6px">· ${esc(c.label)}${c.comment? ' <span style="color:var(--ink2)">'+esc(c.comment)+'</span>':''}</div>`).join('')}
+            `<div style="font-size:14px;margin-bottom:6px">· ${esc(c.label)}${
+              c.comment? ' <span style="color:var(--ink2)">'+esc(c.comment)+'</span>'
+                       : ' <span class="nocmt">ingen kommentar</span>'}</div>`).join('')}
         </div>`:''}
         ${locked? `<div class="card">
           <span class="locknote">Avslutad ${stamp(new Date(S.closedAt||S.signedAt))}</span>
@@ -574,8 +629,13 @@ async function render(){
         <button class="btn ghost small" style="margin-top:12px" onclick="backup()">Säkerhetskopia</button>
       </div>
       ${locked? `<div class="card">
-        <span class="locknote">${S.signedAt? 'Signerat och låst '+stamp(new Date(S.signedAt)) : 'Avslutat utan signatur '+stamp(new Date(S.closedAt))}</span>
-        <div class="hint">Protokollet är låst för ändringar. Lås upp om något behöver rättas, då tas eventuella signaturer bort och det noteras i loggen.</div>
+        <span class="locknote">${
+          S.signedAt? 'Signerat och låst '+stamp(new Date(S.signedAt))
+          : (S.signReq && S.signReq.status==='pending')? 'Låst i väntan på signatur '+stamp(new Date(S.closedAt))
+          : 'Avslutat utan signatur '+stamp(new Date(S.closedAt))}</span>
+        <div class="hint">${(S.signReq && S.signReq.status==='pending')
+          ? 'Protokollet är låst så att det motparten signerar är exakt det du skickade. Behöver något rättas låser du upp, då återkallas länken.'
+          : 'Protokollet är låst för ändringar. Lås upp om något behöver rättas, då tas eventuella signaturer bort och det noteras i loggen.'}</div>
         <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">Lås upp</button>
       </div>`:''}
       <div class="card">
@@ -589,6 +649,7 @@ async function render(){
         <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${esc(S.counter.role||'')}</div>
         ${locked && !S.sig.counter? '<div class="hint">Ingen signatur.</div>' : sigBlock('counter')}
       </div>
+      ${signReqCard()}
       ${locked? '' : `<div class="card">
         <button class="btn ghost" onclick="closeUnsigned()">Avsluta utan signatur</button>
         <div class="hint">Låser protokollet med tomma signaturrader. Används för skade- och årsbesiktningar där motparten inte är på plats.</div>
@@ -602,20 +663,53 @@ async function render(){
   }
 }
 
+// rubriker satts in dar sektionen byter, med hur langt just den sektionen kommit
+function checkList(list){
+  let out = '', sect = null;
+  list.forEach(c=>{
+    if(c.section && c.section !== sect){
+      sect = c.section;
+      const rows = list.filter(x=>x.section===sect);
+      out += `<div class="csec"><span>${esc(sect)}</span>
+        <span class="ccount">${rows.filter(x=>x.val).length}/${rows.length}</span></div>`;
+    }
+    out += checkRow(c);
+  });
+  return out;
+}
+
+function nextUnanswered(){
+  saveCheckComments();
+  const c = visibleChecks().find(x=>!x.val);
+  if(!c) return toast('Allt är besvarat');
+  const el = document.getElementById('crow_'+c.id);
+  if(!el) return;
+  window.scrollTo({top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96), behavior:'smooth'});
+  el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'), 1600);
+}
+
 function checkRow(c){
   const bad = badAnswer(c);
   const show = c.val===bad || c.comment || c.open;
-  const cls = v => c.val===v ? (v===bad ? ' on no' : ' on') : '';
-  return `<div class="crow${show?' open':''}">
+  const cls = v => c.val===v ? (v===bad ? ' on no' : v==='na' ? ' on na' : ' on') : '';
+  const parent = c.showIf? checkByKey(c.showIf) : null;
+  return `<div class="crow${show?' open':''}${c.showIf?' child':''}" id="crow_${c.id}">
+    ${parent? `<div class="cwhen">Följdfråga · ${esc(parent.label)} = Ja</div>`:''}
     <div class="clabel">${esc(c.label)}</div>
     <div class="cbtns">
-      <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">Ja</button>
-      <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">Nej</button>
+      <span class="ynrow">
+        <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">Ja</button>
+        <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">Nej</button>
+        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">E/T</button>
+      </span>
       <span class="clinks">
+        ${c.key==='internet'? `<button class="addc" onclick="measureWifi('${c.id}')">Mät wifi</button>`:''}
         <button class="addc" onclick="openCheckComment('${c.id}')">Kommentar</button>
         <button class="addc" onclick="openCam('${c.id}')">Bild</button>
       </span>
     </div>
+    ${c.key==='internet'? `<div class="hint">Mät wifi kör ett hastighetstest mot Beaps server. Se till att telefonen är på lägenhetens wifi.</div>`:''}
     ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="Kommentar">`:''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
@@ -770,7 +864,7 @@ async function ensureAudio(){
     a.getAudioTracks().forEach(t=>cam.stream.addTrack(t));
   }catch(e){}
 }
-const camItems = () => ((isCheck()? S.checks : S.rooms) || []);
+const camItems = () => (isCheck()? visibleChecks() : (S.rooms || []));
 const curRoom = () => camItems()[cam.idx];
 const shortName = t => (t||'').length>24? t.slice(0,23)+'…' : (t||'');
 function paintCam(){
@@ -847,6 +941,11 @@ function closeCam(){
 /* ---------- signatur ---------- */
 function sigBlock(who){
   const s = S.sig[who];
+  if(s && s.remote) return `<div class="sigdone" style="padding:13px">
+      <div style="font-size:14px"><b>${esc(s.name||'Motparten')}</b> signerade digitalt via signeringslänk</div>
+      <div class="hint" style="font-family:var(--mono);font-size:11px;margin-top:4px">${stamp(new Date(s.ts))}</div>
+    </div>
+    <div class="hint">Det färdiga protokollet med signatursidan är redan mejlat till longstay@beaps.se.</div>`;
   if(s) return `<div class="sigdone"><img src="${s.data}" alt="signatur"></div>
     <div class="hint" style="font-family:var(--mono);font-size:11px">Signerat ${stamp(new Date(s.ts))}</div>`;
   return `<canvas class="sigpad" id="pad_${who}"></canvas>
@@ -873,8 +972,7 @@ function initPad(who){
 function clearPad(w){ pads[w] && pads[w].reset() }
 async function sendToCamilla(){
   saveCheckComments();
-  const tom = S.checks.filter(c=>!c.val).length;
-  if(tom && !confirm(`${tom} punkter är obesvarade. Skicka ändå?`)) return;
+  // obesvarade punkter far skickas som de ar, antalet star i sammanfattningen och i PDF:en
   if(!S.closedAt){ S.closedAt = Date.now(); log('Upplåsning avslutad'); await flushSave(); render() }
   toast('Bygger PDF');
   const out = await buildPdf();
@@ -898,7 +996,10 @@ function closeUnsigned(){
   flushSave(); render();
 }
 function unlock(){
-  if(!confirm(isCheck()? 'Lås upp listan så den går att ändra igen?' : 'Lås upp protokollet? Signaturerna tas bort och det noteras i loggen.')) return;
+  const waiting = S.signReq && S.signReq.status==='pending';
+  if(waiting && !confirm('Det finns en utskickad signeringslänk. Låser du upp återkallas den, och du får skicka en ny länk när protokollet är ändrat. Fortsätt?')) return;
+  if(!waiting && !confirm(isCheck()? 'Lås upp listan så den går att ändra igen?' : 'Lås upp protokollet? Signaturerna tas bort och det noteras i loggen.')) return;
+  if(waiting){ revokeSignLink(S.signReq.token); S.signReq.status='cancelled'; log('Signeringslänk återkallad') }
   S.signedAt = null; S.closedAt = null; S.sig = {};
   log(isCheck()? 'Listan upplåst' : 'Protokollet upplåst, signaturer borttagna');
   flushSave(); view='rooms'; render(); window.scrollTo(0,0);
@@ -910,6 +1011,304 @@ function commitPad(w){
   log(`Signerad av ${w==='inspector'? (S.inspector.name||'besiktningsman') : (S.counter.name||'motpart')}`);
   if(S.sig.inspector && S.sig.counter && !S.signedAt){ S.signedAt=Date.now(); log('Protokollet låst') }
   save(); render();
+}
+
+/* ---------- wifi-matning ---------- */
+// Mater mot Beaps egen Netlify-funktion, sa ingen tredjepartstjanst behover blandas in.
+// Siffrorna ar en bedomning av forbindelsen telefon -> internet, inte en labbmatning:
+// de speglar vad en gast faktiskt far ut av natet, vilket ar det vi vill veta.
+const WIFI_DOWN = 4*1024*1024, WIFI_UP = 2*1024*1024, WIFI_PINGS = 5;
+// matchar exakt en tidigare matning och inget mer, sa en handskriven kommentar efter overlever
+const MATNING = /^Ned .*?Latens \d+ ms(?: · mobildata)?/;
+let measuring = false;
+
+async function pingOnce(){
+  const t = performance.now();
+  const r = await withTimeout(fetch('/api/speed-ping?x='+uid(), {cache:'no-store'}), 8000);
+  if(!r.ok) throw new Error('ping ' + r.status);
+  await r.text();
+  return performance.now() - t;
+}
+
+async function measureDown(){
+  const r = await withTimeout(fetch('/api/speed-down?bytes='+WIFI_DOWN+'&x='+uid(), {cache:'no-store'}), 45000);
+  if(!r.ok || !r.body) throw new Error('down');
+  const reader = r.body.getReader();
+  let bytes = 0, t0 = 0;
+  for(;;){
+    const {done, value} = await reader.read();
+    if(done) break;
+    if(!t0) t0 = performance.now();   // klockan startar pa forsta byten, inte pa uppkopplingen
+    bytes += value.length;
+  }
+  const s = (performance.now() - t0)/1000;
+  return (s > 0.05 && bytes > 0) ? (bytes*8)/s/1e6 : null;
+}
+
+async function measureUp(){
+  const buf = new Uint8Array(WIFI_UP);
+  for(let i=0;i<buf.length;i+=65536) crypto.getRandomValues(buf.subarray(i, Math.min(i+65536, buf.length)));
+  const t0 = performance.now();
+  const r = await withTimeout(fetch('/api/speed-up?x='+uid(), {method:'POST', body:buf, cache:'no-store'}), 45000);
+  if(!r.ok) throw new Error('up');
+  await r.json();
+  const s = (performance.now() - t0)/1000;
+  return s > 0.05 ? (WIFI_UP*8)/s/1e6 : null;
+}
+
+async function measureWifi(id){
+  if(measuring) return toast('En mätning pågår redan');
+  if(!S || !S.checks) return;
+  const insp = S;                    // mätningen tar sekunder, användaren kan hinna byta besiktning
+  const c = S.checks.find(x=>x.id===id);
+  if(!c) return;
+  measuring = true;
+  saveCheckComments();
+  try{
+    toast('Mäter latens');
+    const pings = [];
+    for(let i=0;i<WIFI_PINGS;i++){ try{ pings.push(await pingOnce()) }catch(e){} }
+    if(!pings.length) throw new Error('ingen kontakt');
+    pings.sort((a,b)=>a-b);
+    const latens = Math.round(pings[Math.floor(pings.length/2)]);
+
+    toast('Mäter nedladdning');
+    const ned = await measureDown();
+    toast('Mäter uppladdning');
+    const upp = await measureUp().catch(()=>null);
+
+    // annan besiktning öppnad under tiden: skriv inte in resultatet på fel ställe
+    if(S !== insp){ measuring = false; return toast('Mätningen avbröts, du bytte besiktning') }
+
+    // kort nog att synas i sin helhet i kommentarsfältet. Klockslaget utelämnas med flit,
+    // det står i händelseloggen som följer med i PDF:en.
+    const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
+    const conn = navigator.connection;
+    const mobil = conn && conn.type === 'cellular';
+    const rad = `Ned ${bit(ned)} · Upp ${bit(upp)} Mbit/s · Latens ${latens} ms`
+              + (mobil? ' · mobildata' : '');
+
+    // behall en eventuell handskriven kommentar, byt bara ut en tidigare matning
+    const rest = (c.comment||'').replace(MATNING,'').replace(/^\s*[—·-]\s*/,'').trim();
+    c.comment = rad + (rest? ' — ' + rest : '');
+    c.open = true;
+    log(`Wifi mätt: ned ${bit(ned)} / upp ${bit(upp)} Mbit/s, ${latens} ms`);
+    save(); render();
+    toast('Mätning klar');
+  }catch(e){
+    toast('Kunde inte mäta wifi just nu');
+  }
+  measuring = false;
+}
+
+/* ---------- signering pa distans ---------- */
+const okMail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s||'').trim());
+
+function signReqCard(){
+  const q = S.signReq;
+  if(!q) return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:10px">Motparten är inte på plats</div>
+    <button class="btn ghost" onclick="openSignRequest()">Gästen kan inte signera nu</button>
+    <div class="hint">Mejlar en länk där motparten ser hela protokollet och signerar direkt i webbläsaren.
+      Så fort det är gjort mejlas det färdiga protokollet till longstay@beaps.se.</div>
+  </div>`;
+
+  if(q.status==='signed') return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
+    <span class="locknote">Signerat ${stamp(new Date(q.signedAt||Date.now()))}</span>
+    <div class="hint">${esc(q.signedName||q.name||'Motparten')} signerade via länken som skickades till
+      ${esc(q.to)}. Protokollet är mejlat till longstay@beaps.se med kopia till mottagaren.</div>
+  </div>`;
+
+  if(q.status==='cancelled') return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
+    <div style="font-size:14px;color:var(--ink2)">Länken till ${esc(q.to)} är återkallad.</div>
+    <button class="btn ghost small" style="margin-top:12px" onclick="openSignRequest()">Skicka en ny länk</button>
+  </div>`;
+
+  const utgangen = q.status==='expired' || (q.expires && Date.now()>q.expires);
+  return `<div class="card">
+    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
+    <h2 style="margin:0 0 6px">${utgangen? 'Länken har gått ut' : 'Väntar på signatur'}</h2>
+    <div style="font-size:14px;color:var(--ink2)">
+      Skickad till ${esc(q.to)}${q.cc? ', kopia '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · gäller till '+stamp(new Date(q.expires)):''}
+    </div>
+    <div class="hint">När motparten signerat mejlas det färdiga protokollet till longstay@beaps.se automatiskt.</div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn ghost small" onclick="checkSignStatus()">Kontrollera status</button>
+      <button class="btn ghost small" onclick="copySignLink()">Kopiera länk</button>
+      <button class="btn ghost small" onclick="openSignRequest()">Skicka igen</button>
+      ${utgangen? '' : '<button class="btn ghost small" onclick="cancelSignLink()">Återkalla</button>'}
+    </div>
+  </div>`;
+}
+
+function closeSignSheet(){ const el = document.getElementById('signsheet'); if(el) el.remove() }
+
+function openSignRequest(){
+  saveOpenComment();
+  const q = S.signReq || {};
+  const el = document.createElement('div');
+  el.className = 'sheet'; el.id = 'signsheet';
+  el.innerHTML = topbar('Skicka signeringslänk', ref(), null, 'closeSignSheet()') + `<div class="wrap">
+    <div class="card">
+      <div class="field"><label class="eyebrow">Mejla till</label>
+        <input id="sr_to" type="email" inputmode="email" autocomplete="email"
+               placeholder="namn@foretag.se" value="${esc(q.to||'')}"></div>
+      <div class="field"><label class="eyebrow">CC, valfritt</label>
+        <input id="sr_cc" type="email" inputmode="email" autocomplete="email"
+               placeholder="kopia@foretag.se" value="${esc(q.cc||'')}"></div>
+      <div class="field"><label class="eyebrow">Mottagarens namn</label>
+        <input id="sr_name" value="${esc(q.name||S.counter.name||'')}" placeholder="För- och efternamn"></div>
+      <div class="field"><label class="eyebrow">Företag eller roll</label>
+        <input id="sr_role" value="${esc(q.role||S.counter.role||'')}" placeholder="T.ex. relocation agent"></div>
+      <div class="hint">Går ofta till relocation-agenten, ibland direkt till kunden.</div>
+    </div>
+    <div class="card" style="border-color:var(--brand-dark);box-shadow:inset 3px 0 0 var(--brand)">
+      <div class="eyebrow" style="margin-bottom:8px">OBS</div>
+      <div style="font-size:14px;line-height:1.5">Sker signeringen digitalt ser den du mejlar till
+        <b>hela PDF:en</b> — samtliga rum, bilder och kommentarer — innan signaturen lämnas.
+        Skicka bara till någon som ska ha tillgång till hela protokollet.</div>
+    </div>
+    ${S.sig.inspector? '' : `<div class="card">
+      <div style="font-size:14px">Du har inte signerat själv än. Protokollet skickas som det är,
+        med tom signaturrad för besiktningsmannen. Vill du signera först stänger du det här,
+        signerar på avslutssidan och öppnar formuläret igen.</div>
+    </div>`}
+    <button class="btn" id="sr_send" onclick="sendSignRequest()">Skicka signeringslänk</button>
+    <div class="hint" id="sr_err" style="color:var(--rec);display:none"></div>
+    <button class="btn ghost" style="margin-top:10px" onclick="closeSignSheet()">Avbryt</button>
+  </div>`;
+  document.body.appendChild(el);
+  const t = document.getElementById('sr_to'); if(t && !t.value) t.focus();
+}
+
+async function sendSignRequest(){
+  const err = document.getElementById('sr_err'), btn = document.getElementById('sr_send');
+  const reset = m => { btn.disabled=false; btn.textContent='Skicka signeringslänk';
+                       err.textContent=m; err.style.display='block' };
+  const to = document.getElementById('sr_to').value.trim();
+  const cc = document.getElementById('sr_cc').value.trim();
+  const name = document.getElementById('sr_name').value.trim();
+  const role = document.getElementById('sr_role').value.trim();
+  if(!okMail(to)) return reset('Fyll i en giltig mejladress under Mejla till.');
+  if(cc && !okMail(cc)) return reset('CC-adressen ser inte giltig ut.');
+  err.style.display = 'none';
+  const insp = S;                    // PDF-bygget tar tid, besiktningen kan bytas under tiden
+
+  btn.disabled = true; btn.textContent = 'Bygger PDF…';
+  const out = await buildPdf();
+  if(S !== insp) return reset('Du bytte besiktning, ingenting skickades.');
+  if(!out) return reset('PDF-motorn kunde inte laddas. Kontrollera uppkopplingen och försök igen.');
+  // samma tak som servern använder, så det inte byggs och laddas upp i onödan
+  if(out.blob.size > 4*1048576)
+    return reset('Protokollet är ' + mb(out.blob.size) + ' och för stort för signeringslänken. Ta bort några bilder och försök igen.');
+
+  btn.textContent = 'Skickar…';
+  const b64 = await new Promise(res=>{ const fr=new FileReader();
+    fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(out.blob) });
+  let r;
+  try{
+    r = await withTimeout(fetch('/api/sign-request', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ pdf:b64, filename:out.name, ref:ref(), type:S.type,
+        address:S.address, apt:S.apt, inspector:S.inspector.name,
+        to, cc, recipientName:name, recipientRole:role })
+    }), 45000);
+  }catch(e){ return reset('Ingen kontakt med servern. Kontrollera uppkopplingen och försök igen.') }
+  if(!r.ok){
+    // servern svarar med korta klartextfel. Ar svaret en HTML-sida ar funktionen
+    // inte igang, och da ska anvandaren inte fa en vagg av markup i felrutan.
+    const txt = (await r.text().catch(()=>'')).trim();
+    const kort = (txt && txt.length < 160 && txt.indexOf('<') < 0) ? txt : '';
+    return reset(r.status===429? 'Dagens mejlgräns är nådd. Försök igen senare.'
+               : r.status===413? 'Protokollet är för stort för signeringslänken.'
+               : r.status===404? 'Signeringsfunktionen är inte igång på servern än.'
+               : r.status===501? 'Mejlutskick är inte konfigurerat på servern.'
+               : (kort || 'Det gick inte att skicka (' + r.status + ').'));
+  }
+
+  const res = await r.json();
+  if(S !== insp) return reset('Du bytte besiktning. Länken är skickad, men kunde inte kopplas till protokollet — öppna det och skicka igen.');
+  if(name) S.counter.name = name;
+  if(role) S.counter.role = role;
+  S.signReq = { token:res.token, url:res.url, to, cc, name, role,
+                sentAt:Date.now(), expires:res.expires, status:'pending' };
+  if(!S.closedAt) S.closedAt = Date.now();
+  log(`Signeringslänk skickad till ${to}${cc? ' (kopia '+cc+')':''}`);
+  log('Protokollet låst i väntan på signatur');
+  await flushSave();
+  closeSignSheet();
+  toast('Signeringslänk skickad');
+  render(); window.scrollTo(0,0);
+}
+
+async function checkSignStatus(silent){
+  if(!S || !S.signReq) return;
+  const insp = S;                    // anropet görs ofta i bakgrunden, besiktningen kan stängas under tiden
+  let r;
+  try{ r = await withTimeout(fetch('/api/sign-load?t='+insp.signReq.token), 15000) }
+  catch(e){ if(!silent) toast('Ingen kontakt med servern'); return }
+  if(!r.ok){ if(!silent) toast('Kunde inte läsa status just nu'); return }
+  const m = await r.json();
+  if(S !== insp || !S.signReq) return;
+  const before = S.signReq.status;
+  S.signReq.status = m.status;
+  // statusen hämtas i bakgrunden när protokollet öppnas. Rita aldrig om utan att
+  // först ta hand om det användaren kan ha hunnit skriva i ett öppet fält.
+  saveOpenComment(); saveCheckComments();
+
+  if(m.status==='signed' && before!=='signed'){
+    S.signReq.signedAt = m.signedAt;
+    S.signReq.signedName = m.signedName;
+    S.signReq.signedRole = m.signedRole;
+    S.sig.counter = {remote:true, ts:m.signedAt, name:m.signedName||S.signReq.name||''};
+    if(!S.signedAt) S.signedAt = m.signedAt;
+    if(m.signedName) S.counter.name = m.signedName;
+    if(m.signedRole) S.counter.role = m.signedRole;
+    log(`Signerat av ${m.signedName || S.signReq.name || 'motparten'} via signeringslänk`);
+    await flushSave(); render();
+    return toast('Signerat, protokollet är mejlat');
+  }
+  await flushSave();
+  if(silent){ if(before!==m.status) render(); return }
+  render();
+  toast(m.status==='signed'? 'Redan signerat'
+      : m.status==='cancelled'? 'Länken är återkallad'
+      : m.status==='expired'? 'Länken har gått ut'
+      : 'Väntar fortfarande på signatur');
+}
+
+async function copySignLink(){
+  if(!S.signReq) return;
+  try{ await navigator.clipboard.writeText(S.signReq.url); toast('Länken kopierad') }
+  catch(e){ prompt('Kopiera länken:', S.signReq.url) }
+}
+
+// tyst aterkallning, anvands nar protokollet lases upp
+function revokeSignLink(token){
+  try{
+    fetch('/api/sign-cancel', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({t:token}), keepalive:true}).catch(()=>{});
+  }catch(e){}
+}
+
+async function cancelSignLink(){
+  if(!S || !S.signReq) return;
+  if(!confirm('Återkalla signeringslänken? Mottagaren kan då inte längre signera den.')) return;
+  const insp = S;
+  let r;
+  try{
+    r = await withTimeout(fetch('/api/sign-cancel', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({t:insp.signReq.token})}), 15000);
+  }catch(e){ return toast('Ingen kontakt med servern') }
+  if(r.status===409){ toast('Hann signeras först'); return checkSignStatus(true) }
+  if(!r.ok) return toast('Kunde inte återkalla länken');
+  if(S !== insp || !S.signReq) return toast('Länken är återkallad');
+  S.signReq.status = 'cancelled';
+  log('Signeringslänk återkallad');
+  await flushSave(); render();
+  toast('Länken är återkallad');
 }
 
 /* ---------- actions ---------- */
@@ -1019,7 +1418,8 @@ async function newInsp(){
   S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
         inspector:{name:''}, counter:{name:'',role:''},
         rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
-        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signedAt:null, closedAt:null, log:[] };
+        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null,
+        signedAt:null, closedAt:null, log:[] };
   photoCache={}; videoURL=null; openRoom=null;
   ensureChecks(); log('Besiktning skapad'); save(); go('object');
 }
@@ -1032,6 +1432,8 @@ async function openInsp(id){
   if(!S.comp) S.comp = {in:0,out:0};
   ensureChecks();
   await loadMedia(id); paintTicker(); go((S.signedAt||S.closedAt)?'sign':'rooms');
+  // hor efter i bakgrunden om motparten hunnit signera via lanken
+  if(S.signReq && S.signReq.status==='pending') checkSignStatus(true);
 }
 function openLog(){
   if(!S) return;
@@ -1086,7 +1488,7 @@ async function buildPdf(){
   if(!await loadJsPDF()){ toast('Kunde inte ladda PDF-motorn, använder utskrift'); return null }
   const doc = new window.jspdf.jsPDF({unit:'pt', format:'a4', compress:true});
   const allPhotos = isCheck()
-    ? S.checks.reduce((a,c)=>a+((c.photos&&c.photos.length)||0), 0)
+    ? visibleChecks().reduce((a,c)=>a+((c.photos&&c.photos.length)||0), 0)
     : S.rooms.reduce((a,r)=>a+r.photos.length, 0);
   const photoBudget = Math.max(80*1024, Math.min(720*1024, Math.floor(3.3*1048576 / Math.max(1, allPhotos))));
   let packed = 0;
@@ -1121,18 +1523,60 @@ async function buildPdf(){
   y += 8;
 
   if(isCheck()){
+    // sammanfattning forst, sa mottagaren ser avvikelserna utan att bladdra
+    const lista = visibleChecks();
+    const avvik = lista.filter(c=>c.val && c.val===badAnswer(c));
+    const obes = lista.filter(c=>!c.val).length;
+    const ejt = lista.filter(c=>c.val==='na').length;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('Sammanfattning', M, y+10); y += 20;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.text(`${avvik.length} avvikelser · ${obes} obesvarade · ${ejt} ej tillämpliga · ${lista.length} punkter totalt`, M, y+9);
+    y += 18;
+
+    if(avvik.length){
+      for(const c of avvik){
+        doc.setFont('helvetica','normal'); doc.setFontSize(10);
+        const rader = doc.splitTextToSize('· ' + c.label, CW - 16);
+        const kom = c.comment? doc.splitTextToSize(c.comment, CW - 30) : null;
+        need(rader.length*13 + (kom? kom.length*11 + 2 : 12));
+        doc.text(rader, M + 4, y+9);
+        y += rader.length*13;
+        doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
+        doc.text(kom || ['ingen kommentar'], M + 16, y+8);
+        y += (kom? kom.length*11 : 11) + 4;
+        doc.setTextColor(0);
+      }
+    } else {
+      doc.setFont('helvetica','italic'); doc.setFontSize(10); doc.setTextColor(70);
+      doc.text('Inga avvikelser noterade.', M, y+9); doc.setTextColor(0);
+      y += 16;
+    }
+    y += 6;
+    doc.setDrawColor(20); doc.setLineWidth(.8); need(6); doc.line(M, y, W-M, y); y += 16;
+
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
     doc.text('Checklista upplåsning', M, y+10); y += 22;
     const IND = 14, cw = (CW - IND - 12)/2, maxH = 260, usable = H - 46 - M;
-    for(const c of S.checks){
+    let sect = null;
+    for(const c of lista){
+      if(c.section && c.section !== sect){
+        sect = c.section;
+        need(30);
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(110);
+        doc.text(sect.toUpperCase(), M, y+9); doc.setTextColor(0);
+        y += 17;
+      }
       // mät blocket först så att fråga, kommentar och bilder hålls ihop
+      const x0 = c.showIf? M + 12 : M;
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
-      const rows = doc.splitTextToSize(c.label, CW-80);
+      const rows = doc.splitTextToSize((c.showIf?'– ':'') + c.label, CW-80-(x0-M));
       let blockH = rows.length*13 + 8;
       let cmt = null;
       if(c.comment){
         doc.setFont('helvetica','italic'); doc.setFontSize(9);
-        cmt = doc.splitTextToSize(c.comment, CW-24);
+        cmt = doc.splitTextToSize(c.comment, CW-24-(x0-M));
         blockH += cmt.length*11 + 2;
       }
       const shots = [];
@@ -1150,13 +1594,13 @@ async function buildPdf(){
       need(Math.min(blockH + 6, usable));
 
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
-      doc.text(rows, M, y+9);
+      doc.text(rows, x0, y+9);
       doc.setFont('helvetica','bold');
-      doc.text(c.val? (c.val==='ja'?'JA':'NEJ') : '-', W-M, y+9, {align:'right'});
+      doc.text(c.val? (c.val==='ja'?'JA': c.val==='na'?'E/T':'NEJ') : '-', W-M, y+9, {align:'right'});
       let h = rows.length*13;
       if(cmt){
         doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
-        doc.text(cmt, M+14, y+h+9); doc.setTextColor(0);
+        doc.text(cmt, x0+14, y+h+9); doc.setTextColor(0);
         h += cmt.length*11 + 2;
       }
       y += h + 6;
@@ -1242,7 +1686,12 @@ async function buildPdf(){
     const half = (CW - 20)/2;
     [['inspector', S.inspector.name, ''], ['counter', S.counter.name, S.counter.role||'']].forEach((v,i)=>{
       const x = M + i*(half+20), sg = S.sig[v[0]];
-      if(sg){ try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){} }
+      if(sg && sg.data){ try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){} }
+      else if(sg && sg.remote){
+        doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(90);
+        doc.text(['Signerad digitalt via signeringslänk.', 'Signatursidan finns i det utskickade protokollet.'], x, y+32);
+        doc.setTextColor(0); doc.setFont('helvetica','normal');
+      }
       doc.setDrawColor(60); doc.setLineWidth(.8); doc.line(x, y+58, x+half, y+58);
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
       doc.text([v[1]||'', v[2]||'', sg? stamp(new Date(sg.ts)) : ''], x, y+70);

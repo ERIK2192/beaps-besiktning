@@ -1,0 +1,24 @@
+{
+  // Konfiguration for Cloudflare Pages.
+  //
+  // Bindningen till KV lag tidigare i dashboarden och nadde aldrig funktionerna.
+  // Deklarerad har foljer den med varje deploy och kan inte hamna fel.
+  //
+  // OBS: nar den har filen finns lases bindningar och vanliga miljovariabler HARIFRAN,
+  // inte fran dashboarden. Secrets (RESEND_API_KEY) ligger kvar i dashboarden och
+  // ska aldrig in i den har filen - den ligger i git.
+  "name": "beaps-besiktning",
+  "compatibility_date": "2024-11-01",
+  "pages_build_output_dir": ".",
+
+  "kv_namespaces": [
+    {
+      "binding": "SIGNSTORE",
+      "id": "dfc4337f75f349bdb97b5c309cde472a"
+    }
+  ],
+
+  "vars": {
+    "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>"
+  }
+}

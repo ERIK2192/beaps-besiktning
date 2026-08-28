@@ -23,9 +23,14 @@ export const stamp = ms => new Intl.DateTimeFormat('sv-SE', {
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
 }).format(new Date(ms)).replace(',', '');
 
+// Avsandaradressen ar ofta en ren utskicksadress utan brevlada, sa svar pa den
+// studsar. Satt MAIL_REPLY_TO till en adress som gar att na, sa hamnar svar dar.
+export const replyTo = env => (env.MAIL_REPLY_TO || '').trim();
+
 // { to, cc, subject, text, html, attachments:[{filename, content(base64)}] }
 export async function sendMail(env, { to, cc, subject, text, html, attachments }) {
   const from = mailFrom(env);
+  const svara = replyTo(env);
   const toList = [].concat(to || []).map(x => (x || '').trim()).filter(Boolean);
   const ccList = [].concat(cc || []).map(x => (x || '').trim()).filter(Boolean);
   const files = (attachments || []).filter(a => a && a.content);
@@ -39,6 +44,7 @@ export async function sendMail(env, { to, cc, subject, text, html, attachments }
         from: from.email ? `${from.name} <${from.email}>` : 'onboarding@resend.dev',
         to: toList,
         ...(ccList.length ? { cc: ccList } : {}),
+        ...(svara ? { reply_to: svara } : {}),
         subject,
         text,
         ...(html ? { html } : {}),
@@ -60,6 +66,7 @@ export async function sendMail(env, { to, cc, subject, text, html, attachments }
           ...(ccList.length ? { cc: ccList.map(email => ({ email })) } : {})
         }],
         from: { email: from.email, name: from.name },
+        ...(svara ? { reply_to: { email: svara } } : {}),
         subject,
         content: [
           { type: 'text/plain', value: text || ' ' },

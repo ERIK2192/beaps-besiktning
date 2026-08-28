@@ -35,8 +35,16 @@ Två lägen:
 | [netlify/functions/sign-view.mjs](netlify/functions/sign-view.mjs) | Läser länken · `/api/sign-load`, `/api/sign-pdf` |
 | [netlify/functions/sign-complete.mjs](netlify/functions/sign-complete.mjs) | Tar emot signaturen · `/api/sign-complete`, `/api/sign-cancel` |
 | [netlify/functions/speedtest.mjs](netlify/functions/speedtest.mjs) | Wifi-mätningen · `/api/speed-ping`, `/api/speed-down`, `/api/speed-up` |
+| [functions/api/](functions/api/) | Cloudflares versioner av funktionerna |
+| [cflib/](cflib/) | delad mejl- och signeringshjälp för Cloudflare |
+| [CLOUDFLARE.md](CLOUDFLARE.md) | steg för steg att sätta upp appen på Cloudflare Pages |
 | [LASMIG.txt](LASMIG.txt) | Deploy- och mejlinstruktioner till den som sätter upp Netlify |
 | ARBETSLOGG.md | Den här filen |
+
+Appen körs på två håll. `netlify/**` och `functions/**` är samma funktioner skrivna för
+var sin plattform, och båda ligger kvar i repot så båda sajterna fungerar. Skillnaderna:
+Cloudflare läser miljövariabler från `env` i stället för `process.env`, använder KV
+i stället för Netlify Blobs, och saknar `Buffer` — därför går all base64 via `atob`/`btoa`.
 
 ## 3. Så fungerar det tekniskt
 

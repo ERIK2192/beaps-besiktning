@@ -1159,12 +1159,16 @@ async function uploadGallery(){
       body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
         inspector:S.inspector.name, items })
     }), 30000);
-    if(!r.ok){
-      const t = (await r.text().catch(()=>'')).trim();
-      throw new Error(r.status===404? 'Galleriet är inte igång på servern än'
-                    : (t && t.length<160 && t.indexOf('<')<0)? t : 'Servern svarade '+r.status);
+    // Cloudflare svarar med appens egen HTML pa okanda /api-vagar, inte med 404.
+    // Lita darfor inte pa statuskoden ensam - forsok tolka svaret och se om det bar en token.
+    const svar = (await r.text().catch(()=>'')).trim();
+    let g = null;
+    try{ g = JSON.parse(svar) }catch(e){}
+    if(!g || !g.token){
+      const kort = (svar && svar.length<160 && svar.indexOf('<')<0)? svar : '';
+      throw new Error(!g? 'Galleriet är inte igång på servern än'
+                    : (kort || 'Servern svarade ' + r.status));
     }
-    const g = await r.json();
 
     let klara = 0, missade = 0;
     for(const it of items){

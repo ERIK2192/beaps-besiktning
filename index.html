@@ -1689,6 +1689,9 @@ const okMail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s||'').trim());
 
 function signReqCard(){
   const q = S.signReq;
+  // The counterparty already signed (on the pad or via a link) and no link is out ->
+  // external signing makes no sense, so don't offer it.
+  if(!q && S.sig && S.sig.counter) return '';
   if(!q) return `<div class="card">
     <div class="eyebrow" style="margin-bottom:10px">${T('The counterparty is not present')}</div>
     <button class="btn ghost" onclick="openSignRequest()">${T('The guest cannot sign now')}</button>

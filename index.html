@@ -1532,6 +1532,8 @@ async function measureWifi(id){
     // keep any handwritten comment, only replace a previous measurement
     const rest = (c.comment||'').replace(MATNING,'').replace(/^\s*[—·-]\s*/,'').trim();
     c.comment = rad + (rest? ' — ' + rest : '');
+    unlockIfLocked();
+    c.val = 'ja';   // a successful measurement answers "Does the internet work?" -> Yes, saves a click
     c.open = true;
     log(`Wifi measured: down ${bit(ned)} / up ${bit(upp)} Mbit/s, ${latens} ms`);
     save(); render();

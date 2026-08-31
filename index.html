@@ -98,9 +98,12 @@
   .yn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .yn.on.no{background:var(--rec);border-color:var(--rec);color:#fff}
   .yn.on.na{background:var(--ink2);border-color:var(--ink2);color:#fff}
-  .clinks{margin-left:auto;display:flex;align-items:baseline;gap:14px}
+  .clinks{margin-left:auto;display:flex;align-items:center;gap:14px}
   .addc{margin:0;padding:0;background:none;border:0;line-height:1;font-family:var(--sans);font-size:13px;
         color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+  .wifibtn{font-family:var(--sans);font-size:14px;font-weight:650;color:var(--ink);background:var(--brand);
+           border:1px solid var(--brand-dark);border-radius:9px;padding:9px 15px;line-height:1;cursor:pointer;white-space:nowrap}
+  .wifibtn:active{background:var(--brand-dark)}
   .crow .thumbs{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}
   .cinput{margin-top:10px;font-size:15px;padding:11px 12px}
   .room.drop, .card.drop{outline:2px dashed var(--ink);outline-offset:-2px;background:#F6F7F7}
@@ -1115,7 +1118,7 @@ function checkRow(c){
         <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">${T('N/A')}</button>
       </span>
       <span class="clinks">
-        ${c.key==='internet'? `<button class="addc" onclick="measureWifi('${c.id}')">${T('Measure wifi')}</button>`:''}
+        ${c.key==='internet'? `<button class="wifibtn" onclick="measureWifi('${c.id}')">${T('Measure wifi')}</button>`:''}
         <button class="addc" onclick="openCheckComment('${c.id}')">${T('Comment')}</button>
         <button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>
       </span>

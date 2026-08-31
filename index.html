@@ -2036,7 +2036,6 @@ async function renderStart(){
              <div class="hint" style="margin:0">${T('Tap the button below to create the first one.')}</div>
            </div>`}
       ${editList && idx.length? `<button class="btn ghost small" style="width:100%;margin-top:6px;color:var(--rec)" onclick="delAll()">${T('Delete all')} ${idx.length} ${T('reports')}</button>`:''}
-      <button class="btn ghost small" style="width:100%;margin-top:10px" onclick="pickRestore()">${T('Restore from backup')}</button>
     </div>`;
   $('#bar').className = 'bar raised';
   $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">${T('New inspection')}</button>`;

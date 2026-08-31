@@ -1,18 +1,18 @@
-// Tar emot signaturen fran signeringssidan, fogar in den som en sista sida i det
-// lagrade protokollet och mejlar det fardiga dokumentet till longstay, med kopia
-// till den som signerade. Protokollet sjalvt kommer alltid fran Blobs, aldrig fran
-// mottagarens webblasare, sa innehallet kan inte andras pa vagen.
+// Receives the signature from the signing page, inserts it as a final page in the
+// stored report and emails the finished document to longstay, with a copy
+// to the person who signed. The report itself always comes from Blobs, never from
+// the recipient's browser, so the content cannot be changed along the way.
 //
 //   POST /api/sign-complete  { t, sig(dataURL png), name, role }
 //   POST /api/sign-cancel    { t }
 import { getStore } from '@netlify/blobs';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { sendMail, longstay, esc, stamp } from '../lib/mail.mjs';
+import { sendMail, longstay, esc, stamp, typeLabel } from '../lib/mail.mjs';
 
 const store = () => getStore({ name: 'signrequests', consistency: 'strong' });
 const cleanToken = s => (s || '').replace(/[^a-f0-9]/g, '');
 
-// StandardFonts kan bara rita WinAnsi. Aker ett tecken utanfor, kastar pdf-lib.
+// StandardFonts can only draw WinAnsi. If a character goes outside that, pdf-lib throws.
 const wa = s => String(s == null ? '' : s)
   .replace(/[–—]/g, '-')
   .replace(/[‘’]/g, "'")
@@ -37,7 +37,7 @@ async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
     y -= size * 1.5;
   };
 
-  page.drawText('SIGNATUR', { x: M, y: y - 8, size: 8, font, color: GREY });
+  page.drawText('SIGNATURE', { x: M, y: y - 8, size: 8, font, color: GREY });
   page.drawText(wa(stamp(signedAt)), {
     x: A4.w - M - font.widthOfTextAtSize(wa(stamp(signedAt)), 8), y: y - 8, size: 8, font, color: GREY
   });
@@ -49,13 +49,13 @@ async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
   y -= 24;
 
   const rows = [
-    ['Typ', meta.type || '-'],
-    ['Besiktningsman', meta.inspector || '-'],
-    ['Signerad av', meta.signedName || meta.recipientName || '-'],
-    ['Roll', meta.signedRole || meta.recipientRole || '-'],
-    ['Signerad', stamp(signedAt)],
-    ['Signeringslank skickad till', meta.to + (meta.cc ? ', kopia ' + meta.cc : '')],
-    ['Lank skapad', stamp(meta.created)]
+    ['Type', typeLabel(meta.type) || '-'],
+    ['Inspector', meta.inspector || '-'],
+    ['Signed by', meta.signedName || meta.recipientName || '-'],
+    ['Role', meta.signedRole || meta.recipientRole || '-'],
+    ['Signed', stamp(signedAt)],
+    ['Signing link sent to', meta.to + (meta.cc ? ', copy ' + meta.cc : '')],
+    ['Link created', stamp(meta.created)]
   ];
   for (const [k, v] of rows) {
     page.drawText(wa(k), { x: M, y: y - 10, size: 10, font, color: GREY });
@@ -80,9 +80,9 @@ async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
   y -= 40;
 
   const notis = [
-    'Signerad digitalt via engangslank utskickad av Beaps. Mottagaren fick se hela',
-    'protokollet med bilder och kommentarer innan signaturen lamnades, och bekraftade',
-    'att protokollet var last. Dokumentet ovan ar oforandrat sedan lanken skapades.'
+    'Signed digitally via a one-time link sent by Beaps. The recipient saw the full',
+    'report with photos and comments before the signature was given, and confirmed',
+    'that the report had been read. The document above is unchanged since the link was created.'
   ];
   for (const rad of notis) {
     page.drawText(wa(rad), { x: M, y: y - 8, size: 8, font, color: GREY });
@@ -99,27 +99,28 @@ export default async (req) => {
   try { b = await req.json() } catch { return new Response('Bad request', { status: 400 }) }
 
   const token = cleanToken(b.t);
-  if (token.length !== 48) return new Response('Ogiltig lank', { status: 400 });
+  if (token.length !== 48) return new Response('Invalid link', { status: 400 });
 
   const s = store();
   const meta = await s.get('meta/' + token, { type: 'json' });
-  if (!meta) return new Response('Lanken finns inte', { status: 404 });
+  if (!meta) return new Response('The link does not exist', { status: 404 });
 
   const cancel = new URL(req.url).pathname.endsWith('/sign-cancel');
   if (cancel) {
-    if (meta.status === 'signed') return new Response('Redan signerat', { status: 409 });
+    if (meta.status === 'signed') return new Response('Already signed', { status: 409 });
     await s.setJSON('meta/' + token, { ...meta, status: 'cancelled', cancelledAt: Date.now() });
     await s.delete('pdf/' + token).catch(() => {});
     return Response.json({ ok: true, status: 'cancelled' });
   }
 
-  if (meta.status === 'signed') return new Response('Protokollet ar redan signerat', { status: 409 });
-  if (meta.status === 'cancelled') return new Response('Lanken har aterkallats', { status: 410 });
-  if (Date.now() > meta.expires) return new Response('Lanken har gatt ut', { status: 410 });
-  if (!b.sig || String(b.sig).indexOf('base64,') < 0) return new Response('Signatur saknas', { status: 400 });
+  if (meta.status === 'signed') return new Response('The report is already signed', { status: 409 });
+  if (meta.status === 'cancelled') return new Response('The link has been revoked', { status: 410 });
+  if (Date.now() > meta.expires) return new Response('The link has expired', { status: 410 });
+  if (!b.sig || String(b.sig).indexOf('base64,') < 0) return new Response('Signature missing', { status: 400 });
+  if (String(b.sig).length > 3 * 1024 * 1024) return new Response('The signature is too large', { status: 413 });
 
   const pdfB64 = await s.get('pdf/' + token, { type: 'text' });
-  if (!pdfB64) return new Response('Protokollet hittades inte', { status: 404 });
+  if (!pdfB64) return new Response('The report could not be found', { status: 404 });
 
   const signedAt = Date.now();
   const signed = {
@@ -132,46 +133,46 @@ export default async (req) => {
   try {
     finalB64 = await signaturePage(pdfB64, b.sig, signed, signedAt);
   } catch (e) {
-    return new Response('Kunde inte fardigstalla PDF:en: ' + String(e && e.message).slice(0, 200), { status: 500 });
+    return new Response('Could not finalize the PDF: ' + String(e && e.message).slice(0, 200), { status: 500 });
   }
 
-  const namn = (meta.filename || 'Besiktningsprotokoll.pdf').replace(/\.pdf$/i, '') + ' signerat.pdf';
+  const namn = (meta.filename || 'Inspection report.pdf').replace(/\.pdf$/i, '') + ' signed.pdf';
   const objekt = meta.ref || [meta.address, meta.apt].filter(Boolean).join(', ');
 
   const text = [
-    `${signed.signedName || 'Motparten'} har signerat besiktningsprotokollet.`,
+    `${signed.signedName || 'The counterparty'} has signed the inspection report.`,
     '',
-    `Objekt: ${objekt}`,
-    meta.type ? `Typ: ${meta.type}` : '',
-    `Besiktningsman: ${meta.inspector || '-'}`,
-    `Signerad av: ${signed.signedName || '-'}${signed.signedRole ? ' (' + signed.signedRole + ')' : ''}`,
-    `Signerad: ${stamp(signedAt)}`,
-    `Lank skickad till: ${meta.to}${meta.cc ? ' (kopia ' + meta.cc + ')' : ''}`,
+    `Property: ${objekt}`,
+    meta.type ? `Type: ${typeLabel(meta.type)}` : '',
+    `Inspector: ${meta.inspector || '-'}`,
+    `Signed by: ${signed.signedName || '-'}${signed.signedRole ? ' (' + signed.signedRole + ')' : ''}`,
+    `Signed: ${stamp(signedAt)}`,
+    `Link sent to: ${meta.to}${meta.cc ? ' (copy ' + meta.cc + ')' : ''}`,
     '',
-    'Det signerade protokollet ligger bifogat.'
+    'The signed report is attached.'
   ].filter(x => x !== '').join('\n');
 
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#16325C;line-height:1.5">
-    <p><b>${esc(signed.signedName || 'Motparten')}</b> har signerat besiktningsprotokollet.</p>
+    <p><b>${esc(signed.signedName || 'The counterparty')}</b> has signed the inspection report.</p>
     <table style="border-collapse:collapse;font-size:14px;margin:0 0 18px">
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Objekt</td><td style="padding:2px 0"><b>${esc(objekt)}</b></td></tr>
-      ${meta.type ? `<tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Typ</td><td style="padding:2px 0">${esc(meta.type)}</td></tr>` : ''}
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Besiktningsman</td><td style="padding:2px 0">${esc(meta.inspector || '-')}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signerad av</td><td style="padding:2px 0">${esc(signed.signedName || '-')}${signed.signedRole ? ' (' + esc(signed.signedRole) + ')' : ''}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signerad</td><td style="padding:2px 0">${esc(stamp(signedAt))}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Länk skickad till</td><td style="padding:2px 0">${esc(meta.to)}${meta.cc ? ' (kopia ' + esc(meta.cc) + ')' : ''}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Property</td><td style="padding:2px 0"><b>${esc(objekt)}</b></td></tr>
+      ${meta.type ? `<tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Type</td><td style="padding:2px 0">${esc(typeLabel(meta.type))}</td></tr>` : ''}
+      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Inspector</td><td style="padding:2px 0">${esc(meta.inspector || '-')}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signed by</td><td style="padding:2px 0">${esc(signed.signedName || '-')}${signed.signedRole ? ' (' + esc(signed.signedRole) + ')' : ''}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signed</td><td style="padding:2px 0">${esc(stamp(signedAt))}</td></tr>
+      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Link sent to</td><td style="padding:2px 0">${esc(meta.to)}${meta.cc ? ' (copy ' + esc(meta.cc) + ')' : ''}</td></tr>
     </table>
-    <p>Det signerade protokollet ligger bifogat.</p>
+    <p>The signed report is attached.</p>
   </div>`;
 
   const m = await sendMail({
     to: longstay(),
     cc: [meta.to, meta.cc].filter(Boolean),
-    subject: `BesiktningPDF ${objekt} - signerat`,
+    subject: `BesiktningPDF ${objekt} - signed`,
     text, html,
     attachments: [{ filename: namn, content: finalB64 }]
   });
-  if (!m.ok) return new Response(m.error || 'Mejlet gick inte att skicka', { status: m.error === 'quota' ? 429 : 502 });
+  if (!m.ok) return new Response(m.error || 'The email could not be sent', { status: m.error === 'quota' ? 429 : 502 });
 
   await s.set('signed/' + token, finalB64);
   await s.setJSON('meta/' + token, signed);

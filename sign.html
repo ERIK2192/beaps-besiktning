@@ -1,7 +1,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#F2F1ED">
-<title>Signera besiktningsprotokoll</title>
+<title>Sign inspection report</title>
 <style>
   :root{
     --paper:#F2F1ED; --card:#FFFFFF; --ink:#16325C; --ink2:#6E7C94;
@@ -67,10 +67,10 @@
 </style>
 
 <div class="top"><div class="row">
-  <div><div class="eyebrow">Besiktningsprotokoll</div><h1 id="title">Signering</h1></div>
+  <div><div class="eyebrow">Inspection report</div><h1 id="title">Signing</h1></div>
   <img class="logo" src="logo.png" alt="Beaps" onerror="this.outerHTML='<span class=&quot;logo-fallback&quot;>Beaps</span>'">
 </div></div>
-<div class="wrap" id="app"><div class="card"><div class="big">Hämtar protokollet…</div></div></div>
+<div class="wrap" id="app"><div class="card"><div class="big">Fetching the report…</div></div></div>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -82,6 +82,9 @@ const token = (new URLSearchParams(location.search).get('t')||'').replace(/[^a-f
 
 let meta = null, pad = null, sending = false;
 
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+const typeLabel = t => TYPE_LABEL[t] || t;
+
 function card(inner){ return `<div class="card">${inner}</div>` }
 
 function screenMessage(kind, mark, rubrik, text){
@@ -89,80 +92,80 @@ function screenMessage(kind, mark, rubrik, text){
     <div class="mark">${mark}</div>
     <h1 style="margin-bottom:8px">${esc(rubrik)}</h1>
     <div style="font-size:14px;color:var(--ink2)">${text}</div>
-    ${kind? `<div style="margin-top:16px"><span class="locknote ${kind}">${kind==='ok'?'Klart':'Länken går inte att signera'}</span></div>`:''}
+    ${kind? `<div style="margin-top:16px"><span class="locknote ${kind}">${kind==='ok'?'Done':'This link cannot be signed'}</span></div>`:''}
   </div>`);
 }
 
-function objekt(){ return meta.ref || [meta.address, meta.apt].filter(Boolean).join(', ') || 'Besiktning' }
+function objekt(){ return meta.ref || [meta.address, meta.apt].filter(Boolean).join(', ') || 'Inspection' }
 
 async function load(){
   if(token.length !== 48){
-    return screenMessage('bad','!','Länken är ofullständig',
-      'Kopiera hela adressen från mejlet, inklusive den långa koden efter <code>t=</code>.');
+    return screenMessage('bad','!','The link is incomplete',
+      'Copy the entire address from the email, including the long code after <code>t=</code>.');
   }
   let r;
   try{ r = await fetch('/api/sign-load?t='+token) }
-  catch(e){ return screenMessage('bad','!','Ingen kontakt','Kontrollera uppkopplingen och ladda om sidan.') }
+  catch(e){ return screenMessage('bad','!','No connection','Check your connection and reload the page.') }
   if(!r.ok){
-    return screenMessage('bad','!','Länken fungerar inte',
-      r.status===404? 'Protokollet finns inte längre. Be Beaps skicka en ny länk.'
-                    : 'Något gick fel ('+r.status+'). Be Beaps skicka en ny länk.');
+    return screenMessage('bad','!','The link does not work',
+      r.status===404? 'The report no longer exists. Ask Beaps to send a new link.'
+                    : 'Something went wrong ('+r.status+'). Ask Beaps to send a new link.');
   }
   meta = await r.json();
-  document.title = 'Signera – ' + objekt();
+  document.title = 'Sign – ' + objekt();
   $('#title').textContent = objekt();
 
   if(meta.status === 'signed') return signedScreen();
   if(meta.status === 'cancelled')
-    return screenMessage('bad','!','Länken är återkallad',
-      'Protokollet har ändrats efter att länken skickades. Beaps skickar en ny länk.');
+    return screenMessage('bad','!','The link has been revoked',
+      'The report was changed after the link was sent. Beaps will send a new link.');
   if(meta.status === 'expired')
-    return screenMessage('bad','!','Länken har gått ut',
-      'Länken gällde till '+esc(stamp(meta.expires))+'. Be Beaps skicka en ny.');
+    return screenMessage('bad','!','The link has expired',
+      'The link was valid until '+esc(stamp(meta.expires))+'. Ask Beaps to send a new one.');
   return signForm();
 }
 
 function signedScreen(){
-  screenMessage('ok','✓','Protokollet är signerat',
-    (meta.signedName? esc(meta.signedName)+' signerade ' : 'Signerat ')
-    + esc(stamp(meta.signedAt)) + '.<br>En kopia har mejlats till dig och till Beaps.');
+  screenMessage('ok','✓','The report is signed',
+    (meta.signedName? esc(meta.signedName)+' signed ' : 'Signed ')
+    + esc(stamp(meta.signedAt)) + '.<br>A copy has been emailed to you and to Beaps.');
 }
 
 function signForm(){
   app.innerHTML =
-    card(`<div class="eyebrow">Du ombeds signera</div>
+    card(`<div class="eyebrow">You are asked to sign</div>
       <h1 style="margin:6px 0 0">${esc(objekt())}</h1>
       <dl class="meta">
-        ${meta.type? `<dt>Typ</dt><dd>${esc(meta.type)}</dd>`:''}
-        <dt>Besiktningsman</dt><dd>${esc(meta.inspector||'-')}</dd>
-        <dt>Upprättat</dt><dd>${esc(stamp(meta.created))}</dd>
-        <dt>Länken gäller till</dt><dd>${esc(stamp(meta.expires))}</dd>
+        ${meta.type? `<dt>Type</dt><dd>${esc(typeLabel(meta.type))}</dd>`:''}
+        <dt>Inspector</dt><dd>${esc(meta.inspector||'-')}</dd>
+        <dt>Created</dt><dd>${esc(stamp(meta.created))}</dd>
+        <dt>Link valid until</dt><dd>${esc(stamp(meta.expires))}</dd>
       </dl>`) +
 
-    card(`<div class="eyebrow" style="margin-bottom:10px">Protokollet</div>
-      <div class="doc"><iframe id="doc" src="/api/sign-pdf?t=${token}" title="Besiktningsprotokoll"></iframe></div>
+    card(`<div class="eyebrow" style="margin-bottom:10px">The report</div>
+      <div class="doc"><iframe id="doc" src="/api/sign-pdf?t=${token}" title="Inspection report"></iframe></div>
       <div class="padrow" style="margin-top:10px">
-        <a class="btn ghost small" style="text-decoration:none" href="/api/sign-pdf?t=${token}" target="_blank" rel="noopener">Öppna i ny flik</a>
-        <span class="hint" style="margin:0">Visas dokumentet inte här, öppna det i ny flik.</span>
+        <a class="btn ghost small" style="text-decoration:none" href="/api/sign-pdf?t=${token}" target="_blank" rel="noopener">Open in new tab</a>
+        <span class="hint" style="margin:0">If the document is not shown here, open it in a new tab.</span>
       </div>`) +
 
     card(`<label class="readrow" for="read">
         <input type="checkbox" id="read">
-        <span>Jag har läst hela protokollet, inklusive bilder och kommentarer, och godkänner innehållet.</span>
+        <span>I have read the entire report, including images and comments, and approve the contents.</span>
       </label>`) +
 
-    card(`<div class="eyebrow" style="margin-bottom:10px">Din signatur</div>
-      <div class="field"><label class="eyebrow">Namn</label>
-        <input id="name" value="${esc(meta.recipientName||'')}" autocomplete="name" placeholder="För- och efternamn"></div>
-      <div class="field"><label class="eyebrow">Företag eller roll</label>
-        <input id="role" value="${esc(meta.recipientRole||'')}" autocomplete="organization" placeholder="T.ex. relocation agent"></div>
+    card(`<div class="eyebrow" style="margin-bottom:10px">Your signature</div>
+      <div class="field"><label class="eyebrow">Name</label>
+        <input id="name" value="${esc(meta.recipientName||'')}" autocomplete="name" placeholder="First and last name"></div>
+      <div class="field"><label class="eyebrow">Company or role</label>
+        <input id="role" value="${esc(meta.recipientRole||'')}" autocomplete="organization" placeholder="E.g. relocation agent"></div>
       <canvas class="sigpad" id="pad"></canvas>
       <div class="padrow">
-        <button class="btn ghost small" onclick="clearPad()">Rensa</button>
-        <span class="hint" style="margin:0">Rita din namnteckning i rutan.</span>
+        <button class="btn ghost small" onclick="clearPad()">Clear</button>
+        <span class="hint" style="margin:0">Draw your signature in the box.</span>
       </div>
-      <button class="btn" id="send" style="margin-top:14px" onclick="submit()" disabled>Signera och skicka</button>
-      <div class="hint">När du signerar mejlas det färdiga protokollet till Beaps och en kopia till dig.</div>
+      <button class="btn" id="send" style="margin-top:14px" onclick="submit()" disabled>Sign and send</button>
+      <div class="hint">When you sign, the finished report is emailed to Beaps and a copy to you.</div>
       <div class="err" id="err" style="display:none"></div>`);
 
   initPad();
@@ -197,9 +200,9 @@ async function submit(){
   if(sending) return;
   const err = $('#err'), btn = $('#send');
   err.style.display='none';
-  sending = true; btn.disabled = true; btn.textContent = 'Skickar…';
+  sending = true; btn.disabled = true; btn.textContent = 'Sending…';
 
-  // vit botten sa signaturen syns aven i PDF-lasare som inte hanterar transparens
+  // white background so the signature is visible even in PDF readers that don't handle transparency
   const src = pad.c;
   const flat = document.createElement('canvas');
   flat.width = src.width; flat.height = src.height;
@@ -220,16 +223,16 @@ async function submit(){
       return signedScreen();
     }
     if(r.status===409){ meta.status='signed'; meta.signedAt=Date.now(); return signedScreen() }
-    // servern svarar med korta klartextfel; en HTML-sida betyder att funktionen inte
-    // är igång, och den ska inte hällas ut över signeringssidan
+    // the server responds with short plaintext errors; an HTML page means the function is not
+    // running, and it should not be spilled across the signing page
     const txt = (await r.text().catch(()=>'')).trim();
     const kort = (txt && txt.length < 160 && txt.indexOf('<') < 0) ? txt : '';
-    err.textContent = kort || ('Det gick inte att skicka just nu (' + r.status + '). Försök igen, eller hör av dig till Beaps.');
+    err.textContent = kort || ('It could not be sent right now (' + r.status + '). Try again, or contact Beaps.');
   }catch(e){
-    err.textContent = 'Ingen kontakt med servern. Kontrollera uppkopplingen och försök igen.';
+    err.textContent = 'No connection to the server. Check your connection and try again.';
   }
   err.style.display='block';
-  sending = false; btn.textContent = 'Signera och skicka';
+  sending = false; btn.textContent = 'Sign and send';
   refresh();
 }
 

@@ -1,4 +1,4 @@
-// Uppladdningsmatning. POST /api/speed-up  -> raknar mottagna byte
+// Upload measurement. POST /api/speed-up  -> counts received bytes
 export async function onRequest(context) {
   const { request } = context;
   if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });

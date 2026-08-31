@@ -11,8 +11,22 @@
   from = "/netlify/*"
   status = 404
   to = "/index.html"
+  force = true
+
+[[redirects]]
+  from = "/cflib/*"
+  status = 404
+  to = "/index.html"
+  force = true
+
+[[redirects]]
+  from = "/functions/*"
+  status = 404
+  to = "/index.html"
+  force = true
 
 [[redirects]]
   from = "/ARBETSLOGG.md"
   status = 404
   to = "/index.html"
+  force = true

@@ -1,4 +1,4 @@
-// Latensmatning. GET /api/speed-ping
+// Latency measurement. GET /api/speed-ping
 export async function onRequest() {
   return new Response('p', {
     headers: {

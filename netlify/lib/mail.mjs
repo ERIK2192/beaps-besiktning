@@ -1,6 +1,6 @@
-// Delad mejlhjalp for signeringsfunktionerna. Stodjer Resend eller SendGrid,
-// samma miljovariabler som send-pdf.mjs. send-pdf.mjs har en egen kopia och lamnas
-// orord for att inte rora det som redan fungerar i produktion.
+// Shared mail helper for the signing functions. Supports Resend or SendGrid,
+// the same environment variables as send-pdf.mjs. send-pdf.mjs has its own copy and is
+// left untouched so as not to disturb what already works in production.
 
 const parseFrom = raw => {
   const m = /^(.*)<(.+)>$/.exec(raw || '');
@@ -9,12 +9,21 @@ const parseFrom = raw => {
 
 export const mailFrom = () => parseFrom(process.env.MAIL_FROM);
 
+// Inspection-type display map: the .type field stores the Swedish value (compared with ===);
+// map through this only for showing it to a reader. Email-template files import typeLabel.
+export const TYPE_EN = { 'Upplåsning': 'Shortstay upplåsning', 'Inflytt': 'Move-in', 'Utflytt': 'Move-out', 'Årlig': 'Annual', 'Skada': 'Damage' };
+export const typeLabel = t => TYPE_EN[t] || t || '';
+
+// Simple app guard, see cflib/mail.js. The client sends the key in X-Beaps-App.
+export const APP_TOKEN = 'bges-a7f3c1e9b4d2e806';
+export const appOk = req => (req.headers.get('x-beaps-app') || '') === APP_TOKEN;
+
 export const longstay = () => process.env.MAIL_TO || process.env.MAIL_TO_LONGSTAY || 'longstay@beaps.se';
 
 export const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s || '').trim());
 
-// Avsandaradressen ar ofta en ren utskicksadress utan brevlada, sa svar pa den
-// studsar. Satt MAIL_REPLY_TO till en adress som gar att na, sa hamnar svar dar.
+// The sender address is often a pure send-only address without a mailbox, so replies to it
+// bounce. Set MAIL_REPLY_TO to a reachable address so replies land there.
 export const replyTo = () => (process.env.MAIL_REPLY_TO || '').trim();
 
 // { to, cc, subject, text, html, attachments:[{filename, content(base64)}] }
@@ -24,7 +33,7 @@ export async function sendMail({ to, cc, subject, text, html, attachments }) {
   const toList = [].concat(to || []).map(x => (x || '').trim()).filter(Boolean);
   const ccList = [].concat(cc || []).map(x => (x || '').trim()).filter(Boolean);
   const files = (attachments || []).filter(a => a && a.content);
-  if (!toList.length) return { ok: false, error: 'Ingen mottagare angiven' };
+  if (!toList.length) return { ok: false, error: 'No recipient specified' };
 
   if (process.env.RESEND_API_KEY) {
     const r = await fetch('https://api.resend.com/emails', {
@@ -42,7 +51,7 @@ export async function sendMail({ to, cc, subject, text, html, attachments }) {
       })
     });
     if (r.status === 429) return { ok: false, error: 'quota' };
-    if (!r.ok) return { ok: false, error: 'Mailfel: ' + (await r.text()).slice(0, 300) };
+    if (!r.ok) return { ok: false, error: 'Mail error: ' + (await r.text()).slice(0, 300) };
     return { ok: true };
   }
 
@@ -70,17 +79,17 @@ export async function sendMail({ to, cc, subject, text, html, attachments }) {
       })
     });
     if (r.status === 429) return { ok: false, error: 'quota' };
-    if (r.status !== 202) return { ok: false, error: 'Mailfel: ' + (await r.text()).slice(0, 300) };
+    if (r.status !== 202) return { ok: false, error: 'Mail error: ' + (await r.text()).slice(0, 300) };
     return { ok: true };
   }
 
-  return { ok: false, error: 'Mail ar inte konfigurerat' };
+  return { ok: false, error: 'Mail is not configured' };
 }
 
 export const esc = s => String(s == null ? '' : s)
   .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Funktionerna kor i UTC, protokollen last i Sverige. Formatera darefter.
+// The functions run in UTC, the reports are read in Sweden. Format accordingly.
 export const stamp = ms => new Intl.DateTimeFormat('sv-SE', {
   timeZone: 'Europe/Stockholm',
   year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'

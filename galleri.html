@@ -1,7 +1,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#F2F1ED">
-<title>Bilder och video</title>
+<title>Photos & video</title>
 <style>
   :root{
     --paper:#F2F1ED; --card:#FFFFFF; --ink:#16325C; --ink2:#6E7C94;
@@ -40,7 +40,7 @@
 
   video{width:100%;border-radius:11px;background:#000;display:block}
 
-  /* Helskarmsvisning med nyp-zoom */
+  /* Fullscreen view with pinch-zoom */
   .viewer{position:fixed;inset:0;z-index:80;background:#0b0d0e;display:none;flex-direction:column}
   .viewer.on{display:flex}
   .viewer .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -58,21 +58,21 @@
 </style>
 
 <div class="top"><div class="row">
-  <div><div class="eyebrow">Besiktning</div><h1 id="title">Bilder och video</h1></div>
+  <div><div class="eyebrow">Inspection</div><h1 id="title">Photos & video</h1></div>
   <img class="logo" src="logo.png" alt="Beaps" onerror="this.remove()">
 </div></div>
-<div class="wrap" id="app"><div class="card"><div class="big">Hämtar…</div></div></div>
+<div class="wrap" id="app"><div class="card"><div class="big">Loading…</div></div></div>
 
 <div class="viewer" id="viewer">
   <div class="bar">
     <span id="vcap"></span>
-    <button onclick="stang()">Stäng</button>
+    <button onclick="stang()">Close</button>
   </div>
   <div class="stage" id="vstage"></div>
   <div class="nav">
-    <button id="vprev" onclick="stega(-1)">‹ Föregående</button>
+    <button id="vprev" onclick="stega(-1)">‹ Previous</button>
     <span id="vnum" style="font-family:var(--mono);font-size:12px"></span>
-    <button id="vnext" onclick="stega(1)">Nästa ›</button>
+    <button id="vnext" onclick="stega(1)">Next ›</button>
   </div>
 </div>
 
@@ -84,6 +84,8 @@ const stamp = ms => ms? new Intl.DateTimeFormat('sv-SE',{year:'numeric',month:'2
 const token = (new URLSearchParams(location.search).get('t')||'').replace(/[^a-f0-9]/g,'');
 const filUrl = id => '/api/media-file?t='+token+'&id='+encodeURIComponent(id);
 
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+
 let data = null, bilder = [], visar = -1;
 
 function meddela(rubrik, text){
@@ -93,17 +95,17 @@ function meddela(rubrik, text){
 }
 
 async function load(){
-  if(token.length !== 48) return meddela('Länken är ofullständig',
-    'Kopiera hela adressen från protokollet, inklusive koden efter <code>t=</code>.');
+  if(token.length !== 48) return meddela('The link is incomplete',
+    'Copy the entire address from the report, including the code after <code>t=</code>.');
   let r;
   try{ r = await fetch('/api/media-list?t='+token) }
-  catch(e){ return meddela('Ingen kontakt','Kontrollera uppkopplingen och ladda om sidan.') }
-  if(!r.ok) return meddela(r.status===410? 'Galleriet har gått ut' : 'Galleriet finns inte',
-    r.status===410? 'Bilderna sparas i ett år. Be Beaps skicka nya.'
-                  : 'Kontrollera länken, eller be Beaps skicka en ny.');
+  catch(e){ return meddela('No connection','Check your connection and reload the page.') }
+  if(!r.ok) return meddela(r.status===410? 'The gallery has expired' : 'The gallery does not exist',
+    r.status===410? 'The photos are kept for one year. Ask Beaps to send new ones.'
+                  : 'Check the link, or ask Beaps to send a new one.');
 
   data = await r.json();
-  const objekt = data.ref || [data.address, data.apt].filter(Boolean).join(', ') || 'Besiktning';
+  const objekt = data.ref || [data.address, data.apt].filter(Boolean).join(', ') || 'Inspection';
   document.title = objekt;
   $('#title').textContent = objekt;
 
@@ -113,16 +115,16 @@ async function load(){
   $('#app').innerHTML =
     `<div class="card">
       <div style="font-size:14px;color:var(--ink2)">
-        ${data.type? esc(data.type)+' · ' : ''}${bilder.length} bilder${videor.length? ' · '+videor.length+' video':''}
+        ${data.type? esc(TYPE_LABEL[data.type]||data.type)+' · ' : ''}${bilder.length} photos${videor.length? ' · '+videor.length+' video':''}
         ${data.inspector? ' · '+esc(data.inspector) : ''}
       </div>
-      <div class="hint">Tryck på en bild för att se den i full storlek. Där kan du nypa för att zooma.
-        ${data.saknas? '<br><b>'+data.saknas+' filer kunde inte laddas upp.</b>' : ''}</div>
+      <div class="hint">Tap a photo to see it in full size. There you can pinch to zoom.
+        ${data.saknas? '<br><b>'+data.saknas+' files could not be uploaded.</b>' : ''}</div>
     </div>` +
     (videor.length? `<div class="sect">Video</div>` +
       videor.map(v => `<div class="card"><video controls playsinline preload="metadata" src="${filUrl(v.id)}"></video>
-        <div class="hint">${esc(v.name||'Genomgång')}${v.ts? ' · '+stamp(v.ts):''}</div></div>`).join('') : '') +
-    (bilder.length? `<div class="sect">Bilder</div><div class="grid">` +
+        <div class="hint">${esc(v.name||'Walkthrough')}${v.ts? ' · '+stamp(v.ts):''}</div></div>`).join('') : '') +
+    (bilder.length? `<div class="sect">Photos</div><div class="grid">` +
       bilder.map((b,i) => `<button class="tile" onclick="visa(${i})">
         <img loading="lazy" src="${filUrl(b.id)}" alt="${esc(b.name||'')}">
         ${b.name? `<span class="cap">${esc(b.name)}</span>`:''}

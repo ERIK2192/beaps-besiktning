@@ -2,9 +2,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Besiktning">
+<meta name="apple-mobile-web-app-title" content="Inspection">
 <meta name="theme-color" content="#F2F1ED">
-<title>Beaps Besiktning</title>
+<title>Beaps Inspection</title>
 <style>
   :root{
     --paper:#F2F1ED;
@@ -58,6 +58,11 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:550}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .langsw{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+  .langbtn{padding:5px 11px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;font-weight:600;
+           color:var(--ink2);background:#fff;line-height:1.4}
+  .langbtn.on{background:var(--ink);color:#fff}
+  .langbtn+.langbtn{border-left:1px solid var(--line)}
 
   .room{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
   .room .head{display:flex;align-items:stretch}
@@ -121,8 +126,8 @@
   .sigdone{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px}
   .sigdone img{width:100%;display:block}
   .sheet{position:fixed;inset:0;z-index:60;background:var(--paper);overflow:auto;padding-bottom:40px}
-  /* Knapparna i ett fast falt langst ner. Annars hamnar de utanfor skarmen sa fort
-     tangentbordet ar uppe, och da finns ingen vag ut i standalone-lage pa iPhone. */
+  /* The buttons in a fixed field at the bottom. Otherwise they end up off screen as soon
+     as the keyboard is up, and then there is no way out in standalone mode on iPhone. */
   .sheet.hasbar{padding-bottom:calc(104px + env(safe-area-inset-bottom))}
   .sheetbar{position:fixed;left:0;right:0;bottom:0;z-index:62;display:flex;gap:10px;
             padding:10px 16px calc(12px + env(safe-area-inset-bottom));
@@ -145,7 +150,7 @@
   body.start .ticker{display:none}
   .hidden{display:none !important}
 
-  /* fotoläge */
+  /* camera */
   .cam{position:fixed;inset:0;z-index:80;background:#000;color:#fff;display:flex;flex-direction:column}
   .cam .camtop{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;font-size:15px}
   .cam .view{position:relative;flex:1;min-height:0;background:#0A0A0A}
@@ -184,16 +189,16 @@
 <div id="print"></div>
 <div class="bar" id="bar"></div>
 <div class="ticker" id="ticker" onclick="openLog()">
-  <span class="live"></span><span class="txt" id="tickerTxt">Händelselogg</span><span class="cnt" id="tickerCnt"></span>
+  <span class="live"></span><span class="txt" id="tickerTxt">Activity log</span><span class="cnt" id="tickerCnt"></span>
 </div>
 
 <script>
-/* Sätt LOGO till en data-URL när logotypfilen finns, annars visas ordmärket. */
+/* Set LOGO to a data URL when the logo file exists, otherwise the wordmark is shown. */
 const LOGO_START = 'data:image/png;base64,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';
 const LOGO = 'data:image/png;base64,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';
 
-/* Inne i Claude används artifact-lagringen. Körs appen på egen domän eller som
-   hemskärmsapp används telefonens IndexedDB i stället, utan storleksgräns. */
+/* Inside Claude the artifact storage is used. When the app runs on its own domain or as
+   a home-screen app, the phone's IndexedDB is used instead, with no size limit. */
 const NATIVE = !!(window.storage && typeof window.storage.get === 'function');
 const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
 const idb = {
@@ -231,19 +236,24 @@ const idb = {
     }
   }
 };
-// iOS kan döda databasanslutningen när sidan legat i bakgrunden,
-// t.ex. medan kameran är öppen. Öppna om den när appen syns igen.
+// iOS can kill the database connection when the page has been in the background,
+// e.g. while the camera is open. Reopen it when the app becomes visible again.
 if(!NATIVE){
   window.addEventListener('pageshow', ()=> idb.reset());
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') idb.reset() });
 }
+// Ask the browser not to evict the database under storage pressure (Chrome) or after 7 days
+// without a visit (Safari). Silent - no UI, no prompt.
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist() }catch(e){}
 const store = NATIVE ? {
   async get(k){ try{ const r = await window.storage.get(k); return r? JSON.parse(r.value): null }catch(e){ return null } },
+  async getStrict(k){ const r = await window.storage.get(k); return r? JSON.parse(r.value): null },
   async set(k,v){ try{ await window.storage.set(k, JSON.stringify(v)); return true }catch(e){ return false } },
   async del(k){ try{ await window.storage.delete(k) }catch(e){} },
   async keys(p){ try{ const r = await window.storage.list(p); return r? r.keys: [] }catch(e){ return [] } }
 } : {
   async get(k){ try{ const v = await idb.run('readonly', s=>s.get(k)); return v==null? null: JSON.parse(v) }catch(e){ return null } },
+  async getStrict(k){ const v = await idb.run('readonly', s=>s.get(k)); return v==null? null: JSON.parse(v) },
   async set(k,v){ try{ await idb.run('readwrite', s=>s.put(JSON.stringify(v), k)); return true }catch(e){ return false } },
   async del(k){ try{ await idb.run('readwrite', s=>s.delete(k)) }catch(e){} },
   async keys(p){ try{ const all = await idb.run('readonly', s=>s.getAllKeys()); return (all||[]).filter(k=>String(k).startsWith(p)) }catch(e){ return [] } }
@@ -251,67 +261,431 @@ const store = NATIVE ? {
 const K = { index:'bp:index', insp:id=>'bp:insp:'+id, photo:(i,p)=>'bp:ph:'+i+':'+p, video:i=>'bp:vid:'+i };
 
 const $ = s => document.querySelector(s);
-const uid = () => Math.random().toString(36).slice(2,9);
+// Fixed key that accompanies the app's own calls to writing server endpoints
+// (sign-request, send-pdf, media-init, media-put). Must be identical to APP_TOKEN
+// in cflib/mail.js, cflib/media.js and netlify/lib/mail.mjs.
+const APP = 'bges-a7f3c1e9b4d2e806';
+const AUTH = { 'X-Beaps-App': APP };
+// Collision-safe id: crypto when available, otherwise Math.random.
+const uid = () => {
+  try{ return [...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,11) }
+  catch(e){ return Math.random().toString(36).slice(2,9) + Math.random().toString(36).slice(2,6) }
+};
 const pad = n => String(n).padStart(2,'0');
 const stamp = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const clock = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mb = b => (b/1048576).toFixed(1)+' MB';
+// jsPDF's default font only draws WinAnsi/Latin-1. Swap common typographic characters and
+// replace everything outside Latin-1 (emoji, arrows) with spaces so the PDF isn't gibberish.
+const wa = s => String(s==null?'':s)
+  .replace(/[–—]/g,'-').replace(/[‘’]/g,"'")
+  .replace(/[“”]/g,'"').replace(/…/g,'...')
+  .replace(/[^\x20-\x7E\xA0-\xFF]/g,' ');
+
+let LANG = 'en';
+try{ const _l = localStorage.getItem('beaps-lang'); if(_l==='sv'||_l==='en') LANG=_l; }catch(e){}
+// Swedish alternatives for the inspector-UI strings. Missing entries fall back to English (T).
+// The PDF (buildPdf) and the activity log (log('...')) always stay English and are never wrapped.
+const SV = {
+  // --- topbar / generic ---
+  'Back':'Tillbaka',
+  // --- object view ---
+  'Property':'Objekt',
+  'Step 1 of 3':'Steg 1 av 3',
+  'Inspection type':'Besiktningstyp',
+  'Address':'Adress',
+  'Apartment number':'Lägenhetsnummer',
+  'Inspector':'Besiktningsman',
+  'Counterparty, name':'Motpart, namn',
+  'Counterparty, company or role':'Motpart, företag eller roll',
+  'To the checklist':'Till checklistan',
+  'To the rooms':'Till rummen',
+  // --- checklist rooms view ---
+  'filled':'ifyllda',
+  'Next':'Nästa',
+  'Done':'Klart',
+  // --- rooms view ---
+  'started':'påbörjade',
+  'Camera':'Fotoläge',
+  'Drop photos on a room to add them. Drag the handle to move the room.':'Släpp bilder på ett rum för att lägga till dem. Dra i handtaget för att flytta rummet.',
+  'Add room':'Lägg till rum',
+  'Custom name':'Eget namn',
+  'Add':'Lägg till',
+  'Add video':'Lägg till video',
+  'too large to save':'för stor för att sparas',
+  'Remove video':'Ta bort video',
+  'Record a walkthrough of the whole apartment.':'Spela in en genomgång av hela lägenheten.',
+  'Internet':'Internet',
+  'Measured':'Mätt',
+  'Measure again':'Mät igen',
+  "Optional: run a speed test against the Beaps server. Make sure the phone is on the apartment's wifi.":'Valfritt: kör ett hastighetstest mot Beaps-servern. Se till att telefonen är på lägenhetens wifi.',
+  'Measure wifi':'Mät wifi',
+  'Sign':'Signera',
+  // extra room names (quick-add chips)
+  'Living room':'Vardagsrum',
+  'Bedroom 2':'Sovrum 2',
+  'Balcony':'Balkong',
+  'Storage':'Förråd',
+  'Laundry room':'Tvättstuga',
+  'Guest WC':'Gäst-WC',
+  'Walk-in closet':'Klädkammare',
+  'Patio':'Uteplats',
+  'Garage':'Garage',
+  // --- sign view (checklist) ---
+  'Ready to send':'Klar att skicka',
+  'yes':'ja',
+  'no':'nej',
+  'not applicable':'ej tillämpligt',
+  'unanswered':'obesvarade',
+  'comments':'kommentarer',
+  'photos':'bilder',
+  'Performed by':'Utförd av',
+  'name missing':'namn saknas',
+  'Deviations':'Avvikelser',
+  'no comment':'ingen kommentar',
+  'Finished':'Avslutat',
+  'The list is locked. Unlock it if something needs correcting.':'Listan är låst. Lås upp den om något behöver rättas.',
+  'Unlock':'Lås upp',
+  'List':'Lista',
+  'Send again':'Skicka igen',
+  'Send to Camilla':'Skicka till Camilla',
+  // --- sign view (rooms) ---
+  'Finish':'Avsluta',
+  'Step 3 of 3':'Steg 3 av 3',
+  'Summary':'Sammanfattning',
+  'spaces':'utrymmen',
+  'video attached':'video bifogad',
+  'Photos compressed from':'Bilder komprimerade från',
+  'to':'till',
+  'Signature required for':'Signatur krävs för',
+  'can be finished without a signature.':'kan avslutas utan signatur.',
+  'Backup':'Säkerhetskopia',
+  'Signed and locked':'Signerat och låst',
+  'Locked awaiting signature':'Låst i väntan på signatur',
+  'Finished without signature':'Avslutat utan signatur',
+  'The report is locked so that what the counterparty signs is exactly what you sent. If something needs correcting you unlock it, and then the link is revoked.':'Rapporten är låst så att det motparten signerar är exakt det du skickade. Om något behöver rättas låser du upp den, och då återkallas länken.',
+  'The report is locked for changes. Unlock it if something needs correcting, then any signatures are removed and it is noted in the log.':'Rapporten är låst för ändringar. Lås upp den om något behöver rättas, då tas eventuella signaturer bort och det noteras i loggen.',
+  'Name missing':'Namn saknas',
+  'No signature.':'Ingen signatur.',
+  'Counterparty':'Motpart',
+  'Finish without signature':'Avsluta utan signatur',
+  'Locks the report with empty signature lines. Used for damage and annual inspections where the counterparty is not present.':'Låser rapporten med tomma signaturrader. Används för skade- och årsbesiktningar där motparten inte är närvarande.',
+  'Rooms':'Rum',
+  'Share':'Dela',
+  'Email PDF':'Mejla PDF',
+  // --- checklist rows ---
+  'Follow-up':'Följdfråga',
+  'Yes':'Ja',
+  'No':'Nej',
+  'N/A':'E/T',
+  'Comment':'Kommentar',
+  'Photo':'Bild',
+  "Measure wifi runs a speed test against Beaps' server. Make sure the phone is on the apartment's wifi.":'Mät wifi kör ett hastighetstest mot Beaps server. Se till att telefonen är på lägenhetens wifi.',
+  'Everything is answered':'Allt är besvarat',
+  // --- room cards ---
+  'Photograph':'Fotografera',
+  'Remove':'Ta bort',
+  'Number and type of keys, fobs, door code':'Antal och typ av nycklar, blippar, portkod',
+  'photo':'bild',
+  'Rename':'Byt namn',
+  // --- camera ---
+  'The live camera did not start':'Livekameran startade inte',
+  'Try again':'Försök igen',
+  'Choose photos':'Välj bilder',
+  'Take a photo':'Ta en bild',
+  'Record video':'Spela in video',
+  'Take photo':'Ta bild',
+  'shots':'bilder',
+  'The phone denied access. Open Settings, Safari, Camera and choose Allow for this address. If you run the app from the home screen you may need to remove the icon and add it again afterwards.':'Telefonen nekade åtkomst. Öppna Inställningar, Safari, Kamera och välj Tillåt för den här adressen. Om du kör appen från hemskärmen kan du behöva ta bort ikonen och lägga till den igen efteråt.',
+  'No camera was found on the device.':'Ingen kamera hittades på enheten.',
+  'The camera is in use by another app right now. Close it and try again.':'Kameran används av en annan app just nu. Stäng den och försök igen.',
+  'The camera requires a secure address. Open the app via https, not as a local file.':'Kameran kräver en säker adress. Öppna appen via https, inte som en lokal fil.',
+  'Unknown error':'Okänt fel',
+  '. Use the buttons below for now.':'. Använd knapparna nedan så länge.',
+  'Video recording is not supported in this browser.':'Videoinspelning stöds inte i den här webbläsaren.',
+  'Remove the video?':'Ta bort videon?',
+  // --- signature ---
+  'The counterparty':'Motparten',
+  'signed digitally via signing link':'signerade digitalt via signeringslänk',
+  'The finished report with the signature page has already been emailed to longstay@beaps.se.':'Den färdiga rapporten med signatursidan har redan mejlats till longstay@beaps.se.',
+  'Signed':'Signerat',
+  'Clear':'Rensa',
+  'Approve signature':'Godkänn signatur',
+  // --- PDF/send toasts ---
+  'Building PDF':'Bygger PDF',
+  'Sending':'Skickar',
+  'Emailed to':'Mejlad till',
+  'Daily email limit reached, opening share':'Dagens mejlgräns nådd, öppnar dela',
+  'Too large for email, opening share':'För stor för mejl, öppnar dela',
+  'Reload the app — opening share':'Ladda om appen — öppnar dela',
+  'The email did not go through, opening share':'Mejlet gick inte fram, öppnar dela',
+  // --- finish without signature ---
+  'Signature is normally required for':'Signatur krävs normalt för',
+  'Finish without a signature anyway?':'Avsluta utan signatur ändå?',
+  'Finish the report without a signature?':'Avsluta rapporten utan signatur?',
+  // --- unlock ---
+  'There is a signing link that has been sent out. If you unlock it, it is revoked, and you get to send a new link once the report is changed. Continue?':'Det finns en signeringslänk som har skickats ut. Om du låser upp återkallas den, och du får skicka en ny länk när rapporten ändras. Fortsätta?',
+  'Unlock the list so it can be changed again?':'Lås upp listan så den kan ändras igen?',
+  'Unlock the report? The signatures are removed and it is noted in the log.':'Lås upp rapporten? Signaturerna tas bort och det noteras i loggen.',
+  'Draw the signature in the box first.':'Rita signaturen i rutan först.',
+  // --- wifi measurement ---
+  'A measurement is already running':'En mätning pågår redan',
+  'Measuring latency':'Mäter latens',
+  'Measuring download':'Mäter nedladdning',
+  'Measuring upload':'Mäter uppladdning',
+  'Measurement cancelled, you switched inspection':'Mätning avbruten, du bytte besiktning',
+  'Measurement done':'Mätning klar',
+  'Could not measure wifi right now':'Kunde inte mäta wifi just nu',
+  // --- gallery ---
+  'An upload is already running':'En uppladdning pågår redan',
+  'Upload cancelled, you switched inspection':'Uppladdning avbruten, du bytte besiktning',
+  'Preparing':'Förbereder',
+  'files':'filer',
+  'There are no photos to upload':'Det finns inga bilder att ladda upp',
+  'Uploading':'Laddar upp',
+  'of':'av',
+  'Done, but':'Klart, men',
+  'files failed':'filer misslyckades',
+  'The photos are uploaded':'Bilderna är uppladdade',
+  'Link copied':'Länk kopierad',
+  'Copy the link:':'Kopiera länken:',
+  'Full-resolution photos':'Bilder i full upplösning',
+  'The':'De',
+  'file':'fil',
+  'upload automatically when you send or sign, so the report always carries a link where the recipient sees the photos full size and can zoom — and where the video actually plays, which it never does in a PDF.':'laddas upp automatiskt när du skickar eller signerar, så rapporten alltid bär en länk där mottagaren ser bilderna i full storlek och kan zooma — och där videon faktiskt spelas upp, vilket den aldrig gör i en PDF.',
+  'uploaded':'uppladdade',
+  'The link travels with the PDF. Files are kept for one year.':'Länken följer med PDF:en. Filerna sparas i ett år.',
+  'Copy link':'Kopiera länk',
+  // --- remote signing ---
+  'The counterparty is not present':'Motparten är inte närvarande',
+  'The guest cannot sign now':'Gästen kan inte signera nu',
+  'Emails a link where the counterparty sees the whole report and signs directly in the browser.\n      As soon as that is done, the finished report is emailed to longstay@beaps.se.':'Mejlar en länk där motparten ser hela rapporten och signerar direkt i webbläsaren.\n      Så snart det är gjort mejlas den färdiga rapporten till longstay@beaps.se.',
+  'Remote signing':'Signering på distans',
+  'signed via the link that was sent to':'signerade via länken som skickades till',
+  'The report has been emailed to longstay@beaps.se with a copy to the recipient.':'Rapporten har mejlats till longstay@beaps.se med en kopia till mottagaren.',
+  'The link to':'Länken till',
+  'is revoked.':'är återkallad.',
+  'Send a new link':'Skicka en ny länk',
+  'The link has expired':'Länken har gått ut',
+  'Awaiting signature':'Väntar på signatur',
+  'Sent to':'Skickad till',
+  'copy':'kopia',
+  'valid until':'giltig till',
+  'When the counterparty has signed, the finished report is emailed to longstay@beaps.se automatically.':'När motparten har signerat mejlas den färdiga rapporten till longstay@beaps.se automatiskt.',
+  'Check status':'Kontrollera status',
+  'Revoke':'Återkalla',
+  // --- send signing link sheet ---
+  'Send signing link':'Skicka signeringslänk',
+  'Email to':'Mejla till',
+  'CC, optional':'Kopia, valfritt',
+  "Recipient's name":'Mottagarens namn',
+  'First and last name':'För- och efternamn',
+  'Company or role':'Företag eller roll',
+  'E.g. relocation agent':'T.ex. relocation-konsult',
+  'Often goes to the relocation agent, sometimes directly to the customer.':'Går ofta till relocation-konsulten, ibland direkt till kunden.',
+  'NOTE':'OBS',
+  'If the signing is done digitally, the person you email sees':'Om signeringen görs digitalt ser personen du mejlar',
+  'the whole PDF':'hela PDF:en',
+  'all rooms, photos and comments — before the signature is given.\n        Only send it to someone who should have access to the whole report.':'alla rum, bilder och kommentarer — innan signaturen ges.\n        Skicka den bara till någon som ska ha åtkomst till hela rapporten.',
+  'You have not signed yourself yet. The report is sent as it is,\n        with an empty signature line for the inspector. If you want to sign first, close this,\n        sign on the finish page and open the form again.':'Du har inte signerat själv än. Rapporten skickas som den är,\n        med en tom signaturrad för besiktningsmannen. Om du vill signera först, stäng detta,\n        signera på avslutssidan och öppna formuläret igen.',
+  'Cancel':'Avbryt',
+  'If the report has many photos it can take a while to build. You can cancel at any time.':'Om rapporten har många bilder kan det ta en stund att bygga. Du kan avbryta när som helst.',
+  'Enter a valid email address under Email to.':'Ange en giltig mejladress under Mejla till.',
+  "The CC address doesn't look valid.":'Kopie-adressen ser inte giltig ut.',
+  'Building PDF…':'Bygger PDF…',
+  'You switched inspection, nothing was sent.':'Du bytte besiktning, inget skickades.',
+  'The PDF engine could not be loaded. Check the connection and try again.':'PDF-motorn kunde inte laddas. Kontrollera anslutningen och försök igen.',
+  'The report is':'Rapporten är',
+  'and too large for the signing link. Remove a few photos and try again.':'och för stor för signeringslänken. Ta bort några bilder och försök igen.',
+  'Sending…':'Skickar…',
+  'No contact with the server. Check the connection and try again.':'Ingen kontakt med servern. Kontrollera anslutningen och försök igen.',
+  "Today's email limit is reached. Try again later.":'Dagens mejlgräns är nådd. Försök igen senare.',
+  'The report is too large for the signing link.':'Rapporten är för stor för signeringslänken.',
+  'The app needs updating — reload the page and try again.':'Appen behöver uppdateras — ladda om sidan och försök igen.',
+  'The signing function is not running on the server yet.':'Signeringsfunktionen körs inte på servern än.',
+  'Email sending is not configured on the server.':'Mejlutskick är inte konfigurerat på servern.',
+  'Could not send':'Kunde inte skicka',
+  'The server responded unexpectedly. Try again.':'Servern svarade oväntat. Försök igen.',
+  'You switched inspection. The link is sent, but could not be linked to the report — open it and send again.':'Du bytte besiktning. Länken är skickad, men kunde inte kopplas till rapporten — öppna den och skicka igen.',
+  'Signing link sent':'Signeringslänk skickad',
+  'No contact with the server':'Ingen kontakt med servern',
+  'Could not read status right now':'Kunde inte läsa status just nu',
+  'Signed, the report has been emailed':'Signerat, rapporten har mejlats',
+  'Already signed':'Redan signerat',
+  'The link is revoked':'Länken är återkallad',
+  'Still awaiting signature':'Väntar fortfarande på signatur',
+  'The signing link was revoked — the report opened for editing':'Signeringslänken återkallades — rapporten öppnades för redigering',
+  'The report opened for editing':'Rapporten öppnades för redigering',
+  'Revoke the signing link? The recipient can then no longer sign it.':'Återkalla signeringslänken? Mottagaren kan då inte längre signera den.',
+  'Was signed first':'Signerades först',
+  'Could not revoke the link':'Kunde inte återkalla länken',
+  // --- photos / media ---
+  'Loading':'Laddar',
+  'could not be read':'kunde inte läsas',
+  'could not be read — reopen the inspection':'kunde inte läsas — öppna besiktningen igen',
+  'Drop a video file here':'Släpp en videofil här',
+  'The phone refused a write. Make a backup.':'Telefonen vägrade en skrivning. Gör en säkerhetskopia.',
+  // --- activity log sheet / ticker ---
+  'Activity log':'Aktivitetslogg',
+  'entries':'poster',
+  'Close':'Stäng',
+  // --- start screen ---
+  'reports':'rapporter',
+  'Edit':'Redigera',
+  'signed':'signerat',
+  'finished':'avslutat',
+  'draft':'utkast',
+  'No inspection started':'Ingen besiktning påbörjad',
+  'Tap the button below to create the first one.':'Tryck på knappen nedan för att skapa den första.',
+  'Delete all':'Radera alla',
+  'reports on this phone?':'rapporter på den här telefonen?',
+  'Restore from backup':'Återställ från säkerhetskopia',
+  'New inspection':'Ny besiktning',
+  'Delete':'Radera',
+  'Photos and video disappear and cannot be recovered.':'Bilder och video försvinner och kan inte återställas.',
+  'Deleted':'Raderad',
+  'Are you sure? This cannot be undone.':'Är du säker? Detta kan inte ångras.',
+  'Everything deleted':'Allt raderat',
+  'Could not read the inspection.':'Kunde inte läsa besiktningen.',
+  'New name':'Nytt namn',
+  'with contents?':'med innehåll?',
+  'Restored':'Återställd',
+  'Could not read the file':'Kunde inte läsa filen',
+  // --- checklist sections ---
+  'Entrance & mail':'Entré & post',
+  'Door & keys':'Dörr & nycklar',
+  'Climate & tech':'Klimat & teknik',
+  'Kitchen':'Kök',
+  'Water & drains':'Vatten & avlopp',
+  'Bedroom & linens':'Sovrum & sängkläder',
+  'Safety':'Säkerhet',
+  'Cleaning & handover':'Städning & överlämning',
+  'Before you leave':'Innan du går',
+  // --- checklist questions ---
+  'Does the door code and/or the fobs work?':'Funkar portkoden och/eller blipparna?',
+  'Correct name on the entrance board?':'Rätt namn på entrétavlan?',
+  'Correct name on the mailbox?':'Rätt namn på postboxen?',
+  'Mailbox emptied of mail/ads?':'Postboxen tömd på post/reklam?',
+  'Is there a laundry cylinder/fob + mailbox key?':'Finns tvättcylinder/blipp + postboxnyckel?',
+  'Correct name on the door?':'Rätt namn på dörren?',
+  'Test that all keys work':'Testa att alla nycklar funkar',
+  'Is the apartment comfortably warm?':'Är det lagom varmt i lägenheten?',
+  'Is there a thermometer?':'Finns en termometer?',
+  'Does the internet work?':'Funkar internet?',
+  'Does the old router need replacing?':'Behöver gammal router bytas?',
+  'Do the TV + remote work?':'Funkar TV + fjärrkontroll?',
+  'All cables neatly arranged?':'Alla sladdar snyggt ordnade?',
+  'Does the stove work?':'Funkar spisen?',
+  'Does the oven work?':'Funkar ugnen?',
+  'Does the microwave work?':'Funkar micron?',
+  'Is the dishwasher valve on?':'Är diskmaskinsvredet på?',
+  'Do the drains in kitchen/bathroom run well?':'Rinner det ut bra i avloppen i kök/badrum?',
+  'Does the toilet flush work?':'Fungerar spolningen på toaletten?',
+  'Are the beds neatly made?':'Är sängarna snyggt bäddade?',
+  'Are there towels, slippers, soap etc.?':'Finns handdukar, tofflor, tvål etc.?',
+  'Do all the lamps work?':'Fungerar alla lampor?',
+  'Do the curtains hang nicely?':'Hänger gardinerna snyggt?',
+  'Are the chairs wobbly?':'Är stolarna vingliga?',
+  'Does the smoke alarm work?':'Fungerar brandvarnaren?',
+  'Is there a fireplace or other hearth?':'Finns öppen spis eller annan eldstad?',
+  'Is there a sign not to light fires?':'Finns skylt om att inte elda?',
+  'Is the apartment well cleaned?':'Är lägenheten bra städad?',
+  'Left an envelope with booking confirmation and keys?':'Lämnat kuvert med bokningsbekräftelse och nycklar?',
+  'Does the apartment have a security door?':'Har lägenheten säkerhetsdörr?',
+  'Is there a sign with instructions on how to lock?':'Finns skylt med instruktioner hur man låser?',
+  'Is there an info sheet or QR code on the door?':'Finns infosheet eller QR-kod på dörren?'
+};
+const T = s => (LANG==='sv' && SV[s]!=null) ? SV[s] : s;
+function setLang(l){ if(l!=='sv'&&l!=='en') return; LANG=l; try{ localStorage.setItem('beaps-lang',l) }catch(e){} render(); }
 
 let S=null, photoCache={}, videoURL=null, view='start', openRoom=null, saveTimer=null;
 
-const DEFAULT_ROOMS = ['Hall','Kök','Badrum','Sovrum'];
-const KEYS_ROOM = 'Nycklar';
-const EXTRA = ['Vardagsrum','Sovrum 2','Balkong','Förråd','Tvättstuga','Gäst-WC','Klädkammare','Uteplats','Garage'];
+const DEFAULT_ROOMS = ['Hall','Kitchen','Bathroom','Bedroom'];
+const KEYS_ROOM = 'Keys';
+const EXTRA = ['Living room','Bedroom 2','Balcony','Storage','Laundry room','Guest WC','Walk-in closet','Patio','Garage'];
 const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Årlig':'', 'Skada':''};
-const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning'};
-// section: rubrik i listan och i PDF:en. Ordningen foljer rundan i lagenheten och ska
-//   inte kastas om, rubrikerna ar bara satta dar rundan naturligt byter plats.
-// showIf: raden visas bara när frågan med den nyckeln är besvarad med Ja.
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+// section: heading in the list and in the PDF. The order follows the walkthrough of the
+//   apartment and must not be reshuffled; the headings are only set where the round naturally changes place.
+// showIf: the row is shown only when the question with that key is answered Yes.
 const CHECKS = [
-  {key:'portkod',             section:'Entré och post',      label:'Funkar portkoden och/eller blipparna'},
-  {key:'entretavla',          section:'Entré och post',      label:'Rätt namn på entrétavlan?'},
-  {key:'postbox_namn',        section:'Entré och post',      label:'Rätt namn på postboxen?'},
-  {key:'postbox_tom',         section:'Entré och post',      label:'Postboxen tömd på post/reklam?'},
-  {key:'tvattcylinder',       section:'Entré och post',      label:'Finns tvättcylinder/blipp + postboxnyckel?'},
-  {key:'dorr_namn',           section:'Dörr och nycklar',    label:'Rätt namn på dörren?'},
-  {key:'nycklar',             section:'Dörr och nycklar',    label:'Testa att alla nycklar funkar'},
-  {key:'temperatur',          section:'Klimat och teknik',   label:'Är det lagom varmt i lägenheten?'},
-  {key:'termometer',          section:'Klimat och teknik',   label:'Finns en termometer?'},
-  {key:'internet',            section:'Klimat och teknik',   label:'Funkar internet?'},
-  {key:'router',              section:'Klimat och teknik',   label:'Behöver gammal router bytas?'},
-  {key:'tv',                  section:'Klimat och teknik',   label:'Funkar TV + fjärrkontroll?'},
-  {key:'sladdar',             section:'Klimat och teknik',   label:'Alla sladdar snyggt ordnade?'},
-  {key:'spis',                section:'Kök',                 label:'Funkar spisen?'},
-  {key:'ugn',                 section:'Kök',                 label:'Funkar ugnen?'},
-  {key:'micro',               section:'Kök',                 label:'Funkar micron?'},
-  {key:'diskmaskin',          section:'Kök',                 label:'Är diskmaskinsvredet på?'},
-  {key:'avlopp',              section:'Vatten och avlopp',   label:'Rinner det ut bra i avloppen i kök/badrum?'},
-  {key:'spolning',            section:'Vatten och avlopp',   label:'Fungerar spolningen på toaletten?'},
-  {key:'sangar',              section:'Sovrum och textil',   label:'Är sängarna snyggt bäddade?'},
-  {key:'handdukar',           section:'Sovrum och textil',   label:'Finns handdukar, tofflor, tvål etc.?'},
-  {key:'lampor',              section:'Sovrum och textil',   label:'Fungerar alla lampor?'},
-  {key:'gardiner',            section:'Sovrum och textil',   label:'Hänger gardinerna snyggt?'},
-  {key:'stolar',              section:'Sovrum och textil',   label:'Är stolarna vingliga?'},
-  {key:'brandvarnare',        section:'Säkerhet',            label:'Fungerar brandvarnaren?'},
-  {key:'eldstad',             section:'Säkerhet',            label:'Finns öppen spis eller annan eldstad?'},
-  {key:'eldstad_skylt',       section:'Säkerhet',            label:'Finns skylt om att inte elda?', showIf:'eldstad'},
-  {key:'stadning',            section:'Städning och överlämning', label:'Är lägenheten bra städad?'},
-  {key:'kuvert',              section:'Städning och överlämning', label:'Lämnat kuvert med bokningsbekräftelse och nycklar?'},
-  {key:'sakerhetsdorr',       section:'Innan du går',        label:'Har lägenheten säkerhetsdörr?'},
-  {key:'sakerhetsdorr_skylt', section:'Innan du går',        label:'Finns skylt med instruktioner hur man låser?', showIf:'sakerhetsdorr'},
-  {key:'infosheet',           section:'Innan du går',        label:'Finns infosheet eller QR-kod på dörren?'}
+  {key:'portkod',             section:'Entrance & mail',     label:'Does the door code and/or the fobs work?'},
+  {key:'entretavla',          section:'Entrance & mail',     label:'Correct name on the entrance board?'},
+  {key:'postbox_namn',        section:'Entrance & mail',     label:'Correct name on the mailbox?'},
+  {key:'postbox_tom',         section:'Entrance & mail',     label:'Mailbox emptied of mail/ads?'},
+  {key:'tvattcylinder',       section:'Entrance & mail',     label:'Is there a laundry cylinder/fob + mailbox key?'},
+  {key:'dorr_namn',           section:'Door & keys',         label:'Correct name on the door?'},
+  {key:'nycklar',             section:'Door & keys',         label:'Test that all keys work'},
+  {key:'temperatur',          section:'Climate & tech',      label:'Is the apartment comfortably warm?'},
+  {key:'termometer',          section:'Climate & tech',      label:'Is there a thermometer?'},
+  {key:'internet',            section:'Climate & tech',      label:'Does the internet work?'},
+  {key:'router',              section:'Climate & tech',      label:'Does the old router need replacing?'},
+  {key:'tv',                  section:'Climate & tech',      label:'Do the TV + remote work?'},
+  {key:'sladdar',             section:'Climate & tech',      label:'All cables neatly arranged?'},
+  {key:'spis',                section:'Kitchen',             label:'Does the stove work?'},
+  {key:'ugn',                 section:'Kitchen',             label:'Does the oven work?'},
+  {key:'micro',               section:'Kitchen',             label:'Does the microwave work?'},
+  {key:'diskmaskin',          section:'Kitchen',             label:'Is the dishwasher valve on?'},
+  {key:'avlopp',              section:'Water & drains',      label:'Do the drains in kitchen/bathroom run well?'},
+  {key:'spolning',            section:'Water & drains',      label:'Does the toilet flush work?'},
+  {key:'sangar',              section:'Bedroom & linens',    label:'Are the beds neatly made?'},
+  {key:'handdukar',           section:'Bedroom & linens',    label:'Are there towels, slippers, soap etc.?'},
+  {key:'lampor',              section:'Bedroom & linens',    label:'Do all the lamps work?'},
+  {key:'gardiner',            section:'Bedroom & linens',    label:'Do the curtains hang nicely?'},
+  {key:'stolar',              section:'Bedroom & linens',    label:'Are the chairs wobbly?'},
+  {key:'brandvarnare',        section:'Safety',              label:'Does the smoke alarm work?'},
+  {key:'eldstad',             section:'Safety',              label:'Is there a fireplace or other hearth?'},
+  {key:'eldstad_skylt',       section:'Safety',              label:'Is there a sign not to light fires?', showIf:'eldstad'},
+  {key:'stadning',            section:'Cleaning & handover', label:'Is the apartment well cleaned?'},
+  {key:'kuvert',              section:'Cleaning & handover', label:'Left an envelope with booking confirmation and keys?'},
+  {key:'sakerhetsdorr',       section:'Before you leave',    label:'Does the apartment have a security door?'},
+  {key:'sakerhetsdorr_skylt', section:'Before you leave',    label:'Is there a sign with instructions on how to lock?', showIf:'sakerhetsdorr'},
+  {key:'infosheet',           section:'Before you leave',    label:'Is there an info sheet or QR code on the door?'}
 ];
-// Rader där Ja är avvikelsen: kommentarsfältet fälls ut på Ja och Ja färgas rött.
+// Rows where Yes is the deviation: the comment field expands on Yes and Yes is coloured red.
 const INVERT = new Set(['router','stolar']);
 const badAnswer = c => INVERT.has(c.key) ? 'ja' : 'nej';
 const isCheck = () => !!S && S.type==='Upplåsning';
 
-// Gamla besiktningar sparade bara etiketten. Etiketter som skrivits om mappas här,
-// övriga hittas på oförändrad text så att svar, kommentarer och bilder följer med.
+// Old inspections stored only the label. Labels that have been rewritten are mapped here,
+// the rest are matched on unchanged text so answers, comments and photos follow along.
 const LEGACY_KEY = {
   'Om det finns öppen spis, finns skylt om att inte elda?':'eldstad_skylt',
-  'Om ja, finns skylt med instruktioner hur man låser?':'sakerhetsdorr_skylt'
+  'Om ja, finns skylt med instruktioner hur man låser?':'sakerhetsdorr_skylt',
+  // Swedish labels from before the English translation, kept so existing saved data still matches
+  'Funkar portkoden och/eller blipparna':'portkod',
+  'Rätt namn på entrétavlan?':'entretavla',
+  'Rätt namn på postboxen?':'postbox_namn',
+  'Postboxen tömd på post/reklam?':'postbox_tom',
+  'Finns tvättcylinder/blipp + postboxnyckel?':'tvattcylinder',
+  'Rätt namn på dörren?':'dorr_namn',
+  'Testa att alla nycklar funkar':'nycklar',
+  'Är det lagom varmt i lägenheten?':'temperatur',
+  'Finns en termometer?':'termometer',
+  'Funkar internet?':'internet',
+  'Behöver gammal router bytas?':'router',
+  'Funkar TV + fjärrkontroll?':'tv',
+  'Alla sladdar snyggt ordnade?':'sladdar',
+  'Funkar spisen?':'spis',
+  'Funkar ugnen?':'ugn',
+  'Funkar micron?':'micro',
+  'Är diskmaskinsvredet på?':'diskmaskin',
+  'Rinner det ut bra i avloppen i kök/badrum?':'avlopp',
+  'Fungerar spolningen på toaletten?':'spolning',
+  'Är sängarna snyggt bäddade?':'sangar',
+  'Finns handdukar, tofflor, tvål etc.?':'handdukar',
+  'Fungerar alla lampor?':'lampor',
+  'Hänger gardinerna snyggt?':'gardiner',
+  'Är stolarna vingliga?':'stolar',
+  'Fungerar brandvarnaren?':'brandvarnare',
+  'Finns öppen spis eller annan eldstad?':'eldstad',
+  'Finns skylt om att inte elda?':'eldstad_skylt',
+  'Är lägenheten bra städad?':'stadning',
+  'Lämnat kuvert med bokningsbekräftelse och nycklar?':'kuvert',
+  'Har lägenheten säkerhetsdörr?':'sakerhetsdorr',
+  'Finns skylt med instruktioner hur man låser?':'sakerhetsdorr_skylt',
+  'Finns infosheet eller QR-kod på dörren?':'infosheet'
 };
 const keyForLabel = lab => LEGACY_KEY[lab] || (CHECKS.find(d=>d.label===lab)||{}).key || null;
 
@@ -334,8 +708,8 @@ function ensureChecks(){
       photos: (prev && prev.photos) || []
     };
   });
-  // rader från en äldre version som inte matchar någon nyckel behålls sist, inget svar tappas
-  old.forEach(c=>{ if(!used.has(c)) next.push({...c, key:c.key||null, section:c.section||'Övrigt', showIf:null, photos:c.photos||[]}) });
+  // rows from an older version that don't match any key are kept last, no answer is lost
+  old.forEach(c=>{ if(!used.has(c)) next.push({...c, key:c.key||null, section:c.section||'Other', showIf:null, photos:c.photos||[]}) });
   S.checks = next;
 }
 const checkByKey = k => (S.checks||[]).find(c=>c.key===k);
@@ -351,23 +725,27 @@ const keysOk = () => { const k = keysRoom(); return !!(k && k.photos.length) };
 
 function ref(){
   const p = PREFIX[S.type]||'';
-  return `${p?p+' ':''}${S.address||''}${S.apt? ', '+S.apt:''}`.trim() || 'Ny besiktning';
+  return `${p?p+' ':''}${S.address||''}${S.apt? ', '+S.apt:''}`.trim() || 'New inspection';
 }
 function refOf(r){
   const p = PREFIX[r.type]||'';
-  return `${p?p+' ':''}${r.address||'Utan adress'}${r.apt? ', '+r.apt:''}`.trim();
+  return `${p?p+' ':''}${r.address||'No address'}${r.apt? ', '+r.apt:''}`.trim();
 }
 
 function log(txt){ if(!S) return; S.log.push({ts:Date.now(), txt}); paintTicker(); save() }
-function storeErr(){ toast('Telefonen nekade en skrivning. Ta en säkerhetskopia.') }
+function storeErr(){ toast(T('The phone refused a write. Make a backup.')) }
 async function flushSave(){
   if(!S) return;
+  saveOpenComment(); saveCheckComments();   // capture text in open fields even in background mode
+  const s = S;                               // hold the reference; S can be nulled while we wait
   clearTimeout(saveTimer);
-  const ok = await store.set(K.insp(S.id), S);
+  const ok = await store.set(K.insp(s.id), s);
   if(!ok) return storeErr();
-  const idx = (await store.get(K.index)) || [];
-  const row = {id:S.id, address:S.address, apt:S.apt, type:S.type, created:S.created, locked:!!(S.signedAt||S.closedAt), signed:!!S.signedAt};
-  const i = idx.findIndex(x=>x.id===S.id);
+  let idx;
+  try{ idx = (await store.getStrict(K.index)) || [] }
+  catch(e){ return }   // the read failed transiently - do NOT write back a truncated list
+  const row = {id:s.id, address:s.address, apt:s.apt, type:s.type, created:s.created, locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt};
+  const i = idx.findIndex(x=>x.id===s.id);
   if(i>=0) idx[i]=row; else idx.unshift(row);
   if(!await store.set(K.index, idx)) storeErr();
 }
@@ -379,7 +757,7 @@ function save(){
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') flushSave() });
 window.addEventListener('pagehide', flushSave);
 
-/* ---------- bilder ---------- */
+/* ---------- images ---------- */
 const TARGET = 720*1024;
 const bytesOf = d => Math.round((d.length - d.indexOf(',') - 1) * 0.75);
 function draw(src,w,h,maxDim,q){
@@ -413,6 +791,7 @@ async function compressFile(file){
 }
 const target = id => (S.rooms||[]).find(r=>r.id===id) || (S.checks||[]).find(c=>c.id===id);
 async function savePhoto(roomId, data){
+  unlockIfLocked();
   const room = target(roomId), pid = uid();
   photoCache[pid] = data;
   room.photos.push({id:pid, ts:Date.now()});
@@ -427,7 +806,7 @@ async function addPhotos(roomId, files){
   let before=0, after=0, fails=0, i=0;
   for(const f of list){
     i++;
-    if(list.length>2) toast(`Läser in ${i} av ${list.length}`);
+    if(list.length>2) toast(`${T('Loading')} ${i} ${T('of')} ${list.length}`);
     try{
       const r = await compressFile(f);
       if(!r){ fails++; continue }
@@ -438,7 +817,7 @@ async function addPhotos(roomId, files){
       S.comp.in += r.before; S.comp.out += r.after;
     }catch(e){ fails++ }
   }
-  toast(`${list.length-fails} bilder · ${mb(before)} till ${mb(after)}${fails?` · ${fails} kunde inte läsas`:''}`);
+  toast(`${list.length-fails} ${T('photos')} · ${mb(before)} ${T('to')} ${mb(after)}${fails?` · ${fails} ${T('could not be read')}`:''}`);
 }
 function toast(msg){
   let t = document.getElementById('toast');
@@ -469,6 +848,7 @@ function leaveRoom(e,id){
 }
 async function dropRoom(e,id){
   e.preventDefault();
+  saveOpenComment(); saveCheckComments();
   const el = document.getElementById('rm_'+id); if(el) el.classList.remove('drop');
   if(dragRoomId){
     const from = S.rooms.findIndex(r=>r.id===dragRoomId), to = S.rooms.findIndex(r=>r.id===id);
@@ -488,30 +868,44 @@ function leaveCard(e){ if(!e.currentTarget.contains(e.relatedTarget)) e.currentT
 async function dropVideo(e){
   e.preventDefault(); e.currentTarget.classList.remove('drop');
   const f = [...(e.dataTransfer.files||[])].find(x=>x.type.startsWith('video/'));
-  if(!f) return toast('Släpp en videofil här');
+  if(!f) return toast(T('Drop a video file here'));
   await saveVideo(f); render();
 }
 window.addEventListener('dragover', e=>e.preventDefault());
 window.addEventListener('drop', e=>e.preventDefault());
 async function loadMedia(id){
-  for(const k of await store.keys('bp:ph:'+id+':')){
-    const v = await store.get(k); if(v) photoCache[k.split(':').pop()] = v;
+  const ks = await store.keys('bp:ph:'+id+':');
+  let miss = 0;
+  for(const k of ks){
+    const v = await store.get(k);
+    if(v) photoCache[k.split(':').pop()] = v; else miss++;
   }
+  // Some images could not be read (e.g. iOS killed the IDB connection). Warn so the
+  // report doesn't silently claim more photos than it carries - a reopen reloads them.
+  if(miss) toast(miss+' '+(miss>1?T('photos'):T('photo'))+' '+T('could not be read — reopen the inspection'));
   if(S.video && S.video.stored){ const v = await store.get(K.video(id)); if(v) videoURL = v }
 }
 
-/* ---------- vyer ---------- */
+/* ---------- views ---------- */
 function paintTicker(){
-  if(!S || !S.log.length){ $('#tickerTxt').textContent='Händelselogg'; $('#tickerCnt').textContent=''; return }
+  if(!S || !S.log.length){ $('#tickerTxt').textContent=T('Activity log'); $('#tickerCnt').textContent=''; return }
   const last = S.log[S.log.length-1];
   $('#tickerTxt').textContent = clock(new Date(last.ts)) + '  ' + last.txt;
   $('#tickerCnt').textContent = S.log.length;
 }
 const brand = () => LOGO ? `<img class="logo" src="${LOGO}" alt="Beaps">` : `<span class="logo-fallback">Beaps</span>`;
+// EN / SV language switch. setLang() persists the choice and re-renders the current view.
+function langToggle(extra){
+  return `<div class="langsw"${extra?` style="${extra}"`:''} role="group" aria-label="Language">
+    <button class="langbtn${LANG==='en'?' on':''}" onclick="setLang('en')" aria-pressed="${LANG==='en'}">EN</button>
+    <button class="langbtn${LANG==='sv'?' on':''}" onclick="setLang('sv')" aria-pressed="${LANG==='sv'}">SV</button>
+  </div>`;
+}
 function topbar(title, sub, pct, back){
   return `<div class="top"><div class="row">
-    ${back?`<button class="back" onclick="${back}" aria-label="Tillbaka">‹</button>`:''}
-    <div style="min-width:0"><div class="eyebrow">${esc(sub||'')}</div><h1>${esc(title)}</h1></div>${brand()}
+    ${back?`<button class="back" onclick="${back}" aria-label="${T('Back')}">‹</button>`:''}
+    <div style="min-width:0"><div class="eyebrow">${esc(sub||'')}</div><h1>${esc(title)}</h1></div>
+    ${langToggle('margin-left:auto')}${brand()}
   </div>${pct!=null?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}</div>`;
 }
 function leave(){ flushSave(); S=null; photoCache={}; videoURL=null; openRoom=null; view='start'; renderStart(); window.scrollTo(0,0) }
@@ -521,24 +915,24 @@ async function render(){
   if(view==='start') return renderStart();
 
   if(view==='object'){
-    app.innerHTML = topbar('Objekt','Steg 1 av 3',20,'leave()') + `<div class="wrap">
+    app.innerHTML = topbar(T('Property'),T('Step 1 of 3'),20,'leave()') + `<div class="wrap">
       <div class="card">
-        <div class="field"><label class="eyebrow">Typ av besiktning</label>
+        <div class="field"><label class="eyebrow">${T('Inspection type')}</label>
           <div class="chips">${Object.keys(PREFIX).map(t=>
             `<button class="chip ${S.type===t?'on':''}" onclick="setType('${t}')">${TYPE_LABEL[t]||t}${PREFIX[t]?' · '+PREFIX[t]:''}</button>`).join('')}</div></div>
-        <div class="field"><label class="eyebrow">Adress</label><input id="f_address" value="${esc(S.address)}" autocomplete="off"></div>
-        <div class="field"><label class="eyebrow">Lägenhetsnummer</label><input id="f_apt" value="${esc(S.apt)}"></div>
+        <div class="field"><label class="eyebrow">${T('Address')}</label><input id="f_address" value="${esc(S.address)}" autocomplete="off"></div>
+        <div class="field"><label class="eyebrow">${T('Apartment number')}</label><input id="f_apt" value="${esc(S.apt)}"></div>
       </div>
       <div class="card">
-        <div class="field"><label class="eyebrow">Besiktningsman</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
+        <div class="field"><label class="eyebrow">${T('Inspector')}</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
         ${isCheck()? '' : `
-        <div class="field"><label class="eyebrow">Motpart, namn</label><input id="f_cname" value="${esc(S.counter.name)}"></div>
-        <div class="field"><label class="eyebrow">Motpart, företag eller roll</label><input id="f_crole" value="${esc(S.counter.role)}"></div>`}
+        <div class="field"><label class="eyebrow">${T('Counterparty, name')}</label><input id="f_cname" value="${esc(S.counter.name)}"></div>
+        <div class="field"><label class="eyebrow">${T('Counterparty, company or role')}</label><input id="f_crole" value="${esc(S.counter.role)}"></div>`}
       </div>
     </div>`;
     bindRef('f_address','address'); bindRef('f_apt','apt');
     bindPath('f_iname','inspector','name'); bindPath('f_cname','counter','name'); bindPath('f_crole','counter','role');
-    bar.innerHTML = `<button class="btn" onclick="go('rooms')">${isCheck()?'Till checklistan':'Till rummen'}</button>`;
+    bar.innerHTML = `<button class="btn" onclick="go('rooms')">${isCheck()?T('To the checklist'):T('To the rooms')}</button>`;
     return;
   }
 
@@ -546,44 +940,52 @@ async function render(){
     const list = visibleChecks();
     const done = list.filter(c=>c.val).length;
     const tom = list.length - done;
-    app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${list.length} ifyllda`,
+    app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${list.length} ${T('filled')}`,
       20+Math.round(done/Math.max(1,list.length)*65), 'leave()') + `<div class="wrap">
       ${checkList(list)}
     </div>`;
-    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">Objekt</button>
-      ${tom? `<button class="btn ghost small" onclick="nextUnanswered()">Nästa · ${tom}</button>`:''}
-      <button class="btn" onclick="go('sign')">Klar</button>`;
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
+      ${tom? `<button class="btn ghost small" onclick="nextUnanswered()">${T('Next')} · ${tom}</button>`:''}
+      <button class="btn" onclick="go('sign')">${T('Done')}</button>`;
     return;
   }
 
   if(view==='rooms'){
     const started = S.rooms.filter(r=>r.photos.length||r.comment).length;
-    app.innerHTML = topbar(ref(), `${started}/${S.rooms.length} påbörjade`, 20+Math.round(started/Math.max(1,S.rooms.length)*65), 'leave()') +
+    app.innerHTML = topbar(ref(), `${started}/${S.rooms.length} ${T('started')}`, 20+Math.round(started/Math.max(1,S.rooms.length)*65), 'leave()') +
     `<div class="wrap">
       <div class="card">
-        <button class="btn" onclick="openCam(S.rooms[0]&&S.rooms[0].id)">Fotoläge</button>
-        <div class="hint">Släpp bilder på ett rum för att lägga till dem. Dra i handtaget för att flytta rummet.</div>
+        <button class="btn" onclick="openCam(S.rooms[0]&&S.rooms[0].id)">${T('Camera')}</button>
+        <div class="hint">${T('Drop photos on a room to add them. Drag the handle to move the room.')}</div>
       </div>
       ${S.rooms.map(roomCard).join('')}
       <div class="card">
-        <div class="eyebrow" style="margin-bottom:9px">Lägg till rum</div>
+        <div class="eyebrow" style="margin-bottom:9px">${T('Add room')}</div>
         <div class="addrow" style="margin-bottom:10px">
-          <input id="newroom" placeholder="Eget namn" onkeydown="if(event.key==='Enter')addCustom()">
-          <button class="btn small" onclick="addCustom()">Lägg till</button>
+          <input id="newroom" placeholder="${T('Custom name')}" onkeydown="if(event.key==='Enter')addCustom()">
+          <button class="btn small" onclick="addCustom()">${T('Add')}</button>
         </div>
-        <div class="chips">${EXTRA.map(n=>`<button class="chip" onclick="addRoom('${n}')">+ ${n}</button>`).join('')}</div>
+        <div class="chips">${EXTRA.map(n=>`<button class="chip" onclick="addRoom('${n}')">+ ${T(n)}</button>`).join('')}</div>
       </div>
       <div class="card" ondragover="overCard(event)" ondragleave="leaveCard(event)" ondrop="dropVideo(event)">
-        <div class="eyebrow" style="margin-bottom:9px">Lägg till video</div>
+        <div class="eyebrow" style="margin-bottom:9px">${T('Add video')}</div>
         ${videoURL? `<video src="${videoURL}" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>
-          <div class="hint">${stamp(new Date(S.video.ts))} · ${esc(S.video.size?mb(S.video.size):'')}${S.video.stored?'':' · för stor för att sparas'}</div>
-          <button class="btn ghost small" style="margin-top:10px" onclick="delVideo()">Ta bort video</button>`
-        : `<div class="hint" style="margin:0 0 10px">Spela in en genomgång av hela lägenheten.</div>
-           <button class="btn ghost" onclick="openCam(S.rooms[0]&&S.rooms[0].id,true)">Lägg till video</button>`}
+          <div class="hint">${stamp(new Date(S.video.ts))} · ${esc(S.video.size?mb(S.video.size):'')}${S.video.stored?'':' · '+T('too large to save')}</div>
+          <button class="btn ghost small" style="margin-top:10px" onclick="delVideo()">${T('Remove video')}</button>`
+        : `<div class="hint" style="margin:0 0 10px">${T('Record a walkthrough of the whole apartment.')}</div>
+           <button class="btn ghost" onclick="openCam(S.rooms[0]&&S.rooms[0].id,true)">${T('Add video')}</button>`}
+      </div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:9px">${T('Internet')}</div>
+        ${S.wifi? `<div style="font-size:14px">${esc(wifiLine(S.wifi))}</div>
+          <div class="hint">${T('Measured')} ${stamp(new Date(S.wifi.ts))}</div>
+          <button class="btn ghost small" style="margin-top:10px" onclick="measureWifiRoom()">${T('Measure again')}</button>`
+        : `<div class="hint" style="margin:0 0 10px">${T("Optional: run a speed test against the Beaps server. Make sure the phone is on the apartment's wifi.")}</div>
+           <button class="btn ghost" onclick="measureWifiRoom()">${T('Measure wifi')}</button>`}
       </div>
     </div>`;
-    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">Objekt</button>
-      <button class="btn" onclick="go('sign')">Signera</button>`;
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
+      <button class="btn" onclick="go('sign')">${T('Sign')}</button>`;
     return;
   }
 
@@ -598,88 +1000,88 @@ async function render(){
       const na = list.filter(c=>c.val==='na').length;
       const tom = list.filter(c=>!c.val).length;
       const avvik = list.filter(c=>c.val && c.val===badAnswer(c));
-      app.innerHTML = topbar(locked?'Klart':'Klar att skicka','Shortstay upplåsning',96,'leave()') + `<div class="wrap">
+      app.innerHTML = topbar(locked?T('Done'):T('Ready to send'),'Shortstay upplåsning',96,'leave()') + `<div class="wrap">
         <div class="card">
           <h2 style="margin:0 0 8px">${esc(ref())}</h2>
           <div style="font-size:14px;color:var(--ink2)">
-            ${ja} ja · ${nej} nej · ${na} ej tillämpligt · ${tom} obesvarade · ${list.filter(c=>c.comment).length} kommentarer · ${list.reduce((a,c)=>a+(c.photos?c.photos.length:0),0)} bilder
+            ${ja} ${T('yes')} · ${nej} ${T('no')} · ${na} ${T('not applicable')} · ${tom} ${T('unanswered')} · ${list.filter(c=>c.comment).length} ${T('comments')} · ${list.reduce((a,c)=>a+(c.photos?c.photos.length:0),0)} ${T('photos')}
           </div>
-          <div class="hint">Utförd av ${esc(S.inspector.name||'namn saknas')}</div>
+          <div class="hint">${T('Performed by')} ${esc(S.inspector.name||T('name missing'))}</div>
         </div>
         ${galleryCard()}
         ${avvik.length? `<div class="card">
-          <div class="eyebrow" style="margin-bottom:8px">Avvikelser</div>
+          <div class="eyebrow" style="margin-bottom:8px">${T('Deviations')}</div>
           ${avvik.map(c=>
-            `<div style="font-size:14px;margin-bottom:6px">· ${esc(c.label)}${
+            `<div style="font-size:14px;margin-bottom:6px">· ${esc(T(c.label))}${
               c.comment? ' <span style="color:var(--ink2)">'+esc(c.comment)+'</span>'
-                       : ' <span class="nocmt">ingen kommentar</span>'}</div>`).join('')}
+                       : ' <span class="nocmt">'+T('no comment')+'</span>'}</div>`).join('')}
         </div>`:''}
         ${locked? `<div class="card">
-          <span class="locknote">Avslutad ${stamp(new Date(S.closedAt||S.signedAt))}</span>
-          <div class="hint">Listan är låst. Lås upp om något behöver rättas.</div>
-          <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">Lås upp</button>
+          <span class="locknote">${T('Finished')} ${stamp(new Date(S.closedAt||S.signedAt))}</span>
+          <div class="hint">${T('The list is locked. Unlock it if something needs correcting.')}</div>
+          <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">${T('Unlock')}</button>
         </div>`:''}
       </div>`;
-      bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">Lista</button>
-        <button class="btn" onclick="sendToCamilla()">${locked?'Skicka igen':'Skicka till Camilla'}</button>`;
+      bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">${T('List')}</button>
+        <button class="btn" onclick="sendToCamilla()">${locked?T('Send again'):T('Send to Camilla')}</button>`;
       return;
     }
 
-    app.innerHTML = topbar(locked?'Avslutat':'Avslut','Steg 3 av 3',96,'leave()') + `<div class="wrap">
+    app.innerHTML = topbar(locked?T('Finished'):T('Finish'),T('Step 3 of 3'),96,'leave()') + `<div class="wrap">
       <div class="card">
-        <div class="eyebrow">Sammanfattning</div>
+        <div class="eyebrow">${T('Summary')}</div>
         <h2 style="margin:6px 0 8px">${esc(ref())}</h2>
         <div style="font-size:14px;color:var(--ink2)">
-          ${S.rooms.length} utrymmen · ${S.rooms.reduce((a,r)=>a+r.photos.length,0)} bilder · ${S.rooms.filter(r=>r.comment).length} kommentarer${S.video?' · video bifogad':''}
+          ${S.rooms.length} ${T('spaces')} · ${S.rooms.reduce((a,r)=>a+r.photos.length,0)} ${T('photos')} · ${S.rooms.filter(r=>r.comment).length} ${T('comments')}${S.video?' · '+T('video attached'):''}
         </div>
-        ${S.comp&&S.comp.in? `<div class="hint">Bilder komprimerade från ${mb(S.comp.in)} till ${mb(S.comp.out)}.</div>`:''}
-        <div class="hint">${needSig? 'Signatur krävs för '+esc(S.type)+'.' : esc(S.type)+' kan avslutas utan signatur.'}</div>
-        <button class="btn ghost small" style="margin-top:12px" onclick="backup()">Säkerhetskopia</button>
+        ${S.comp&&S.comp.in? `<div class="hint">${T('Photos compressed from')} ${mb(S.comp.in)} ${T('to')} ${mb(S.comp.out)}.</div>`:''}
+        <div class="hint">${needSig? T('Signature required for')+' '+esc(TYPE_LABEL[S.type]||S.type)+'.' : esc(TYPE_LABEL[S.type]||S.type)+' '+T('can be finished without a signature.')}</div>
+        <button class="btn ghost small" style="margin-top:12px" onclick="backup()">${T('Backup')}</button>
       </div>
       ${galleryCard()}
       ${locked? `<div class="card">
         <span class="locknote">${
-          S.signedAt? 'Signerat och låst '+stamp(new Date(S.signedAt))
-          : (S.signReq && S.signReq.status==='pending')? 'Låst i väntan på signatur '+stamp(new Date(S.closedAt))
-          : 'Avslutat utan signatur '+stamp(new Date(S.closedAt))}</span>
+          S.signedAt? T('Signed and locked')+' '+stamp(new Date(S.signedAt))
+          : (S.signReq && S.signReq.status==='pending')? T('Locked awaiting signature')+' '+stamp(new Date(S.closedAt))
+          : T('Finished without signature')+' '+stamp(new Date(S.closedAt))}</span>
         <div class="hint">${(S.signReq && S.signReq.status==='pending')
-          ? 'Protokollet är låst så att det motparten signerar är exakt det du skickade. Behöver något rättas låser du upp, då återkallas länken.'
-          : 'Protokollet är låst för ändringar. Lås upp om något behöver rättas, då tas eventuella signaturer bort och det noteras i loggen.'}</div>
-        <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">Lås upp</button>
+          ? T('The report is locked so that what the counterparty signs is exactly what you sent. If something needs correcting you unlock it, and then the link is revoked.')
+          : T('The report is locked for changes. Unlock it if something needs correcting, then any signatures are removed and it is noted in the log.')}</div>
+        <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">${T('Unlock')}</button>
       </div>`:''}
       <div class="card">
-        <div class="eyebrow">Besiktningsman</div>
-        <h2 style="margin:4px 0 10px">${esc(S.inspector.name||'Namn saknas')}</h2>
-        <div id="sigbox_inspector">${locked && !S.sig.inspector? '<div class="hint">Ingen signatur.</div>' : sigBlock('inspector')}</div>
+        <div class="eyebrow">${T('Inspector')}</div>
+        <h2 style="margin:4px 0 10px">${esc(S.inspector.name||T('Name missing'))}</h2>
+        <div id="sigbox_inspector">${locked && !S.sig.inspector? '<div class="hint">'+T('No signature.')+'</div>' : sigBlock('inspector')}</div>
       </div>
       <div class="card">
-        <div class="eyebrow">Motpart</div>
-        <h2 style="margin:4px 0 2px">${esc(S.counter.name||'Namn saknas')}</h2>
+        <div class="eyebrow">${T('Counterparty')}</div>
+        <h2 style="margin:4px 0 2px">${esc(S.counter.name||T('Name missing'))}</h2>
         <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${esc(S.counter.role||'')}</div>
-        <div id="sigbox_counter">${locked && !S.sig.counter? '<div class="hint">Ingen signatur.</div>' : sigBlock('counter')}</div>
+        <div id="sigbox_counter">${locked && !S.sig.counter? '<div class="hint">'+T('No signature.')+'</div>' : sigBlock('counter')}</div>
       </div>
       ${signReqCard()}
       ${locked? '' : `<div class="card">
-        <button class="btn ghost" onclick="closeUnsigned()">Avsluta utan signatur</button>
-        <div class="hint">Låser protokollet med tomma signaturrader. Används för skade- och årsbesiktningar där motparten inte är på plats.</div>
+        <button class="btn ghost" onclick="closeUnsigned()">${T('Finish without signature')}</button>
+        <div class="hint">${T('Locks the report with empty signature lines. Used for damage and annual inspections where the counterparty is not present.')}</div>
       </div>`}
     </div>`;
     if(!locked) ['inspector','counter'].forEach(w=>{ if(!S.sig[w]) initPad(w) });
-    bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">Rum</button>
-      <button class="btn ghost small" onclick="doExport()">Dela</button>
-      <button class="btn" onclick="sendPdf()">Mejla PDF</button>`;
+    bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">${T('Rooms')}</button>
+      <button class="btn ghost small" onclick="doExport()">${T('Share')}</button>
+      <button class="btn" onclick="sendPdf()">${T('Email PDF')}</button>`;
     return;
   }
 }
 
-// rubriker satts in dar sektionen byter, med hur langt just den sektionen kommit
+// headings are inserted where the section changes, with how far that section has progressed
 function checkList(list){
   let out = '', sect = null;
   list.forEach(c=>{
     if(c.section && c.section !== sect){
       sect = c.section;
       const rows = list.filter(x=>x.section===sect);
-      out += `<div class="csec"><span>${esc(sect)}</span>
+      out += `<div class="csec"><span>${esc(T(sect))}</span>
         <span class="ccount">${rows.filter(x=>x.val).length}/${rows.length}</span></div>`;
     }
     out += checkRow(c);
@@ -690,7 +1092,7 @@ function checkList(list){
 function nextUnanswered(){
   saveCheckComments();
   const c = visibleChecks().find(x=>!x.val);
-  if(!c) return toast('Allt är besvarat');
+  if(!c) return toast(T('Everything is answered'));
   const el = document.getElementById('crow_'+c.id);
   if(!el) return;
   window.scrollTo({top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 96), behavior:'smooth'});
@@ -704,22 +1106,22 @@ function checkRow(c){
   const cls = v => c.val===v ? (v===bad ? ' on no' : v==='na' ? ' on na' : ' on') : '';
   const parent = c.showIf? checkByKey(c.showIf) : null;
   return `<div class="crow${show?' open':''}${c.showIf?' child':''}" id="crow_${c.id}">
-    ${parent? `<div class="cwhen">Följdfråga · ${esc(parent.label)} = Ja</div>`:''}
-    <div class="clabel">${esc(c.label)}</div>
+    ${parent? `<div class="cwhen">${T('Follow-up')} · ${esc(T(parent.label))} = ${T('Yes')}</div>`:''}
+    <div class="clabel">${esc(T(c.label))}</div>
     <div class="cbtns">
       <span class="ynrow">
-        <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">Ja</button>
-        <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">Nej</button>
-        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">E/T</button>
+        <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">${T('Yes')}</button>
+        <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">${T('No')}</button>
+        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">${T('N/A')}</button>
       </span>
       <span class="clinks">
-        ${c.key==='internet'? `<button class="addc" onclick="measureWifi('${c.id}')">Mät wifi</button>`:''}
-        <button class="addc" onclick="openCheckComment('${c.id}')">Kommentar</button>
-        <button class="addc" onclick="openCam('${c.id}')">Bild</button>
+        ${c.key==='internet'? `<button class="addc" onclick="measureWifi('${c.id}')">${T('Measure wifi')}</button>`:''}
+        <button class="addc" onclick="openCheckComment('${c.id}')">${T('Comment')}</button>
+        <button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>
       </span>
     </div>
-    ${c.key==='internet'? `<div class="hint">Mät wifi kör ett hastighetstest mot Beaps server. Se till att telefonen är på lägenhetens wifi.</div>`:''}
-    ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="Kommentar">`:''}
+    ${c.key==='internet'? `<div class="hint">${T("Measure wifi runs a speed test against Beaps' server. Make sure the phone is on the apartment's wifi.")}</div>`:''}
+    ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${T('Comment')}">`:''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
           <div class="x" onclick="delPhoto('${c.id}','${ph.id}')">×</div></div>`).join('')}
@@ -727,16 +1129,19 @@ function checkRow(c){
   </div>`;
 }
 function saveCheckComments(){
-  if(!S || !S.checks) return;
+  if(!S || !S.checks) return false;
+  let changed = false;
   S.checks.forEach(c=>{
     const el = document.getElementById('k_'+c.id);
-    if(el && el.value !== c.comment) c.comment = el.value;
+    if(el && el.value !== c.comment){ c.comment = el.value; changed = true }
   });
+  return changed;
 }
 function setCheck(id,v){
   saveCheckComments();
   const c = S.checks.find(x=>x.id===id);
   c.val = c.val===v? null : v;
+  unlockIfLocked();
   save(); render();
 }
 function openCheckComment(id){
@@ -753,32 +1158,32 @@ function roomCard(r){
   return `<div class="room" id="rm_${r.id}"
       ondragover="overRoom(event,'${r.id}')" ondragleave="leaveRoom(event,'${r.id}')" ondrop="dropRoom(event,'${r.id}')">
     <div class="head">
-      <span class="handle" draggable="true" ondragstart="dragStart(event,'${r.id}')" ondragend="dragEnd()" title="Dra för att flytta">⣿</span>
+      <span class="handle" draggable="true" ondragstart="dragStart(event,'${r.id}')" ondragend="dragEnd()" title="Drag to move">⣿</span>
       <button class="headmain" onclick="toggleRoom('${r.id}')">
         <span class="dot ${filled?'filled':''}"></span>
         <span style="min-width:0"><b>${esc(r.name)}</b>${r.comment?`<div class="sub">${esc(r.comment)}</div>`:''}</span>
-        <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink2)">${r.photos.length? r.photos.length+' bild ':''}${isOpen?'▲':'▼'}</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink2)">${r.photos.length? r.photos.length+' '+T(r.photos.length===1?'photo':'photos')+' ':''}${isOpen?'▲':'▼'}</span>
       </button>
-      <button class="icon" onclick="openCam('${r.id}')" aria-label="Fotografera ${esc(r.name)}">◉</button>
-      <button class="del" onclick="delRoom('${r.id}')" aria-label="Ta bort ${esc(r.name)}">×</button>
+      <button class="icon" onclick="openCam('${r.id}')" aria-label="${T('Photograph')} ${esc(r.name)}">◉</button>
+      <button class="del" onclick="delRoom('${r.id}')" aria-label="${T('Remove')} ${esc(r.name)}">×</button>
     </div>
     ${isOpen?`<div class="body">
-      <textarea id="c_${r.id}" placeholder="${r.fixed?'Antal och typ av nycklar, brickor, portkod':'Kommentar'}">${esc(r.comment)}</textarea>
+      <textarea id="c_${r.id}" placeholder="${r.fixed?T('Number and type of keys, fobs, door code'):T('Comment')}">${esc(r.comment)}</textarea>
       <div class="thumbs">
         ${r.photos.map(p=>`<div class="thumb"><img src="${photoCache[p.id]||''}" alt="">
             <div class="ts">${clock(new Date(p.ts))}</div>
             <div class="x" onclick="delPhoto('${r.id}','${p.id}')">×</div></div>`).join('')}
-        <button class="thumb" style="display:flex;align-items:center;justify-content:center;border-style:dashed;background:#fafbfb;color:var(--ink2);font-size:13px" onclick="openCam('${r.id}')">+ Bild</button>
+        <button class="thumb" style="display:flex;align-items:center;justify-content:center;border-style:dashed;background:#fafbfb;color:var(--ink2);font-size:13px" onclick="openCam('${r.id}')">+ ${T('Photo')}</button>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-        <button class="btn ghost small" onclick="openCam('${r.id}')">Fotoläge</button>
-        <button class="btn ghost small" onclick="renameRoom('${r.id}')">Döp om</button>
+        <button class="btn ghost small" onclick="openCam('${r.id}')">${T('Camera')}</button>
+        <button class="btn ghost small" onclick="renameRoom('${r.id}')">${T('Rename')}</button>
       </div>
     </div>`:''}
   </div>`;
 }
 
-/* ---------- fotoläge ---------- */
+/* ---------- camera ---------- */
 let cam = {open:false, idx:0, stream:null, rec:null, chunks:[], t0:0, timer:null};
 
 async function openCam(roomId, startVideo){
@@ -792,7 +1197,7 @@ async function openCam(roomId, startVideo){
   el.innerHTML = `
     <div class="camtop">
       <span id="camtitle" style="font-weight:600"></span>
-      <button onclick="closeCam()" style="font-size:15px">Klar</button>
+      <button onclick="closeCam()" style="font-size:15px">${T('Done')}</button>
     </div>
     <div class="view">
       <video id="camview" playsinline muted autoplay></video>
@@ -800,33 +1205,35 @@ async function openCam(roomId, startVideo){
       <div class="reclabel hidden" id="camrec">REC 0:00</div>
       <div id="camfb" class="hidden" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#C9CDCE;font-size:14px">
         <div style="max-width:310px;line-height:1.5">
-          <b>Livekameran startade inte</b><br>
+          <b>${T('The live camera did not start')}</b><br>
           <span id="camerr" style="color:#9AA0A1"></span>
         </div>
-        <button class="btn" style="background:#fff;color:#000;max-width:260px" onclick="retryCam()">Försök igen</button>
-        <label class="btn" style="background:#fff;color:#000;max-width:260px">Välj bilder
+        <button class="btn" style="background:#fff;color:#000;max-width:260px" onclick="retryCam()">${T('Try again')}</button>
+        <label class="btn" style="background:#fff;color:#000;max-width:260px">${T('Choose photos')}
           <input type="file" accept="image/*" multiple class="hidden" id="fbphoto"></label>
-        <label class="btn ghost" style="background:transparent;color:#fff;border-color:#555;max-width:260px">Ta en bild
+        <label class="btn ghost" style="background:transparent;color:#fff;border-color:#555;max-width:260px">${T('Take a photo')}
           <input type="file" accept="image/*" capture="environment" class="hidden" id="fbshot"></label>
-        <label class="btn ghost" id="fbvideolabel" style="background:transparent;color:#fff;border-color:#555;max-width:260px">Lägg till video
+        <label class="btn ghost" id="fbvideolabel" style="background:transparent;color:#fff;border-color:#555;max-width:260px">${T('Add video')}
           <input type="file" accept="video/*" capture="environment" class="hidden" id="fbvideo"></label>
       </div>
     </div>
     <div class="roomrow" id="camrooms"></div>
     <div class="strip" id="camstrip"></div>
     <div class="ctrl">
-      <button class="recbtn" id="camrecbtn" onclick="toggleRec()" aria-label="Spela in video"><i></i></button>
-      <button class="shutter" id="camshot" onclick="shoot()" aria-label="Ta bild"></button>
+      <button class="recbtn" id="camrecbtn" onclick="toggleRec()" aria-label="${T('Record video')}"><i></i></button>
+      <button class="shutter" id="camshot" onclick="shoot()" aria-label="${T('Take photo')}"></button>
       <span class="camcount" id="camcount"></span>
     </div>`;
   document.body.appendChild(el);
   ['fbphoto','fbshot'].forEach(id=>{
     document.getElementById(id).addEventListener('change', async e=>{
-      await addPhotos(curRoom().id, e.target.files); paintCam();
+      const files = [...e.target.files]; e.target.value='';   // so the same photo can be chosen again
+      await addPhotos(curRoom().id, files); paintCam();
     });
   });
   document.getElementById('fbvideo').addEventListener('change', async e=>{
-    if(e.target.files[0]) await saveVideo(e.target.files[0]); paintCam();
+    const f = e.target.files[0]; e.target.value='';
+    if(f) await saveVideo(f); paintCam();
   });
   paintCam();
   await startStream(startVideo);
@@ -859,11 +1266,11 @@ async function startStream(startVideo){
 }
 function camReason(e){
   const n = e && e.name;
-  if(n==='NotAllowedError') return 'Telefonen nekade tillgång. Öppna Inställningar, Safari, Kamera och välj Tillåt för den här adressen. Kör du appen från hemskärmen kan du behöva ta bort ikonen och lägga till den igen efteråt.';
-  if(n==='NotFoundError' || n==='OverconstrainedError') return 'Ingen kamera hittades på enheten.';
-  if(n==='NotReadableError') return 'Kameran används av en annan app just nu. Stäng den och försök igen.';
-  if(n==='SecurityError' || n==='NoApi') return 'Kameran kräver en säker adress. Öppna appen via https, inte som lokal fil.';
-  return 'Okänt fel' + (n? ' ('+n+')' : '') + '. Använd knapparna nedan så länge.';
+  if(n==='NotAllowedError') return T('The phone denied access. Open Settings, Safari, Camera and choose Allow for this address. If you run the app from the home screen you may need to remove the icon and add it again afterwards.');
+  if(n==='NotFoundError' || n==='OverconstrainedError') return T('No camera was found on the device.');
+  if(n==='NotReadableError') return T('The camera is in use by another app right now. Close it and try again.');
+  if(n==='SecurityError' || n==='NoApi') return T('The camera requires a secure address. Open the app via https, not as a local file.');
+  return T('Unknown error') + (n? ' ('+n+')' : '') + T('. Use the buttons below for now.');
 }
 async function retryCam(){ await startStream(false) }
 async function ensureAudio(){
@@ -878,16 +1285,16 @@ const curRoom = () => camItems()[cam.idx];
 const shortName = t => (t||'').length>24? t.slice(0,23)+'…' : (t||'');
 function paintCam(){
   if(!cam.open) return;
-  // listan kan ha krympt sedan fotolaget oppnades, t.ex. om en foljdfraga dolts
+  // the list may have shrunk since the camera opened, e.g. if a follow-up question was hidden
   if(cam.idx >= camItems().length) cam.idx = Math.max(0, camItems().length - 1);
   const r = curRoom();
   if(!r) return closeCam();
-  document.getElementById('camtitle').textContent = shortName(r.name || r.label);
-  document.getElementById('camcount').textContent = r.photos.length? r.photos.length+' st':'';
+  document.getElementById('camtitle').textContent = shortName(r.name || T(r.label));
+  document.getElementById('camcount').textContent = r.photos.length? r.photos.length+' '+T('shots'):'';
   document.getElementById('camrecbtn').style.visibility = isCheck()? 'hidden':'visible';
   const fbv = document.getElementById('fbvideolabel'); if(fbv) fbv.style.display = isCheck()? 'none':'flex';
   document.getElementById('camrooms').innerHTML = camItems().map((x,i)=>
-    `<button class="rchip ${i===cam.idx?'on':''}" onclick="setCamRoom(${i})">${esc(shortName(x.name || x.label))}${x.photos.length?' '+x.photos.length:''}</button>`).join('');
+    `<button class="rchip ${i===cam.idx?'on':''}" onclick="setCamRoom(${i})">${esc(shortName(x.name || T(x.label)))}${x.photos.length?' '+x.photos.length:''}</button>`).join('');
   document.getElementById('camstrip').innerHTML = r.photos.slice().reverse().map(p=>
     `<div class="t"><img src="${photoCache[p.id]||''}"><span onclick="delPhoto('${r.id}','${p.id}',true)">×</span></div>`).join('');
   const on = document.querySelector('#camrooms .rchip.on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
@@ -923,21 +1330,26 @@ async function toggleRec(){
       lab.textContent = `REC ${Math.floor(s/60)}:${pad(s%60)}`;
       if(s>=180) cam.rec && cam.rec.stop();
     },500);
-  }catch(e){ alert('Videoinspelning stöds inte i den här webbläsaren.') }
+  }catch(e){ alert(T('Video recording is not supported in this browser.')) }
 }
 async function saveVideo(blob, dur){
+  unlockIfLocked();
   if(videoURL && videoURL.startsWith('blob:')) URL.revokeObjectURL(videoURL);
   videoURL = URL.createObjectURL(blob);
   S.video = {ts:Date.now(), size:blob.size, dur:dur||null, stored:false};
-  const limit = NATIVE ? 3.4*1048576 : 400*1048576;
+  // Above this the base64 string gets so large that the mobile tab can OOM-crash during saving.
+  const limit = NATIVE ? 3.4*1048576 : 60*1048576;
   if(blob.size < limit){
-    const data = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob) });
-    if(await store.set(K.video(S.id), data)){ S.video.stored = true; videoURL = data }
+    try{
+      const data = await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(fr.error); fr.readAsDataURL(blob) });
+      if(await store.set(K.video(S.id), data)){ S.video.stored = true; videoURL = data }
+    }catch(e){}
   }
   save();
 }
 function delVideo(){
-  if(!confirm('Ta bort videon?')) return;
+  if(!confirm(T('Remove the video?'))) return;
+  unlockIfLocked();
   store.del(K.video(S.id)); S.video=null; videoURL=null; save(); render();
 }
 function closeCam(){
@@ -950,20 +1362,20 @@ function closeCam(){
   render();
 }
 
-/* ---------- signatur ---------- */
+/* ---------- signature ---------- */
 function sigBlock(who){
   const s = S.sig[who];
   if(s && s.remote) return `<div class="sigdone" style="padding:13px">
-      <div style="font-size:14px"><b>${esc(s.name||'Motparten')}</b> signerade digitalt via signeringslänk</div>
+      <div style="font-size:14px"><b>${esc(s.name||T('The counterparty'))}</b> ${T('signed digitally via signing link')}</div>
       <div class="hint" style="font-family:var(--mono);font-size:11px;margin-top:4px">${stamp(new Date(s.ts))}</div>
     </div>
-    <div class="hint">Det färdiga protokollet med signatursidan är redan mejlat till longstay@beaps.se.</div>`;
-  if(s) return `<div class="sigdone"><img src="${s.data}" alt="signatur"></div>
-    <div class="hint" style="font-family:var(--mono);font-size:11px">Signerat ${stamp(new Date(s.ts))}</div>`;
+    <div class="hint">${T('The finished report with the signature page has already been emailed to longstay@beaps.se.')}</div>`;
+  if(s) return `<div class="sigdone"><img src="${s.data}" alt="signature"></div>
+    <div class="hint" style="font-family:var(--mono);font-size:11px">${T('Signed')} ${stamp(new Date(s.ts))}</div>`;
   return `<canvas class="sigpad" id="pad_${who}"></canvas>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn ghost small" onclick="clearPad('${who}')">Rensa</button>
-      <button class="btn small" onclick="commitPad('${who}')">Godkänn signatur</button>
+      <button class="btn ghost small" onclick="clearPad('${who}')">${T('Clear')}</button>
+      <button class="btn small" onclick="commitPad('${who}')">${T('Approve signature')}</button>
     </div>`;
 }
 const pads = {};
@@ -984,63 +1396,68 @@ function initPad(who){
 function clearPad(w){ pads[w] && pads[w].reset() }
 async function sendToCamilla(){
   saveCheckComments();
-  // obesvarade punkter far skickas som de ar, antalet star i sammanfattningen och i PDF:en
-  if(!S.closedAt){ S.closedAt = Date.now(); log('Upplåsning avslutad'); await flushSave(); render() }
-  toast('Bygger PDF');
+  // unanswered items may be sent as they are, the count is in the summary and in the PDF
+  if(!S.closedAt){ S.closedAt = Date.now(); log('Upplåsning finished'); await flushSave(); render() }
+  await ensureGalleryUploaded();
+  toast(T('Building PDF'));
   const out = await buildPdf();
   if(!out) return legacyPrint();
-  toast('Skickar');
+  toast(T('Sending'));
   const m = await mailPdf(out.blob, out.name);
-  if(m.ok){ toast('Mejlad till ' + mailTarget()); return }
-  if(m.reason==='quota') toast('Dagens mejlgräns nådd, öppnar delning');
-  else if(m.reason==='size') toast('För stor för mejl, öppnar delning');
+  if(m.ok){ toast(T('Emailed to') + ' ' + mailTarget()); return }
+  if(m.reason==='quota') toast(T('Daily email limit reached, opening share'));
+  else if(m.reason==='size') toast(T('Too large for email, opening share'));
+  else if(m.reason==='ladda om') toast(T('Reload the app — opening share'));
+  else toast(T('The email did not go through, opening share'));
   await sharePdf(out.blob, out.name);
 }
 function closeUnsigned(){
   const needSig = S.type==='Inflytt' || S.type==='Utflytt';
   const msg = needSig
-    ? `Signatur krävs normalt för ${S.type}. Avsluta ändå utan signatur?`
-    : 'Avsluta protokollet utan signatur?';
+    ? `${T('Signature is normally required for')} ${TYPE_LABEL[S.type]||S.type}. ${T('Finish without a signature anyway?')}`
+    : T('Finish the report without a signature?');
   if(!confirm(msg)) return;
   S.closedAt = Date.now();
-  log('Avslutat utan signatur');
-  log('Protokollet låst');
+  log('Finished without signature');
+  log('Report locked');
   flushSave(); render();
 }
 function unlock(){
-  const waiting = S.signReq && S.signReq.status==='pending';
-  if(waiting && !confirm('Det finns en utskickad signeringslänk. Låser du upp återkallas den, och du får skicka en ny länk när protokollet är ändrat. Fortsätt?')) return;
-  if(!waiting && !confirm(isCheck()? 'Lås upp listan så den går att ändra igen?' : 'Lås upp protokollet? Signaturerna tas bort och det noteras i loggen.')) return;
-  if(waiting){ revokeSignLink(S.signReq.token); S.signReq.status='cancelled'; log('Signeringslänk återkallad') }
+  const q = S.signReq;
+  const active = q && (q.status==='pending' || q.status==='expired');
+  if(active && !confirm(T('There is a signing link that has been sent out. If you unlock it, it is revoked, and you get to send a new link once the report is changed. Continue?'))) return;
+  if(!active && !confirm(isCheck()? T('Unlock the list so it can be changed again?') : T('Unlock the report? The signatures are removed and it is noted in the log.'))) return;
+  if(q && q.token) revokeSignLink(q.token);   // even already signed ones: the token must not be signable again
+  S.signReq = null;
   S.signedAt = null; S.closedAt = null; S.sig = {};
-  log(isCheck()? 'Listan upplåst' : 'Protokollet upplåst, signaturer borttagna');
+  log(isCheck()? 'List unlocked' : 'Report unlocked, signatures removed');
   flushSave(); view='rooms'; render(); window.scrollTo(0,0);
 }
 function commitPad(w){
   const p = pads[w];
-  if(!p || p.isEmpty()) return alert('Rita signaturen i rutan först.');
+  if(!p || p.isEmpty()) return alert(T('Draw the signature in the box first.'));
   S.sig[w] = {data:p.c.toDataURL('image/png'), ts:Date.now()};
-  log(`Signerad av ${w==='inspector'? (S.inspector.name||'besiktningsman') : (S.counter.name||'motpart')}`);
+  log(`Signed by ${w==='inspector'? (S.inspector.name||'inspector') : (S.counter.name||'counterparty')}`);
   const bada = !!(S.sig.inspector && S.sig.counter);
-  if(bada && !S.signedAt){ S.signedAt=Date.now(); log('Protokollet låst') }
+  if(bada && !S.signedAt){ S.signedAt=Date.now(); log('Report locked') }
   save();
   delete pads[w];
-  // Rita om BARA den ruta som godkändes. En full omritning skulle radera den andra
-  // partens påbörjade signatur, som ju inte hunnit godkännas än — står man med
-  // hyresgästen och båda skriver under blev det att den andre fick göra om.
-  // Är båda klara låses protokollet, och då finns inget påbörjat att förlora.
+  // Redraw ONLY the box that was approved. A full redraw would erase the other
+  // party's started signature, which hasn't been approved yet — if you're standing with
+  // the tenant and both are signing, the other one would have to redo it.
+  // If both are done the report is locked, and then there is nothing started to lose.
   if(bada) return render();
   const box = document.getElementById('sigbox_'+w);
   if(box) box.innerHTML = sigBlock(w); else render();
 }
 
-/* ---------- wifi-matning ---------- */
-// Mater mot Beaps egen Netlify-funktion, sa ingen tredjepartstjanst behover blandas in.
-// Siffrorna ar en bedomning av forbindelsen telefon -> internet, inte en labbmatning:
-// de speglar vad en gast faktiskt far ut av natet, vilket ar det vi vill veta.
+/* ---------- wifi measurement ---------- */
+// Measures against Beaps' own Netlify function, so no third-party service needs to be involved.
+// The numbers are an assessment of the phone -> internet connection, not a lab measurement:
+// they reflect what a guest actually gets out of the network, which is what we want to know.
 const WIFI_DOWN = 4*1024*1024, WIFI_UP = 2*1024*1024, WIFI_PINGS = 5;
-// matchar exakt en tidigare matning och inget mer, sa en handskriven kommentar efter overlever
-const MATNING = /^Ned .*?Latens \d+ ms(?: · mobildata)?/;
+// matches exactly one previous measurement and nothing more, so a handwritten comment after it survives
+const MATNING = /^Down .*?Latency \d+ ms(?: · mobile data)?/;
 let measuring = false;
 
 async function pingOnce(){
@@ -1059,7 +1476,7 @@ async function measureDown(){
   for(;;){
     const {done, value} = await reader.read();
     if(done) break;
-    if(!t0) t0 = performance.now();   // klockan startar pa forsta byten, inte pa uppkopplingen
+    if(!t0) t0 = performance.now();   // the clock starts on the first byte, not on the connection
     bytes += value.length;
   }
   const s = (performance.now() - t0)/1000;
@@ -1078,55 +1495,94 @@ async function measureUp(){
 }
 
 async function measureWifi(id){
-  if(measuring) return toast('En mätning pågår redan');
+  if(measuring) return toast(T('A measurement is already running'));
   if(!S || !S.checks) return;
-  const insp = S;                    // mätningen tar sekunder, användaren kan hinna byta besiktning
+  const insp = S;                    // the measurement takes seconds, the user may switch inspection in the meantime
   const c = S.checks.find(x=>x.id===id);
   if(!c) return;
   measuring = true;
   saveCheckComments();
   try{
-    toast('Mäter latens');
+    toast(T('Measuring latency'));
     const pings = [];
     for(let i=0;i<WIFI_PINGS;i++){ try{ pings.push(await pingOnce()) }catch(e){} }
-    if(!pings.length) throw new Error('ingen kontakt');
+    if(!pings.length) throw new Error('no contact');
     pings.sort((a,b)=>a-b);
     const latens = Math.round(pings[Math.floor(pings.length/2)]);
 
-    toast('Mäter nedladdning');
+    toast(T('Measuring download'));
     const ned = await measureDown();
-    toast('Mäter uppladdning');
+    toast(T('Measuring upload'));
     const upp = await measureUp().catch(()=>null);
 
-    // annan besiktning öppnad under tiden: skriv inte in resultatet på fel ställe
-    if(S !== insp){ measuring = false; return toast('Mätningen avbröts, du bytte besiktning') }
+    // another inspection opened in the meantime: don't write the result in the wrong place
+    if(S !== insp){ measuring = false; return toast(T('Measurement cancelled, you switched inspection')) }
 
-    // kort nog att synas i sin helhet i kommentarsfältet. Klockslaget utelämnas med flit,
-    // det står i händelseloggen som följer med i PDF:en.
+    // short enough to be shown in full in the comment field. The time is deliberately omitted,
+    // it is in the activity log that follows along in the PDF.
     const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
     const conn = navigator.connection;
     const mobil = conn && conn.type === 'cellular';
-    const rad = `Ned ${bit(ned)} · Upp ${bit(upp)} Mbit/s · Latens ${latens} ms`
-              + (mobil? ' · mobildata' : '');
+    const rad = `Down ${bit(ned)} · Up ${bit(upp)} Mbit/s · Latency ${latens} ms`
+              + (mobil? ' · mobile data' : '');
 
-    // behall en eventuell handskriven kommentar, byt bara ut en tidigare matning
+    // keep any handwritten comment, only replace a previous measurement
     const rest = (c.comment||'').replace(MATNING,'').replace(/^\s*[—·-]\s*/,'').trim();
     c.comment = rad + (rest? ' — ' + rest : '');
     c.open = true;
-    log(`Wifi mätt: ned ${bit(ned)} / upp ${bit(upp)} Mbit/s, ${latens} ms`);
+    log(`Wifi measured: down ${bit(ned)} / up ${bit(upp)} Mbit/s, ${latens} ms`);
     save(); render();
-    toast('Mätning klar');
+    toast(T('Measurement done'));
   }catch(e){
-    toast('Kunde inte mäta wifi just nu');
+    toast(T('Could not measure wifi right now'));
   }
   measuring = false;
 }
 
-/* ---------- galleri: bilder och video i full upplosning ---------- */
-// PDF:en maste rymmas i ett mejl, sa bilderna kramas ihop hart dar - med hundra bilder
-// blir det tio kilobyte styck och gar inte att zooma i. Galleriet lagger i stallet upp
-// bilderna som de ligger pa telefonen och satter en lank i protokollet. Videon kan
-// aldrig spelas i en PDF over huvud taget, sa den har ar enda vagen for den.
+// Format a stored wifi measurement for display / the PDF.
+function wifiLine(w){
+  if(!w) return '';
+  const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
+  return `Down ${bit(w.down)} · Up ${bit(w.up)} Mbit/s · Latency ${w.latency} ms` + (w.mobile? ' · mobile data' : '');
+}
+// Wifi test for the room-based types (move-in/out, annual, damage). Optional, never required;
+// the result is stored on S.wifi and shown on the rooms screen and in the PDF.
+async function measureWifiRoom(){
+  if(measuring) return toast(T('A measurement is already running'));
+  if(!S) return;
+  const insp = S;
+  measuring = true;
+  try{
+    toast(T('Measuring latency'));
+    const pings = [];
+    for(let i=0;i<WIFI_PINGS;i++){ try{ pings.push(await pingOnce()) }catch(e){} }
+    if(!pings.length) throw new Error('no contact');
+    pings.sort((a,b)=>a-b);
+    const latency = Math.round(pings[Math.floor(pings.length/2)]);
+    toast(T('Measuring download'));
+    const down = await measureDown();
+    toast(T('Measuring upload'));
+    const up = await measureUp().catch(()=>null);
+    if(S !== insp){ measuring = false; return toast(T('Measurement cancelled, you switched inspection')) }
+    const conn = navigator.connection;
+    const mobile = !!(conn && conn.type === 'cellular');
+    unlockIfLocked();
+    S.wifi = { down, up, latency, ts:Date.now(), mobile };
+    const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
+    log(`Wifi measured: down ${bit(down)} / up ${bit(up)} Mbit/s, ${latency} ms`);
+    save(); render();
+    toast(T('Measurement done'));
+  }catch(e){
+    toast(T('Could not measure wifi right now'));
+  }
+  measuring = false;
+}
+
+/* ---------- gallery: photos and video in full resolution ---------- */
+// The PDF must fit in an email, so the photos are squeezed hard there - with a hundred photos
+// it becomes ten kilobytes each and can't be zoomed in. The gallery instead uploads
+// the photos as they are on the phone and puts a link in the report. The video can
+// never be played in a PDF at all, so this is the only way for it.
 let uploading = false;
 
 const galleryItems = () => {
@@ -1135,61 +1591,69 @@ const galleryItems = () => {
   barare.forEach(b=>{
     (b.photos||[]).forEach((p,i)=>{
       if(!photoCache[p.id]) return;
-      ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${b.name || b.label || 'Bild'} ${i+1}`});
+      ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${b.name || b.label || 'Photo'} ${i+1}`});
     });
   });
-  if(S.video && S.video.stored && videoURL) ut.push({id:'video', kind:'video', ts:S.video.ts, name:'Genomgång'});
+  if(S.video && S.video.stored && videoURL) ut.push({id:'video', kind:'video', ts:S.video.ts, name:'Walkthrough'});
   return ut;
 };
 
 const dataUrlToBlob = async d => (await fetch(d)).blob();
 
-async function uploadGallery(){
-  if(uploading) return toast('En uppladdning pågår redan');
+async function ensureGalleryUploaded(){
+  if(!S) return;
+  const n = galleryItems().length;
+  if(!n) return;                                // nothing to upload
+  if(S.gallery && S.gallery.n === n) return;    // already uploaded and unchanged
+  await uploadGallery(true);
+}
+async function uploadGallery(auto){
+  if(uploading){ if(auto) return; return toast(T('An upload is already running')) }
   if(!S) return;
   const items = galleryItems();
-  if(!items.length) return toast('Det finns inga bilder att ladda upp');
+  if(!items.length) return toast(T('There are no photos to upload'));
 
   const insp = S;
   uploading = true;
   try{
-    toast(`Förbereder ${items.length} filer`);
+    toast(`${T('Preparing')} ${items.length} ${T('files')}`);
     let r = await withTimeout(fetch('/api/media-init', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
       body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
         inspector:S.inspector.name, items })
     }), 30000);
-    // Cloudflare svarar med appens egen HTML pa okanda /api-vagar, inte med 404.
-    // Lita darfor inte pa statuskoden ensam - forsok tolka svaret och se om det bar en token.
+    if(r.status===401) throw new Error('Reload the app and try again');
+    // Cloudflare responds with the app's own HTML on unknown /api paths, not with 404.
+    // So don't trust the status code alone - try to parse the response and see if it carries a token.
     const svar = (await r.text().catch(()=>'')).trim();
     let g = null;
     try{ g = JSON.parse(svar) }catch(e){}
     if(!g || !g.token){
       const kort = (svar && svar.length<160 && svar.indexOf('<')<0)? svar : '';
-      throw new Error(!g? 'Galleriet är inte igång på servern än'
-                    : (kort || 'Servern svarade ' + r.status));
+      throw new Error(!g? 'The gallery is not running on the server yet'
+                    : (kort || 'The server responded ' + r.status));
     }
 
     let klara = 0, missade = 0;
     for(const it of items){
-      if(S !== insp){ uploading = false; return toast('Uppladdningen avbröts, du bytte besiktning') }
+      if(S !== insp){ uploading = false; return toast(T('Upload cancelled, you switched inspection')) }
       try{
         const blob = it.kind==='video'
           ? await dataUrlToBlob(videoURL)
           : await dataUrlToBlob(photoCache[it.id]);
         const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
-          method:'PUT', headers:{'Content-Type':'application/octet-stream'}, body: blob
+          method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
         }), 120000);
         if(put.ok) klara++; else missade++;
       }catch(e){ missade++ }
-      if(klara % 5 === 0 || klara + missade === items.length) toast(`Laddar upp ${klara+missade} av ${items.length}`);
+      if(klara % 5 === 0 || klara + missade === items.length) toast(`${T('Uploading')} ${klara+missade} ${T('of')} ${items.length}`);
     }
 
-    if(!klara) throw new Error('Ingen fil kunde laddas upp');
-    S.gallery = {token:g.token, url:g.url, count:klara, ts:Date.now()};
-    log(`Bilder uppladdade: ${klara} av ${items.length}${missade? ', '+missade+' misslyckades':''}`);
-    await flushSave(); render();
-    toast(missade? `Klart, men ${missade} filer misslyckades` : 'Bilderna är uppladdade');
+    if(!klara) throw new Error('No file could be uploaded');
+    S.gallery = {token:g.token, url:g.url, count:klara, n:(missade? -1 : items.length), ts:Date.now()};
+    log(`Photos uploaded: ${klara} of ${items.length}${missade? ', '+missade+' failed':''}`);
+    await flushSave(); if(!auto) render();
+    toast(missade? `${T('Done, but')} ${missade} ${T('files failed')}` : T('The photos are uploaded'));
   }catch(e){
     toast(String(e.message).slice(0,80));
   }
@@ -1198,8 +1662,8 @@ async function uploadGallery(){
 
 async function copyGalleryLink(){
   if(!S || !S.gallery) return;
-  try{ await navigator.clipboard.writeText(S.gallery.url); toast('Länken kopierad') }
-  catch(e){ prompt('Kopiera länken:', S.gallery.url) }
+  try{ await navigator.clipboard.writeText(S.gallery.url); toast(T('Link copied')) }
+  catch(e){ prompt(T('Copy the link:'), S.gallery.url) }
 }
 
 function galleryCard(){
@@ -1207,61 +1671,56 @@ function galleryCard(){
   const g = S.gallery;
   if(!antal && !g) return '';
   if(!g) return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:10px">Bilder i full upplösning</div>
-    <button class="btn ghost" onclick="uploadGallery()">Ladda upp ${antal} filer</button>
-    <div class="hint">I PDF:en krymps bilderna för att den ska rymmas i ett mejl. Ladda upp dem
-      så får protokollet en länk där mottagaren ser bilderna i full storlek och kan zooma —
-      och där videon går att spela, vilket den aldrig gör i en PDF.</div>
+    <div class="eyebrow" style="margin-bottom:10px">${T('Full-resolution photos')}</div>
+    <div class="hint" style="margin:0">${T('The')} ${antal} ${antal===1?T('file'):T('files')} ${T('upload automatically when you send or sign, so the report always carries a link where the recipient sees the photos full size and can zoom — and where the video actually plays, which it never does in a PDF.')}</div>
   </div>`;
   return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:8px">Bilder i full upplösning</div>
-    <div style="font-size:14px">${g.count} filer uppladdade ${stamp(new Date(g.ts))}</div>
-    <div class="hint">Länken följer med i PDF:en. Bilderna sparas i ett år.</div>
+    <div class="eyebrow" style="margin-bottom:8px">${T('Full-resolution photos')}</div>
+    <div style="font-size:14px">${g.count} ${g.count===1?T('file'):T('files')} ${T('uploaded')} ${stamp(new Date(g.ts))}</div>
+    <div class="hint">${T('The link travels with the PDF. Files are kept for one year.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="btn ghost small" onclick="copyGalleryLink()">Kopiera länk</button>
-      <button class="btn ghost small" onclick="uploadGallery()">Ladda upp igen</button>
+      <button class="btn ghost small" onclick="copyGalleryLink()">${T('Copy link')}</button>
     </div>
   </div>`;
 }
 
-/* ---------- signering pa distans ---------- */
+/* ---------- remote signing ---------- */
 const okMail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s||'').trim());
 
 function signReqCard(){
   const q = S.signReq;
   if(!q) return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:10px">Motparten är inte på plats</div>
-    <button class="btn ghost" onclick="openSignRequest()">Gästen kan inte signera nu</button>
-    <div class="hint">Mejlar en länk där motparten ser hela protokollet och signerar direkt i webbläsaren.
-      Så fort det är gjort mejlas det färdiga protokollet till longstay@beaps.se.</div>
+    <div class="eyebrow" style="margin-bottom:10px">${T('The counterparty is not present')}</div>
+    <button class="btn ghost" onclick="openSignRequest()">${T('The guest cannot sign now')}</button>
+    <div class="hint">${T('Emails a link where the counterparty sees the whole report and signs directly in the browser.\n      As soon as that is done, the finished report is emailed to longstay@beaps.se.')}</div>
   </div>`;
 
   if(q.status==='signed') return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
-    <span class="locknote">Signerat ${stamp(new Date(q.signedAt||Date.now()))}</span>
-    <div class="hint">${esc(q.signedName||q.name||'Motparten')} signerade via länken som skickades till
-      ${esc(q.to)}. Protokollet är mejlat till longstay@beaps.se med kopia till mottagaren.</div>
+    <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
+    <span class="locknote">${T('Signed')} ${stamp(new Date(q.signedAt||Date.now()))}</span>
+    <div class="hint">${esc(q.signedName||q.name||T('The counterparty'))} ${T('signed via the link that was sent to')}
+      ${esc(q.to)}. ${T('The report has been emailed to longstay@beaps.se with a copy to the recipient.')}</div>
   </div>`;
 
   if(q.status==='cancelled') return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
-    <div style="font-size:14px;color:var(--ink2)">Länken till ${esc(q.to)} är återkallad.</div>
-    <button class="btn ghost small" style="margin-top:12px" onclick="openSignRequest()">Skicka en ny länk</button>
+    <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
+    <div style="font-size:14px;color:var(--ink2)">${T('The link to')} ${esc(q.to)} ${T('is revoked.')}</div>
+    <button class="btn ghost small" style="margin-top:12px" onclick="openSignRequest()">${T('Send a new link')}</button>
   </div>`;
 
   const utgangen = q.status==='expired' || (q.expires && Date.now()>q.expires);
   return `<div class="card">
-    <div class="eyebrow" style="margin-bottom:8px">Signering på distans</div>
-    <h2 style="margin:0 0 6px">${utgangen? 'Länken har gått ut' : 'Väntar på signatur'}</h2>
+    <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
+    <h2 style="margin:0 0 6px">${utgangen? T('The link has expired') : T('Awaiting signature')}</h2>
     <div style="font-size:14px;color:var(--ink2)">
-      Skickad till ${esc(q.to)}${q.cc? ', kopia '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · gäller till '+stamp(new Date(q.expires)):''}
+      ${T('Sent to')} ${esc(q.to)}${q.cc? ', '+T('copy')+' '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · '+T('valid until')+' '+stamp(new Date(q.expires)):''}
     </div>
-    <div class="hint">När motparten signerat mejlas det färdiga protokollet till longstay@beaps.se automatiskt.</div>
+    <div class="hint">${T('When the counterparty has signed, the finished report is emailed to longstay@beaps.se automatically.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="btn ghost small" onclick="checkSignStatus()">Kontrollera status</button>
-      <button class="btn ghost small" onclick="copySignLink()">Kopiera länk</button>
-      <button class="btn ghost small" onclick="openSignRequest()">Skicka igen</button>
-      ${utgangen? '' : '<button class="btn ghost small" onclick="cancelSignLink()">Återkalla</button>'}
+      <button class="btn ghost small" onclick="checkSignStatus()">${T('Check status')}</button>
+      <button class="btn ghost small" onclick="copySignLink()">${T('Copy link')}</button>
+      <button class="btn ghost small" onclick="openSignRequest()">${T('Send again')}</button>
+      ${utgangen? '' : '<button class="btn ghost small" onclick="cancelSignLink()">'+T('Revoke')+'</button>'}
     </div>
   </div>`;
 }
@@ -1273,37 +1732,34 @@ function openSignRequest(){
   const q = S.signReq || {};
   const el = document.createElement('div');
   el.className = 'sheet hasbar'; el.id = 'signsheet';
-  el.innerHTML = topbar('Skicka signeringslänk', ref(), null, 'closeSignSheet()') + `<div class="wrap">
+  el.innerHTML = topbar(T('Send signing link'), ref(), null, 'closeSignSheet()') + `<div class="wrap">
     <div class="card">
-      <div class="field"><label class="eyebrow">Mejla till</label>
+      <div class="field"><label class="eyebrow">${T('Email to')}</label>
         <input id="sr_to" type="email" inputmode="email" autocomplete="email"
-               placeholder="namn@foretag.se" value="${esc(q.to||'')}"></div>
-      <div class="field"><label class="eyebrow">CC, valfritt</label>
+               placeholder="name@company.com" value="${esc(q.to||'')}"></div>
+      <div class="field"><label class="eyebrow">${T('CC, optional')}</label>
         <input id="sr_cc" type="email" inputmode="email" autocomplete="email"
-               placeholder="kopia@foretag.se" value="${esc(q.cc||'')}"></div>
-      <div class="field"><label class="eyebrow">Mottagarens namn</label>
-        <input id="sr_name" value="${esc(q.name||S.counter.name||'')}" placeholder="För- och efternamn"></div>
-      <div class="field"><label class="eyebrow">Företag eller roll</label>
-        <input id="sr_role" value="${esc(q.role||S.counter.role||'')}" placeholder="T.ex. relocation agent"></div>
-      <div class="hint">Går ofta till relocation-agenten, ibland direkt till kunden.</div>
+               placeholder="copy@company.com" value="${esc(q.cc||'')}"></div>
+      <div class="field"><label class="eyebrow">${T("Recipient's name")}</label>
+        <input id="sr_name" value="${esc(q.name||S.counter.name||'')}" placeholder="${T('First and last name')}"></div>
+      <div class="field"><label class="eyebrow">${T('Company or role')}</label>
+        <input id="sr_role" value="${esc(q.role||S.counter.role||'')}" placeholder="${T('E.g. relocation agent')}"></div>
+      <div class="hint">${T('Often goes to the relocation agent, sometimes directly to the customer.')}</div>
     </div>
     <div class="card" style="border-color:var(--brand-dark);box-shadow:inset 3px 0 0 var(--brand)">
-      <div class="eyebrow" style="margin-bottom:8px">OBS</div>
-      <div style="font-size:14px;line-height:1.5">Sker signeringen digitalt ser den du mejlar till
-        <b>hela PDF:en</b> — samtliga rum, bilder och kommentarer — innan signaturen lämnas.
-        Skicka bara till någon som ska ha tillgång till hela protokollet.</div>
+      <div class="eyebrow" style="margin-bottom:8px">${T('NOTE')}</div>
+      <div style="font-size:14px;line-height:1.5">${T('If the signing is done digitally, the person you email sees')}
+        <b>${T('the whole PDF')}</b> — ${T('all rooms, photos and comments — before the signature is given.\n        Only send it to someone who should have access to the whole report.')}</div>
     </div>
     ${S.sig.inspector? '' : `<div class="card">
-      <div style="font-size:14px">Du har inte signerat själv än. Protokollet skickas som det är,
-        med tom signaturrad för besiktningsmannen. Vill du signera först stänger du det här,
-        signerar på avslutssidan och öppnar formuläret igen.</div>
+      <div style="font-size:14px">${T('You have not signed yourself yet. The report is sent as it is,\n        with an empty signature line for the inspector. If you want to sign first, close this,\n        sign on the finish page and open the form again.')}</div>
     </div>`}
     <div class="hint" id="sr_err" style="color:var(--rec);display:none"></div>
-    <div class="hint">Har protokollet många bilder kan det ta en stund att bygga. Du kan avbryta när som helst.</div>
+    <div class="hint">${T('If the report has many photos it can take a while to build. You can cancel at any time.')}</div>
   </div>
   <div class="sheetbar">
-    <button class="btn ghost small" onclick="closeSignSheet()">Avbryt</button>
-    <button class="btn" id="sr_send" onclick="sendSignRequest()">Skicka signeringslänk</button>
+    <button class="btn ghost small" onclick="closeSignSheet()">${T('Cancel')}</button>
+    <button class="btn" id="sr_send" onclick="sendSignRequest()">${T('Send signing link')}</button>
   </div>`;
   document.body.appendChild(el);
   const t = document.getElementById('sr_to'); if(t && !t.value) t.focus();
@@ -1311,77 +1767,84 @@ function openSignRequest(){
 
 async function sendSignRequest(){
   const err = document.getElementById('sr_err'), btn = document.getElementById('sr_send');
-  const reset = m => { btn.disabled=false; btn.textContent='Skicka signeringslänk';
+  const open = () => !!document.getElementById('signsheet');
+  const reset = m => { if(!open()) return; btn.disabled=false; btn.textContent=T('Send signing link');
                        err.textContent=m; err.style.display='block' };
   const to = document.getElementById('sr_to').value.trim();
   const cc = document.getElementById('sr_cc').value.trim();
   const name = document.getElementById('sr_name').value.trim();
   const role = document.getElementById('sr_role').value.trim();
-  if(!okMail(to)) return reset('Fyll i en giltig mejladress under Mejla till.');
-  if(cc && !okMail(cc)) return reset('CC-adressen ser inte giltig ut.');
+  if(!okMail(to)) return reset(T('Enter a valid email address under Email to.'));
+  if(cc && !okMail(cc)) return reset(T("The CC address doesn't look valid."));
   err.style.display = 'none';
-  const insp = S;                    // PDF-bygget tar tid, besiktningen kan bytas under tiden
+  const insp = S;                    // building the PDF takes time, the inspection can be switched in the meantime
+  const gammal = (S.signReq && S.signReq.token && (S.signReq.status==='pending' || S.signReq.status==='expired')) ? S.signReq.token : null;
 
-  btn.disabled = true; btn.textContent = 'Bygger PDF…';
+  btn.disabled = true; btn.textContent = T('Building PDF…');
+  await ensureGalleryUploaded();
   const out = await buildPdf();
-  if(S !== insp) return reset('Du bytte besiktning, ingenting skickades.');
-  if(!out) return reset('PDF-motorn kunde inte laddas. Kontrollera uppkopplingen och försök igen.');
-  // samma tak som servern använder, så det inte byggs och laddas upp i onödan
+  if(S !== insp) return reset(T('You switched inspection, nothing was sent.'));
+  if(!out) return reset(T('The PDF engine could not be loaded. Check the connection and try again.'));
+  // the same cap the server uses, so it isn't built and uploaded unnecessarily
   if(out.blob.size > 4*1048576)
-    return reset('Protokollet är ' + mb(out.blob.size) + ' och för stort för signeringslänken. Ta bort några bilder och försök igen.');
+    return reset(T('The report is') + ' ' + mb(out.blob.size) + ' ' + T('and too large for the signing link. Remove a few photos and try again.'));
 
-  btn.textContent = 'Skickar…';
+  btn.textContent = T('Sending…');
   const b64 = await new Promise(res=>{ const fr=new FileReader();
     fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(out.blob) });
+  const ac = new AbortController();
   let r;
   try{
     r = await withTimeout(fetch('/api/sign-request', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...AUTH}, signal: ac.signal,
       body: JSON.stringify({ pdf:b64, filename:out.name, ref:ref(), type:S.type,
         address:S.address, apt:S.apt, inspector:S.inspector.name,
         to, cc, recipientName:name, recipientRole:role })
     }), 45000);
-  }catch(e){ return reset('Ingen kontakt med servern. Kontrollera uppkopplingen och försök igen.') }
+  }catch(e){ try{ ac.abort() }catch(_){}  return reset(T('No contact with the server. Check the connection and try again.')) }
   if(!r.ok){
-    // servern svarar med korta klartextfel. Ar svaret en HTML-sida ar funktionen
-    // inte igang, och da ska anvandaren inte fa en vagg av markup i felrutan.
+    // the server responds with short plain-text errors. If the response is an HTML page the function
+    // isn't running, and then the user shouldn't get a wall of markup in the error box.
     const txt = (await r.text().catch(()=>'')).trim();
     const kort = (txt && txt.length < 160 && txt.indexOf('<') < 0) ? txt : '';
-    return reset(r.status===429? 'Dagens mejlgräns är nådd. Försök igen senare.'
-               : r.status===413? 'Protokollet är för stort för signeringslänken.'
-               : r.status===404? 'Signeringsfunktionen är inte igång på servern än.'
-               : r.status===501? 'Mejlutskick är inte konfigurerat på servern.'
-               : (kort || 'Det gick inte att skicka (' + r.status + ').'));
+    return reset(r.status===429? T("Today's email limit is reached. Try again later.")
+               : r.status===413? T('The report is too large for the signing link.')
+               : r.status===401? T('The app needs updating — reload the page and try again.')
+               : r.status===404? T('The signing function is not running on the server yet.')
+               : r.status===501? T('Email sending is not configured on the server.')
+               : (kort || T('Could not send') + ' (' + r.status + ').'));
   }
 
-  const res = await r.json();
-  if(S !== insp) return reset('Du bytte besiktning. Länken är skickad, men kunde inte kopplas till protokollet — öppna det och skicka igen.');
+  let res; try{ res = await r.json() }catch(e){ res = null }
+  if(!res || !res.token) return reset(T('The server responded unexpectedly. Try again.'));
+  if(S !== insp) return reset(T('You switched inspection. The link is sent, but could not be linked to the report — open it and send again.'));
+  if(gammal) revokeSignLink(gammal);   // any previous link must not be signable in parallel
   if(name) S.counter.name = name;
   if(role) S.counter.role = role;
   S.signReq = { token:res.token, url:res.url, to, cc, name, role,
                 sentAt:Date.now(), expires:res.expires, status:'pending' };
   if(!S.closedAt) S.closedAt = Date.now();
-  log(`Signeringslänk skickad till ${to}${cc? ' (kopia '+cc+')':''}`);
-  log('Protokollet låst i väntan på signatur');
+  log(`Signing link sent to ${to}${cc? ' (copy '+cc+')':''}`);
+  log('Report locked awaiting signature');
   await flushSave();
   closeSignSheet();
-  toast('Signeringslänk skickad');
+  toast(T('Signing link sent'));
   render(); window.scrollTo(0,0);
 }
 
 async function checkSignStatus(silent){
   if(!S || !S.signReq) return;
-  const insp = S;                    // anropet görs ofta i bakgrunden, besiktningen kan stängas under tiden
+  const insp = S;                    // the call is often made in the background, the inspection can be closed in the meantime
   let r;
   try{ r = await withTimeout(fetch('/api/sign-load?t='+insp.signReq.token), 15000) }
-  catch(e){ if(!silent) toast('Ingen kontakt med servern'); return }
-  if(!r.ok){ if(!silent) toast('Kunde inte läsa status just nu'); return }
+  catch(e){ if(!silent) toast(T('No contact with the server')); return }
+  if(!r.ok){ if(!silent) toast(T('Could not read status right now')); return }
   const m = await r.json();
   if(S !== insp || !S.signReq) return;
   const before = S.signReq.status;
   S.signReq.status = m.status;
-  // statusen hämtas i bakgrunden när protokollet öppnas. Rita aldrig om utan att
-  // först ta hand om det användaren kan ha hunnit skriva i ett öppet fält.
+  // the status is fetched in the background when the report is opened. Never redraw without
+  // first taking care of what the user may have typed in an open field.
   saveOpenComment(); saveCheckComments();
 
   if(m.status==='signed' && before!=='signed'){
@@ -1392,49 +1855,82 @@ async function checkSignStatus(silent){
     if(!S.signedAt) S.signedAt = m.signedAt;
     if(m.signedName) S.counter.name = m.signedName;
     if(m.signedRole) S.counter.role = m.signedRole;
-    log(`Signerat av ${m.signedName || S.signReq.name || 'motparten'} via signeringslänk`);
+    log(`Signed by ${m.signedName || S.signReq.name || 'the counterparty'} via signing link`);
     await flushSave(); render();
-    return toast('Signerat, protokollet är mejlat');
+    return toast(T('Signed, the report has been emailed'));
   }
   await flushSave();
   if(silent){ if(before!==m.status) render(); return }
   render();
-  toast(m.status==='signed'? 'Redan signerat'
-      : m.status==='cancelled'? 'Länken är återkallad'
-      : m.status==='expired'? 'Länken har gått ut'
-      : 'Väntar fortfarande på signatur');
+  toast(m.status==='signed'? T('Already signed')
+      : m.status==='cancelled'? T('The link is revoked')
+      : m.status==='expired'? T('The link has expired')
+      : T('Still awaiting signature'));
 }
 
 async function copySignLink(){
   if(!S.signReq) return;
-  try{ await navigator.clipboard.writeText(S.signReq.url); toast('Länken kopierad') }
-  catch(e){ prompt('Kopiera länken:', S.signReq.url) }
+  try{ await navigator.clipboard.writeText(S.signReq.url); toast(T('Link copied')) }
+  catch(e){ prompt(T('Copy the link:'), S.signReq.url) }
 }
 
-// tyst aterkallning, anvands nar protokollet lases upp
-function revokeSignLink(token){
-  try{
-    fetch('/api/sign-cancel', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({t:token}), keepalive:true}).catch(()=>{});
-  }catch(e){}
+// Revoke a link on the server. If it isn't confirmed (offline/error) the token is put in a queue
+// that is drained the next time an inspection is opened, so an old link never stays alive.
+async function revokeSignLink(token){
+  if(!token) return;
+  let r;
+  try{ r = await withTimeout(fetch('/api/sign-cancel', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({t:token})}), 12000) }
+  catch(e){ queueRevoke(token); return }
+  // ok = revoked, 409 = already signed, 404/410 = does not exist/expired: nothing more to do
+  if(!(r.ok || r.status===409 || r.status===404 || r.status===410)) queueRevoke(token);
+}
+function queueRevoke(token){
+  if(!S || !token) return;
+  S.revoke = S.revoke || [];
+  if(!S.revoke.includes(token)){ S.revoke.push(token); save() }
+}
+async function drainRevokes(){
+  if(!S || !S.revoke || !S.revoke.length) return;
+  const kvar = [];
+  for(const t of S.revoke){
+    let r;
+    try{ r = await withTimeout(fetch('/api/sign-cancel', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({t})}), 12000) }
+    catch(e){ kvar.push(t); continue }
+    if(!(r.ok || r.status===409 || r.status===404 || r.status===410)) kvar.push(t);
+  }
+  if(kvar.length !== S.revoke.length){ S.revoke = kvar; save() }
+}
+// The first time a locked report is changed: unlock it silently so the exported PDF never
+// claims a signature on content that changed afterwards. No dialog - just a notice.
+function unlockIfLocked(){
+  if(!S || !(S.signedAt || S.closedAt)) return false;
+  const q = S.signReq;
+  if(q && q.token && (q.status==='pending' || q.status==='expired')){
+    revokeSignLink(q.token); toast(T('The signing link was revoked — the report opened for editing'));
+  } else toast(T('The report opened for editing'));
+  S.signReq = null; S.signedAt = null; S.closedAt = null; S.sig = {};
+  log('Changed after locking — the report is open again');
+  return true;
 }
 
 async function cancelSignLink(){
   if(!S || !S.signReq) return;
-  if(!confirm('Återkalla signeringslänken? Mottagaren kan då inte längre signera den.')) return;
+  if(!confirm(T('Revoke the signing link? The recipient can then no longer sign it.'))) return;
   const insp = S;
   let r;
   try{
     r = await withTimeout(fetch('/api/sign-cancel', {method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify({t:insp.signReq.token})}), 15000);
-  }catch(e){ return toast('Ingen kontakt med servern') }
-  if(r.status===409){ toast('Hann signeras först'); return checkSignStatus(true) }
-  if(!r.ok) return toast('Kunde inte återkalla länken');
-  if(S !== insp || !S.signReq) return toast('Länken är återkallad');
+  }catch(e){ return toast(T('No contact with the server')) }
+  if(r.status===409){ toast(T('Was signed first')); return checkSignStatus(true) }
+  if(!r.ok) return toast(T('Could not revoke the link'));
+  if(S !== insp || !S.signReq) return toast(T('The link is revoked'));
   S.signReq.status = 'cancelled';
-  log('Signeringslänk återkallad');
+  log('Signing link revoked');
   await flushSave(); render();
-  toast('Länken är återkallad');
+  toast(T('The link is revoked'));
 }
 
 /* ---------- actions ---------- */
@@ -1444,19 +1940,21 @@ function go(v){
   $('#bar').className = 'bar';
   view=v; render(); window.scrollTo(0,0);
 }
-function setType(t){ S.type=t; ensureChecks(); save(); render() }
+function setType(t){ unlockIfLocked(); S.type=t; ensureChecks(); save(); render() }
 function toggleRoom(id){ saveOpenComment(); openRoom = openRoom===id? null:id; render() }
 function saveOpenComment(){
-  if(!openRoom || !S) return;
+  if(!openRoom || !S) return false;
   const el=document.getElementById('c_'+openRoom), r=S.rooms.find(x=>x.id===openRoom);
-  if(el && r && el.value!==r.comment){ r.comment=el.value; save() }
+  if(el && r && el.value!==r.comment){ r.comment=el.value; save(); return true }
+  return false;
 }
-function addRoom(name){ if(!name) return; S.rooms.push(mkRoom(name)); save(); render() }
+function addRoom(name){ if(!name) return; saveOpenComment(); saveCheckComments(); unlockIfLocked(); S.rooms.push(mkRoom(name)); save(); render() }
 function addCustom(){ const el=document.getElementById('newroom'); if(el&&el.value.trim()){ const v=el.value.trim(); el.value=''; addRoom(v) } }
-function renameRoom(id){ const r=S.rooms.find(x=>x.id===id), n=prompt('Nytt namn', r.name); if(!n) return; r.name=n; save(); render() }
+function renameRoom(id){ const r=S.rooms.find(x=>x.id===id), n=prompt(T('New name'), r.name); if(!n) return; saveOpenComment(); saveCheckComments(); unlockIfLocked(); r.name=n; save(); render() }
 function delRoom(id){
   const r=S.rooms.find(x=>x.id===id);
-  if((r.photos.length||r.comment) && !confirm(`Ta bort ${r.name} med innehåll?`)) return;
+  if((r.photos.length||r.comment) && !confirm(`${T('Remove')} ${r.name} ${T('with contents?')}`)) return;
+  saveOpenComment(); saveCheckComments(); unlockIfLocked();
   r.photos.forEach(p=>store.del(K.photo(S.id,p.id)));
   S.rooms = S.rooms.filter(x=>x.id!==id);
   if(openRoom===id) openRoom=null;
@@ -1464,6 +1962,7 @@ function delRoom(id){
   save(); render();
 }
 function delPhoto(rid,pid,inCam){
+  saveOpenComment(); saveCheckComments(); unlockIfLocked();
   const r=target(rid);
   r.photos = r.photos.filter(p=>p.id!==pid);
   store.del(K.photo(S.id,pid)); save();
@@ -1473,44 +1972,66 @@ function bindPlain(id,key){ const el=document.getElementById(id); if(!el)return;
 function bindRef(id,key){
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener('input', ()=>{ S[key]=el.value });
-  el.addEventListener('change', save);
+  el.addEventListener('change', ()=>{ unlockIfLocked(); save() });
 }
-function bindPath(id,a,b){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ S[a][b]=el.value; save() }) }
+function bindPath(id,a,b){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ unlockIfLocked(); S[a][b]=el.value; save() }) }
 document.addEventListener('focusout', e=>{
-  if(e.target.id && e.target.id.startsWith('c_')) saveOpenComment();
-  if(e.target.id && e.target.id.startsWith('k_')){ saveCheckComments(); save() }
+  if(e.target.id && e.target.id.startsWith('c_')){ if(saveOpenComment()) unlockIfLocked() }
+  if(e.target.id && e.target.id.startsWith('k_')){ if(saveCheckComments()) unlockIfLocked(); save() }
 });
 
+async function pickRestore(){
+  const inp = document.createElement('input');
+  inp.type='file'; inp.accept='application/json,.json';
+  inp.onchange = async e => {
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    try{
+      const d = JSON.parse(await f.text());
+      const insp = d.inspection; if(!insp || !insp.id) throw 0;
+      const barare = (insp.rooms||[]).concat(insp.checks||[]);
+      for(const rc of barare) for(const p of (rc.photos||[])){ const data = d.photos && d.photos[p.id]; if(data) await store.set(K.photo(insp.id,p.id), data) }
+      if(d.video && insp.video){ if(await store.set(K.video(insp.id), d.video)) insp.video.stored = true }
+      await store.set(K.insp(insp.id), insp);
+      const idx = (await store.get(K.index)) || [];
+      if(!idx.find(x=>x.id===insp.id)) idx.unshift({id:insp.id, address:insp.address, apt:insp.apt, type:insp.type, created:insp.created, locked:!!(insp.signedAt||insp.closedAt), signed:!!insp.signedAt});
+      await store.set(K.index, idx);
+      toast(T('Restored')); renderStart();
+    }catch(err){ toast(T('Could not read the file')) }
+  };
+  inp.click();
+}
 async function renderStart(){
   document.body.classList.add('start');
   const idx = (await store.get(K.index)) || [];
   $('#app').innerHTML = `
     <div class="hero">
-      <img class="hlogo" src="${LOGO_START}" alt="Beautiful Apartments Besiktningar">
+      <img class="hlogo" src="${LOGO_START}" alt="Beautiful Apartments Inspections">
     </div>
     <div class="wrap" style="padding-top:0">
+      <div style="display:flex;justify-content:center;margin:0 0 16px">${langToggle()}</div>
       ${idx.length? `<div class="listhead">
-          <span class="eyebrow">${idx.length} protokoll</span>
-          <button onclick="toggleEdit()">${editList?'Klar':'Redigera'}</button>
+          <span class="eyebrow">${idx.length} ${T('reports')}</span>
+          <button onclick="toggleEdit()">${editList?T('Done'):T('Edit')}</button>
         </div>` : ''}
       ${idx.length? idx.map(r=>`<div class="rowwrap">
           <button class="list-item" onclick="openInsp('${r.id}')">
             <span class="dot ${r.locked?'filled':''}"></span>
             <span style="min-width:0"><b>${esc(refOf(r))}</b>
             <div style="font-family:var(--mono);font-size:11px;color:var(--ink2)">
-              ${stamp(new Date(r.created))} · ${r.locked? (r.signed?'signerat':'avslutat'):'utkast'}</div></span>
+              ${stamp(new Date(r.created))} · ${r.locked? (r.signed?T('signed'):T('finished')):T('draft')}</div></span>
             <span class="chev">›</span>
           </button>
-          ${editList? `<button class="delbtn" onclick="delInsp('${r.id}')" aria-label="Radera">×</button>`:''}
+          ${editList? `<button class="delbtn" onclick="delInsp('${r.id}')" aria-label="${T('Delete')}">×</button>`:''}
         </div>`).join('')
         : `<div class="empty">
-             <div style="font-size:15px;font-weight:600;margin-bottom:4px">Ingen besiktning påbörjad</div>
-             <div class="hint" style="margin:0">Tryck på knappen nedan för att skapa den första.</div>
+             <div style="font-size:15px;font-weight:600;margin-bottom:4px">${T('No inspection started')}</div>
+             <div class="hint" style="margin:0">${T('Tap the button below to create the first one.')}</div>
            </div>`}
-      ${editList && idx.length? `<button class="btn ghost small" style="width:100%;margin-top:6px;color:var(--rec)" onclick="delAll()">Radera alla ${idx.length} protokoll</button>`:''}
+      ${editList && idx.length? `<button class="btn ghost small" style="width:100%;margin-top:6px;color:var(--rec)" onclick="delAll()">${T('Delete all')} ${idx.length} ${T('reports')}</button>`:''}
+      <button class="btn ghost small" style="width:100%;margin-top:10px" onclick="pickRestore()">${T('Restore from backup')}</button>
     </div>`;
   $('#bar').className = 'bar raised';
-  $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">Ny besiktning</button>`;
+  $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">${T('New inspection')}</button>`;
   paintTicker();
 }
 let editList = false;
@@ -1523,20 +2044,20 @@ async function wipe(id){
 async function delInsp(id){
   const idx = (await store.get(K.index)) || [];
   const row = idx.find(x=>x.id===id) || {};
-  if(!confirm(`Radera ${refOf(row)}? Bilder och video försvinner och går inte att få tillbaka.`)) return;
+  if(!confirm(`${T('Delete')} ${refOf(row)}? ${T('Photos and video disappear and cannot be recovered.')}`)) return;
   await wipe(id);
   await store.set(K.index, idx.filter(x=>x.id!==id));
-  toast('Raderat');
+  toast(T('Deleted'));
   renderStart();
 }
 async function delAll(){
   const idx = (await store.get(K.index)) || [];
-  if(!confirm(`Radera alla ${idx.length} protokoll i den här telefonen?`)) return;
-  if(!confirm('Säkert? Det går inte att ångra.')) return;
+  if(!confirm(`${T('Delete all')} ${idx.length} ${T('reports on this phone?')}`)) return;
+  if(!confirm(T('Are you sure? This cannot be undone.'))) return;
   for(const r of idx) await wipe(r.id);
   await store.set(K.index, []);
   editList = false;
-  toast('Allt raderat');
+  toast(T('Everything deleted'));
   renderStart();
 }
 async function newInsp(){
@@ -1547,26 +2068,27 @@ async function newInsp(){
         video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null, gallery:null,
         signedAt:null, closedAt:null, log:[] };
   photoCache={}; videoURL=null; openRoom=null;
-  ensureChecks(); log('Besiktning skapad'); save(); go('object');
+  ensureChecks(); log('Inspection created'); save(); go('object');
 }
 async function openInsp(id){
   editList = false;
   S = await store.get(K.insp(id));
-  if(!S) return alert('Kunde inte läsa besiktningen.');
+  if(!S) return alert(T('Could not read the inspection.'));
   photoCache={}; videoURL=null; openRoom=null;
   if(!S.rooms.some(r=>r.fixed)) S.rooms.push(mkRoom(KEYS_ROOM,true));
   if(!S.comp) S.comp = {in:0,out:0};
   ensureChecks();
   await loadMedia(id); paintTicker(); go((S.signedAt||S.closedAt)?'sign':'rooms');
-  // hor efter i bakgrunden om motparten hunnit signera via lanken
+  drainRevokes();   // send any revocations that didn't go through during an offline moment
+  // check in the background whether the counterparty has signed via the link
   if(S.signReq && S.signReq.status==='pending') checkSignStatus(true);
 }
 function openLog(){
   if(!S) return;
   const el = document.createElement('div'); el.className='sheet';
-  el.innerHTML = topbar('Händelselogg', S.log.length+' poster') + `<div class="wrap"><div class="card">
+  el.innerHTML = topbar(T('Activity log'), S.log.length+' '+T('entries')) + `<div class="wrap"><div class="card">
     ${S.log.map(l=>`<div class="logline"><b>${stamp(new Date(l.ts))}</b><span>${esc(l.txt)}</span></div>`).join('')}
-  </div><button class="btn ghost" onclick="this.closest('.sheet').remove()">Stäng</button></div>`;
+  </div><button class="btn ghost" onclick="this.closest('.sheet').remove()">${T('Close')}</button></div>`;
   document.body.appendChild(el);
 }
 
@@ -1574,9 +2096,12 @@ function openLog(){
 function loadJsPDF(){
   if(window.jspdf) return Promise.resolve(true);
   return new Promise(res=>{
+    let done = false;
+    const finish = ok => { if(!done){ done = true; res(ok) } };
     const s = document.createElement('script');
     s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = ()=>res(!!window.jspdf); s.onerror = ()=>res(false);
+    s.onload = ()=>finish(!!window.jspdf); s.onerror = ()=>finish(false);
+    setTimeout(()=>finish(false), 15000);   // a hanging CDN on a bad network must not lock the PDF flow for minutes
     document.head.appendChild(s);
   });
 }
@@ -1608,17 +2133,22 @@ function imgSize(data){
   });
 }
 function fileName(){
-  return (ref()||'Besiktning').replace(/[\/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() + '.pdf';
+  return (ref()||'Inspection').replace(/[\/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() + '.pdf';
 }
 async function buildPdf(){
-  if(!await loadJsPDF()){ toast('Kunde inte ladda PDF-motorn, använder utskrift'); return null }
+  if(!await loadJsPDF()){ toast('Could not load the PDF engine, using print'); return null }
   const doc = new window.jspdf.jsPDF({unit:'pt', format:'a4', compress:true});
+  // jsPDF's default font only draws Latin-1. Sanitise all text in one sweep so the user's
+  // emoji/arrows don't become gibberish in the report (wa() leaves aao untouched).
+  const _text = doc.text.bind(doc), _split = doc.splitTextToSize.bind(doc);
+  doc.text = (t, ...a) => _text(Array.isArray(t)? t.map(wa) : wa(t), ...a);
+  doc.splitTextToSize = (t, ...a) => _split(wa(t), ...a);
   const allPhotos = isCheck()
     ? visibleChecks().reduce((a,c)=>a+((c.photos&&c.photos.length)||0), 0)
     : S.rooms.reduce((a,r)=>a+r.photos.length, 0);
   const photoBudget = Math.max(80*1024, Math.min(720*1024, Math.floor(3.3*1048576 / Math.max(1, allPhotos))));
   let packed = 0;
-  const packNote = ()=>{ packed++; if(allPhotos>8 && packed%5===0) toast(`Packar bilder ${packed} av ${allPhotos}`) };
+  const packNote = ()=>{ packed++; if(allPhotos>8 && packed%5===0) toast(`Packing photos ${packed} of ${allPhotos}`) };
   const M = 34, W = 595, H = 842, CW = W - M*2;
   let y = M;
   const need = h => { if(y + h > H - 46){ doc.addPage(); y = M } };
@@ -1631,7 +2161,7 @@ async function buildPdf(){
   };
 
   doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  doc.text(isCheck()? 'SHORTSTAY UPPLÅSNING' : 'BESIKTNINGSPROTOKOLL', M, y+8);
+  doc.text(isCheck()? 'SHORTSTAY UPPLÅSNING' : 'INSPECTION REPORT', M, y+8);
   doc.setFontSize(8);
   doc.text(isCheck()? [stamp(new Date(S.created)), 'ID '+S.id]
                     : [TYPE_LABEL[S.type]||S.type, stamp(new Date(S.created)), 'ID '+S.id],
@@ -1641,18 +2171,18 @@ async function buildPdf(){
   doc.text(ref(), M, y+12); y += 24;
   doc.setDrawColor(20); doc.setLineWidth(1.2); doc.line(M, y, W-M, y); y += 16;
 
-  // Länken högst upp, i en egen ruta. Bilderna längre ner är hopkramade för att
-  // dokumentet ska rymmas i ett mejl — där finns de som de togs, och videon går att
-  // spela, vilket den aldrig gör i en PDF.
+  // The link at the very top, in its own box. The photos further down are squeezed so
+  // the document fits in an email — there they are as they were taken, and the video can
+  // be played, which it never can in a PDF.
   if(S.gallery && S.gallery.url){
     const harVideo = !!(S.video && S.video.stored);
     const rubrik = harVideo
-      ? 'Se videon och zooma in i bilderna'
-      : 'Zooma in i bilderna';
+      ? 'See the video and zoom into the photos'
+      : 'Zoom into the photos';
     const rader = [
-      harVideo ? 'Klicka på länken nedan för att se de inspelade videorna och bilderna i full storlek.'
-               : 'Klicka på länken nedan för att se bilderna i full storlek och zooma in i dem.',
-      'Bilderna i det här dokumentet är komprimerade för att rymmas i ett mejl.'
+      harVideo ? 'Click the link below to see the recorded videos and photos at full size.'
+               : 'Click the link below to see the photos at full size and zoom into them.',
+      'The photos in this document are compressed to fit in an email.'
     ];
     const boxH = 30 + rader.length*11 + 16;
     need(boxH + 8);
@@ -1673,23 +2203,24 @@ async function buildPdf(){
   }
 
   const keys = isCheck()? null : S.rooms.find(r=>r.fixed || r.name.toLowerCase().startsWith('nyck'));
-  line(`Besiktningsman: ${S.inspector.name||'-'}`, 10);
-  if(!isCheck()) line(`Motpart: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
-  if(keys) line(`Nycklar: ${keys.comment||'-'}, ${keys.photos.length} bilder`, 10);
-  if(S.video) line(`Video inspelad ${stamp(new Date(S.video.ts))}`, 10);
+  line(`Inspector: ${S.inspector.name||'-'}`, 10);
+  if(!isCheck()) line(`Counterparty: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
+  if(keys) line(`Keys: ${keys.comment||'-'}, ${keys.photos.length} photos`, 10);
+  if(S.video) line(`Video recorded ${stamp(new Date(S.video.ts))}`, 10);
+  if(S.wifi) line(`Internet: ${wifiLine(S.wifi)}`, 10);
   y += 8;
 
   if(isCheck()){
-    // sammanfattning forst, sa mottagaren ser avvikelserna utan att bladdra
+    // summary first, so the recipient sees the deviations without scrolling
     const lista = visibleChecks();
     const avvik = lista.filter(c=>c.val && c.val===badAnswer(c));
     const obes = lista.filter(c=>!c.val).length;
     const ejt = lista.filter(c=>c.val==='na').length;
 
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text('Sammanfattning', M, y+10); y += 20;
+    doc.text('Summary', M, y+10); y += 20;
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    doc.text(`${avvik.length} avvikelser · ${obes} obesvarade · ${ejt} ej tillämpliga · ${lista.length} punkter totalt`, M, y+9);
+    doc.text(`${avvik.length} deviations · ${obes} unanswered · ${ejt} not applicable · ${lista.length} items in total`, M, y+9);
     y += 18;
 
     if(avvik.length){
@@ -1701,20 +2232,20 @@ async function buildPdf(){
         doc.text(rader, M + 4, y+9);
         y += rader.length*13;
         doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
-        doc.text(kom || ['ingen kommentar'], M + 16, y+8);
+        doc.text(kom || ['no comment'], M + 16, y+8);
         y += (kom? kom.length*11 : 11) + 4;
         doc.setTextColor(0);
       }
     } else {
       doc.setFont('helvetica','italic'); doc.setFontSize(10); doc.setTextColor(70);
-      doc.text('Inga avvikelser noterade.', M, y+9); doc.setTextColor(0);
+      doc.text('No deviations noted.', M, y+9); doc.setTextColor(0);
       y += 16;
     }
     y += 6;
     doc.setDrawColor(20); doc.setLineWidth(.8); need(6); doc.line(M, y, W-M, y); y += 16;
 
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text('Checklista upplåsning', M, y+10); y += 22;
+    doc.text('Upplåsning checklist', M, y+10); y += 22;
     const IND = 14, cw = (CW - IND - 12)/2, maxH = 260, usable = H - 46 - M;
     let sect = null;
     for(const c of lista){
@@ -1725,7 +2256,7 @@ async function buildPdf(){
         doc.text(sect.toUpperCase(), M, y+9); doc.setTextColor(0);
         y += 17;
       }
-      // mät blocket först så att fråga, kommentar och bilder hålls ihop
+      // measure the block first so that question, comment and photos are kept together
       const x0 = c.showIf? M + 12 : M;
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
       const rows = doc.splitTextToSize((c.showIf?'– ':'') + c.label, CW-80-(x0-M));
@@ -1753,7 +2284,7 @@ async function buildPdf(){
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
       doc.text(rows, x0, y+9);
       doc.setFont('helvetica','bold');
-      doc.text(c.val? (c.val==='ja'?'JA': c.val==='na'?'E/T':'NEJ') : '-', W-M, y+9, {align:'right'});
+      doc.text(c.val? (c.val==='ja'?'YES': c.val==='na'?'N/A':'NO') : '-', W-M, y+9, {align:'right'});
       let h = rows.length*13;
       if(cmt){
         doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
@@ -1779,7 +2310,7 @@ async function buildPdf(){
   }
   const RCOL = 3, RGAP = 10, rcw = (CW - RGAP*(RCOL-1))/RCOL, rmaxH = 240;
   for(const r of (isCheck()? [] : S.rooms)){
-    // mät bilderna först så att rubriken aldrig blir ensam längst ner
+    // measure the photos first so that the heading is never left alone at the bottom
     const shots = [];
     for(const p of r.photos){
       const raw = photoCache[p.id]; if(!raw) continue;
@@ -1826,18 +2357,18 @@ async function buildPdf(){
   if(isCheck()){
     need(50);
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    doc.text(`Utförd av: ${S.inspector.name||'-'}`, M, y+10); y += 16;
+    doc.text(`Performed by: ${S.inspector.name||'-'}`, M, y+10); y += 16;
     if(S.closedAt){
       doc.setFontSize(9); doc.setTextColor(90);
-      doc.text('Avslutad '+stamp(new Date(S.closedAt)), M, y+9); doc.setTextColor(0); y += 14;
+      doc.text('Finished '+stamp(new Date(S.closedAt)), M, y+9); doc.setTextColor(0); y += 14;
     }
     y += 10;
   } else {
     need(150);
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Signaturer', M, y+10); y += 18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Signatures', M, y+10); y += 18;
     if(S.closedAt && !S.signedAt){
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text('Avslutat utan signatur '+stamp(new Date(S.closedAt)), M, y+8);
+      doc.text('Finished without signature '+stamp(new Date(S.closedAt)), M, y+8);
     }
     y += 10;
     const half = (CW - 20)/2;
@@ -1846,7 +2377,7 @@ async function buildPdf(){
       if(sg && sg.data){ try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){} }
       else if(sg && sg.remote){
         doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(90);
-        doc.text(['Signerad digitalt via signeringslänk.', 'Signatursidan finns i det utskickade protokollet.'], x, y+32);
+        doc.text(['Signed digitally via signing link.', 'The signature page is in the report that was sent.'], x, y+32);
         doc.setTextColor(0); doc.setFont('helvetica','normal');
       }
       doc.setDrawColor(60); doc.setLineWidth(.8); doc.line(x, y+58, x+half, y+58);
@@ -1857,17 +2388,17 @@ async function buildPdf(){
   }
 
   const logRows = isCheck()
-    ? [{ts:S.created, txt:'Besiktning skapad'}].concat(S.closedAt? [{ts:S.closedAt, txt:'Upplåsning avslutad'}] : [])
+    ? [{ts:S.created, txt:'Inspection created'}].concat(S.closedAt? [{ts:S.closedAt, txt:'Upplåsning finished'}] : [])
     : S.log;
   need(40);
-  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Händelselogg', M, y+10); y += 20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Activity log', M, y+10); y += 20;
   doc.setFont('courier','normal'); doc.setFontSize(9);
   logRows.forEach(l=>{ need(14); doc.text(`${stamp(new Date(l.ts))}   ${l.txt}`, M, y+9); y += 14 });
 
   const pages = doc.getNumberOfPages();
   for(let i=1;i<=pages;i++){
     doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120);
-    doc.text(`${ref()}  ·  sida ${i} av ${pages}`, W/2, H-24, {align:'center'});
+    doc.text(`${ref()}  ·  page ${i} of ${pages}`, W/2, H-24, {align:'center'});
   }
 
   return {blob: doc.output('blob'), name: fileName()};
@@ -1876,7 +2407,7 @@ async function sharePdf(blob, name){
   const file = new File([blob], name, {type:'application/pdf'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:name,
-      text: isCheck()? `Upplåsning ${ref()}` : `Besiktning ${ref()}` }); return }
+      text: isCheck()? `Upplåsning ${ref()}` : `Inspection ${ref()}` }); return }
     catch(e){ if(e && e.name === 'AbortError') return }
   }
   const url = URL.createObjectURL(blob);
@@ -1886,7 +2417,8 @@ async function sharePdf(blob, name){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 async function doExport(){
-  toast('Bygger PDF');
+  await ensureGalleryUploaded();
+  toast(T('Building PDF'));
   const out = await buildPdf();
   if(!out) return legacyPrint();
   await sharePdf(out.blob, out.name);
@@ -1895,9 +2427,10 @@ const mailTarget = () => isCheck()? 'guestservice@beaps.se' : 'longstay@beaps.se
 async function mailPdf(blob, name){
   if(blob.size > 4.2*1048576) return {ok:false, reason:'size'};
   const b64 = await new Promise(res=>{ const fr = new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(blob) });
+  const ac = new AbortController();
   try{
     const r = await withTimeout(fetch('/api/send-pdf', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...AUTH}, signal: ac.signal,
       body: JSON.stringify({
         filename: name,
         kind: isCheck()? 'upplasning' : 'besiktning',
@@ -1906,26 +2439,37 @@ async function mailPdf(blob, name){
       })
     }), 25000);
     if(r.status===429) return {ok:false, reason:'quota'};
+    if(r.status===401) return {ok:false, reason:'ladda om'};
     if(!r.ok) return {ok:false, reason:'server '+r.status};
+    // Cloudflare responds 200 with the app's HTML on an unknown /api path. Require a real JSON ok
+    // so we never claim "Emailed" when the function never ran.
+    let j = null; try{ j = await r.json() }catch(e){}
+    if(!j || j.ok !== true) return {ok:false, reason:'ej bekräftat'};
     return {ok:true};
-  }catch(e){ return {ok:false, reason:'ingen kontakt'} }
+  }catch(e){ try{ ac.abort() }catch(_){}  return {ok:false, reason:'ingen kontakt'} }
 }
 async function sendPdf(){
-  toast('Bygger PDF');
+  await ensureGalleryUploaded();
+  toast(T('Building PDF'));
   const out = await buildPdf();
   if(!out) return legacyPrint();
-  toast('Skickar');
+  toast(T('Sending'));
   const m = await mailPdf(out.blob, out.name);
-  if(m.ok){ toast('Mejlad till ' + mailTarget()); return }
-  if(m.reason==='size') toast('För stor för mejl, öppnar delning');
+  if(m.ok){ toast(T('Emailed to') + ' ' + mailTarget()); return }
+  if(m.reason==='size') toast(T('Too large for email, opening share'));
+  else if(m.reason==='quota') toast(T('Daily email limit reached, opening share'));
+  else if(m.reason==='ladda om') toast(T('Reload the app — opening share'));
+  else toast(T('The email did not go through, opening share'));
   await sharePdf(out.blob, out.name);
 }
 
 async function backup(){
-  // upplasningar har bilderna pa checklistraderna, ovriga typer pa rummen.
-  // Ta med bada, sa en sakerhetskopia aldrig blir tyst ofullstandig.
+  // check-ins have the photos on the checklist rows, other types on the rooms.
+  // Include both, plus the video, so a backup never becomes silently incomplete.
   const barare = (S.rooms||[]).concat(S.checks||[]);
-  const data = {version:1, exported:Date.now(), inspection:S,
+  let video = null;
+  try{ if(S.video && S.video.stored) video = await store.get(K.video(S.id)) }catch(e){}
+  const data = {version:1, exported:Date.now(), inspection:S, video,
     photos:Object.fromEntries(barare.flatMap(r=>(r.photos||[]).map(p=>[p.id, photoCache[p.id]||null])))};
   const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
   const name = fileName().replace(/\.pdf$/,'') + '.json';
@@ -1941,33 +2485,38 @@ async function backup(){
 }
 
 function legacyPrint(){
-  const rows = S.rooms.map(r=>`<div class="p-room">
+  const rows = (isCheck()? visibleChecks().map(c=>`<div class="p-room">
+    <h3>${esc(c.label)} — ${c.val? (c.val==='ja'?'YES':c.val==='na'?'N/A':'NO'):'–'}</h3>
+    ${c.comment?`<p style="font-size:13px">${esc(c.comment)}</p>`:''}
+    <div class="p-photos">${(c.photos||[]).map(p=>`<div><img src="${photoCache[p.id]||''}">
+      <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>
+  </div>`) : S.rooms.map(r=>`<div class="p-room">
     <h3>${esc(r.name)}</h3>
     ${r.comment?`<p style="font-size:13px">${esc(r.comment)}</p>`:''}
     <div class="p-photos">${r.photos.map(p=>`<div><img src="${photoCache[p.id]||''}">
       <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>
-  </div>`).join('');
+  </div>`)).join('');
   $('#print').innerHTML = `
     <div style="font-family:Helvetica,Arial;padding:24px;max-width:760px">
       <div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px">
-        <div><div style="font:11px monospace;letter-spacing:.15em">BESIKTNINGSPROTOKOLL</div>
+        <div><div style="font:11px monospace;letter-spacing:.15em">INSPECTION REPORT</div>
         <h1 style="margin:4px 0">${esc(ref())}</h1></div>
-        <div style="font:11px monospace;text-align:right">${esc(S.type)}<br>${stamp(new Date(S.created))}<br>ID ${esc(S.id)}</div>
+        <div style="font:11px monospace;text-align:right">${esc(TYPE_LABEL[S.type]||S.type)}<br>${stamp(new Date(S.created))}<br>ID ${esc(S.id)}</div>
       </div>
       <p style="font-size:13px">
-        Nycklar: ${esc((keysRoom()&&keysRoom().comment)||'-')} · ${keysRoom()?keysRoom().photos.length:0} bilder${S.video?`<br>Video bifogad ${stamp(new Date(S.video.ts))}`:''}<br>
-        Besiktningsman: ${esc(S.inspector.name)}<br>
-        Motpart: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}
+        Keys: ${esc((keysRoom()&&keysRoom().comment)||'-')} · ${keysRoom()?keysRoom().photos.length:0} photos${S.video?`<br>Video attached ${stamp(new Date(S.video.ts))}`:''}<br>
+        Inspector: ${esc(S.inspector.name)}<br>
+        Counterparty: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}
       </p>
       ${rows}
-      <h3 style="margin-top:20px">Signaturer</h3>
+      <h3 style="margin-top:20px">Signatures</h3>
       <div style="display:flex;gap:30px" class="p-sig">
         <div>${S.sig.inspector?`<img src="${S.sig.inspector.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
           <div style="font-size:12px">${esc(S.inspector.name)}<br>${S.sig.inspector?stamp(new Date(S.sig.inspector.ts)):''}</div></div>
         <div>${S.sig.counter?`<img src="${S.sig.counter.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
           <div style="font-size:12px">${esc(S.counter.name)}<br>${esc(S.counter.role||'')}<br>${S.sig.counter?stamp(new Date(S.sig.counter.ts)):''}</div></div>
       </div>
-      <h3 style="margin-top:20px">Händelselogg</h3>
+      <h3 style="margin-top:20px">Activity log</h3>
       <table style="font:11px monospace;border-collapse:collapse;width:100%">
         ${S.log.map(l=>`<tr><td style="padding:2px 8px 2px 0;white-space:nowrap">${stamp(new Date(l.ts))}</td><td>${esc(l.txt)}</td></tr>`).join('')}
       </table>

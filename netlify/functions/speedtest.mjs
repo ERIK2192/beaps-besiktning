@@ -1,14 +1,14 @@
-// Motpart till "Mat wifi" i appen. Tre sma andpunkter som latar telefonen mata
-// forbindelsen mot Beaps egen server, utan nagon tredjepartstjanst.
+// Counterpart to "Measure wifi" in the app. Three small endpoints that let the phone measure
+// the connection against Beaps' own server, without any third-party service.
 //
-//   GET  /api/speed-ping             -> nagra byte, for latensmatning
-//   GET  /api/speed-down?bytes=N     -> N byte slumpdata, for nedladdning
-//   POST /api/speed-up               -> raknar mottagna byte, for uppladdning
+//   GET  /api/speed-ping             -> a few bytes, for latency measurement
+//   GET  /api/speed-down?bytes=N     -> N bytes of random data, for download
+//   POST /api/speed-up               -> counts received bytes, for upload
 //
-// Slumpdata anvands med flit: den gar inte att komprimera, sa gzip pa vagen kan
-// inte blasa upp siffrorna till nagot som ser battre ut an verkligheten.
+// Random data is used on purpose: it can't be compressed, so gzip along the way can't
+// inflate the numbers into something that looks better than reality.
 
-const CHUNK = 65536;                 // crypto.getRandomValues tar hogst sa mycket at gangen
+const CHUNK = 65536;                 // crypto.getRandomValues takes at most this much at a time
 const DOWN_DEFAULT = 4 * 1024 * 1024;
 const DOWN_MAX = 8 * 1024 * 1024;
 

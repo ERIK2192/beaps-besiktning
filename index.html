@@ -84,14 +84,14 @@
   .crow.open{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
   .crow.child{margin-left:16px}
   .crow.flash{border-color:var(--ink);box-shadow:0 0 0 3px rgba(22,50,92,.13)}
-  .csec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 3px 9px;
-        font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+  .csec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:24px 3px 10px;
+        font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
   .csec:first-child{margin-top:2px}
   .ccount{opacity:.7;flex:none}
   .nocmt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
          border:1px solid var(--line);border-radius:5px;padding:2px 6px;white-space:nowrap}
   .cwhen{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:5px}
-  .clabel{font-size:15px;line-height:1.35;margin-bottom:10px}
+  .clabel{font-size:17px;font-weight:650;line-height:1.35;margin-bottom:10px}
   .cbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:10px}
   .ynrow{display:flex;gap:8px;flex:1 1 200px;min-width:0}
   .yn{flex:1 1 0;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 8px;font-weight:600;font-size:15px;background:#fff}
@@ -604,9 +604,9 @@ function setLang(l){ if(l!=='sv'&&l!=='en') return; LANG=l; try{ localStorage.se
 
 let S=null, photoCache={}, videoURL=null, view='start', openRoom=null, saveTimer=null;
 
-const DEFAULT_ROOMS = ['Hall','Kitchen','Bathroom','Bedroom'];
+const DEFAULT_ROOMS = ['Hall','Living room','Kitchen','Bathroom','Bedroom'];
 const KEYS_ROOM = 'Keys';
-const EXTRA = ['Living room','Bedroom 2','Balcony','Storage','Laundry room','Guest WC','Walk-in closet','Patio','Garage'];
+const EXTRA = ['Bedroom','Balcony','Storage','Laundry room','Guest WC','Walk-in closet','Patio','Garage'];
 const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Årlig':'', 'Skada':''};
 const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
 // section: heading in the list and in the PDF. The order follows the walkthrough of the
@@ -648,7 +648,9 @@ const CHECKS = [
 ];
 // Rows where Yes is the deviation: the comment field expands on Yes and Yes is coloured red.
 const INVERT = new Set(['router','stolar']);
-const badAnswer = c => INVERT.has(c.key) ? 'ja' : 'nej';
+// Neutral checks: neither answer is a deviation - nothing turns red or gets counted as one.
+const NEUTRAL = new Set(['eldstad','sakerhetsdorr']);
+const badAnswer = c => NEUTRAL.has(c.key) ? null : (INVERT.has(c.key) ? 'ja' : 'nej');
 const isCheck = () => !!S && S.type==='Upplåsning';
 
 // Old inspections stored only the label. Labels that have been rewritten are mapped here,
@@ -947,9 +949,7 @@ async function render(){
       20+Math.round(done/Math.max(1,list.length)*65), 'leave()') + `<div class="wrap">
       ${checkList(list)}
     </div>`;
-    bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
-      ${tom? `<button class="btn ghost small" onclick="nextUnanswered()">${T('Next')} · ${tom}</button>`:''}
-      <button class="btn" onclick="go('sign')">${T('Done')}</button>`;
+    bar.innerHTML = `<button class="btn" onclick="go('sign')">${T('Done')}</button>`;
     return;
   }
 
@@ -1105,7 +1105,7 @@ function nextUnanswered(){
 
 function checkRow(c){
   const bad = badAnswer(c);
-  const show = c.val===bad || c.comment || c.open;
+  const show = (bad!=null && c.val===bad) || c.comment || c.open;
   const cls = v => c.val===v ? (v===bad ? ' on no' : v==='na' ? ' on na' : ' on') : '';
   const parent = c.showIf? checkByKey(c.showIf) : null;
   return `<div class="crow${show?' open':''}${c.showIf?' child':''}" id="crow_${c.id}">
@@ -1956,7 +1956,14 @@ function saveOpenComment(){
   if(el && r && el.value!==r.comment){ r.comment=el.value; save(); return true }
   return false;
 }
-function addRoom(name){ if(!name) return; saveOpenComment(); saveCheckComments(); unlockIfLocked(); S.rooms.push(mkRoom(name)); save(); render() }
+function uniqueRoomName(name){
+  const base = (name||'').trim(); if(!base) return base;
+  const names = new Set((S.rooms||[]).map(r=>r.name));
+  if(!names.has(base)) return base;
+  let n = 2; while(names.has(base+' '+n)) n++;
+  return base+' '+n;
+}
+function addRoom(name){ if(!name) return; saveOpenComment(); saveCheckComments(); unlockIfLocked(); S.rooms.push(mkRoom(uniqueRoomName(name))); save(); render() }
 function addCustom(){ const el=document.getElementById('newroom'); if(el&&el.value.trim()){ const v=el.value.trim(); el.value=''; addRoom(v) } }
 function renameRoom(id){ const r=S.rooms.find(x=>x.id===id), n=prompt(T('New name'), r.name); if(!n) return; saveOpenComment(); saveCheckComments(); unlockIfLocked(); r.name=n; save(); render() }
 function delRoom(id){

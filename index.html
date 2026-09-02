@@ -898,7 +898,8 @@ function paintTicker(){
   $('#tickerTxt').textContent = clock(new Date(last.ts)) + '  ' + last.txt;
   $('#tickerCnt').textContent = S.log.length;
 }
-const brand = () => LOGO ? `<img class="logo" src="${LOGO}" alt="Beaps">` : `<span class="logo-fallback">Beaps</span>`;
+function logoSvg(cls){ return `<svg class="${cls}" viewBox="0 0 100 100" role="img" aria-label="Beaps"><rect width="100" height="100" rx="24" fill="#16325C"></rect><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="64" fill="#FFC629">B</text></svg>` }
+const brand = () => logoSvg('logo');
 // EN / SV language switch. setLang() persists the choice and re-renders the current view.
 function langToggle(extra){
   return `<div class="langsw"${extra?` style="${extra}"`:''} role="group" aria-label="Language">
@@ -2020,7 +2021,7 @@ async function renderStart(){
   const idx = (await store.get(K.index)) || [];
   $('#app').innerHTML = `
     <div class="hero">
-      <img class="hlogo" src="${LOGO_START}" alt="Beautiful Apartments Inspections">
+      ${logoSvg('hlogo')}
     </div>
     <div class="wrap" style="padding-top:0">
       <div style="display:flex;justify-content:center;margin:0 0 16px">${langToggle()}</div>

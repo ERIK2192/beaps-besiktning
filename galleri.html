@@ -126,7 +126,8 @@ async function load(){
         <div class="hint">${esc(v.name||'Walkthrough')}${v.ts? ' · '+stamp(v.ts):''}</div></div>`).join('') : '') +
     (bilder.length? `<div class="sect">Photos</div><div class="grid">` +
       bilder.map((b,i) => `<button class="tile" onclick="visa(${i})">
-        <img loading="lazy" src="${filUrl(b.id)}" alt="${esc(b.name||'')}">
+        <img loading="lazy" src="${filUrl(b.id)}" alt="${esc(b.name||'')}"
+             onerror="this.closest('.tile').hidden=true">
         ${b.name? `<span class="cap">${esc(b.name)}</span>`:''}
       </button>`).join('') + `</div>` : '');
 }

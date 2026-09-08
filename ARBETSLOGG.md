@@ -428,8 +428,41 @@ deletion clearing both copies, backup streaming into pieces and still carrying e
 full resolution) plus an end-to-end run in headless Edge over http against real IndexedDB.
 
 **Still open.** The video is still held in memory as one data URL, so a long walkthrough is a
-smaller version of the same problem. And a report still exists only on the phone until it is
-sent, which is the loss that actually hurt here.
+smaller version of the same problem.
+
+### 2026-09-08 — photos are copied to the server while the inspection is running
+
+The memory fix stops the app from being killed. This stops a killed, lost, wiped or
+wrong-browser phone from taking the report with it. Until now the photos were uploaded only
+when the report was sent or signed, so everything before that moment existed in exactly one
+place, and an inspection that never reached the send button was simply gone.
+
+**Now.** Four seconds after a photo is saved, it is copied to the gallery in the background.
+The gallery is created once, on the first photo, and every later photo is added to the same
+one, so a report still has a single link. `S.gallery.done` holds the ids that are on the
+server, so the list survives a reload and a phone switched off mid-job, and nothing is ever
+uploaded twice. The background run is silent: no toasts, no log line, because a minute without
+coverage is normal and the next photo retries it. A failure at send time, where it matters, is
+still both shown and written into the report. It is the same bytes that were being uploaded at
+send time anyway, only sent earlier, so it costs no extra data.
+
+**Two server changes were needed** ([media-put.js](functions/api/media-put.js),
+[media-list.js](functions/api/media-list.js)). A photo taken mid-inspection is not in the
+manifest, and `media-put` used to reject anything it did not already know. It now accepts the
+file and takes its name, kind and timestamp from the query, storing them as KV metadata on the
+per-file `/up/` key that already existed. `media-list` builds its listing from those keys, so
+it needs no extra read per file and the manifest is never rewritten — which is what the
+per-file keys were introduced for in the first place. Files sort by timestamp.
+
+**Verified with** 20 unit checks (gallery created once and reused, only new files sent, the
+description travelling with the file, background runs silent on success and on failure, the
+same failure logged at send time, per-file retry, partial upload keeping the link and marking
+itself incomplete, a dropped connection, the app's own HTML coming back from an unknown path,
+switching inspection mid-upload, and an unreadable photo never being marked as uploaded).
+
+**What is still only on the phone:** the room names, comments and answers. They are small, and
+the next step, if wanted, is to send that little bit of text along with the photos so a lost
+phone loses nothing at all.
 
 ---
 

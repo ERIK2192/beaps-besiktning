@@ -465,6 +465,8 @@ const SV = {
   'Done, but':'Klart, men',
   'files failed':'filer misslyckades',
   'The photos are uploaded':'Bilderna är uppladdade',
+  'are copied to the server as you take them, so the report survives even if something happens to the phone. The recipient gets a link showing the photos full size, where the video also plays, which it never does in a PDF.':'kopieras till servern medan du fotograferar, så rapporten överlever även om något händer med telefonen. Mottagaren får en länk där bilderna visas i full storlek och där videon spelas upp, vilket den aldrig gör i en PDF.',
+  'still waiting to upload':'väntar fortfarande på uppladdning',
   'Link copied':'Länk kopierad',
   'Copy the link:':'Kopiera länken:',
   'Full-resolution photos':'Bilder i full upplösning',
@@ -836,6 +838,7 @@ async function savePhoto(roomId, data){
   photoCache[pid] = th;
   room.photos.push({id:pid, ts:Date.now()});
   await flushSave();
+  schedulePush();      // copy it to the server in a few seconds, without holding up the camera
   return true;
 }
 async function addPhotos(roomId, files){
@@ -1392,6 +1395,7 @@ async function saveVideo(blob, dur){
     }catch(e){}
   }
   save();
+  schedulePush();
 }
 function delVideo(){
   if(!confirm(T('Remove the video?'))) return;
@@ -1669,55 +1673,86 @@ const galleryItems = () => {
 
 const dataUrlToBlob = async d => (await fetch(d)).blob();
 
+// Which photos already have a copy on the server. The ids are kept on the inspection, so the
+// list survives a reload and a phone that was switched off in the middle of a job.
+const galleryDone = () => new Set((S && S.gallery && S.gallery.done) || []);
+const pendingItems = () => { const d = galleryDone(); return galleryItems().filter(it=>!d.has(it.id)) };
+
+// Photos are copied to the server a few seconds after they are taken, not when the report is
+// sent. Waiting for the send is what made a lost or cleared phone take a whole inspection with
+// it. It is the same bytes either way, only sent earlier, so it costs no extra data.
+let pushTimer = null;
+function schedulePush(){
+  if(!S) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(()=>{
+    if(uploading || !S || !pendingItems().length) return;
+    if(navigator.onLine === false) return;      // it will be retried at the next photo, or on reconnect
+    uploadGallery(true, true);
+  }, 4000);
+}
+window.addEventListener('online', ()=>{ if(S) schedulePush() });
+
 async function ensureGalleryUploaded(){
   if(!S) return;
-  const n = galleryItems().length;
-  if(!n) return;                                // nothing to upload
-  if(S.gallery && S.gallery.n === n) return;    // already uploaded and unchanged
+  if(!pendingItems().length) return;            // everything already on the server
   await uploadGallery(true);
 }
-async function uploadGallery(auto){
+// tyst = running by itself in the background while the inspection is under way: no toasts and
+// no log line, because a moment without coverage is normal and will be retried. A failure at
+// send time, where it matters, is still both shown and written into the report.
+async function uploadGallery(auto, tyst){
   if(uploading){ if(auto) return; return toast(T('An upload is already running')) }
   if(!S) return;
-  const items = galleryItems();
-  if(!items.length) return toast(T('There are no photos to upload'));
+  const items = pendingItems();
+  if(!items.length){ if(!auto) toast(T('The photos are uploaded')); return }
 
   const insp = S;
+  const säg = m => { if(!tyst) toast(m) };
   uploading = true;
   const pause = ms => new Promise(res=>setTimeout(res, ms));
   try{
-    toast(`${T('Preparing')} ${items.length} ${T('files')}`);
-    // One retry on a dropped connection: mobile networks drop the first request after idle now and then.
-    let r;
-    for(let attempt=0;;attempt++){
-      try{
-        r = await withTimeout(fetch('/api/media-init', {
-          method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
-          body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
-            inspector:S.inspector.name, items })
-        }), 30000);
-        break;
-      }catch(e){ if(attempt) throw new Error('No contact with the server'); await pause(1500) }
-    }
-    if(r.status===401) throw new Error('Reload the app and try again');
-    // Cloudflare responds with the app's own HTML on unknown /api paths, not with 404.
-    // So don't trust the status code alone - try to parse the response and see if it carries a token.
-    const svar = (await r.text().catch(()=>'')).trim();
-    let g = null;
-    try{ g = JSON.parse(svar) }catch(e){}
-    if(!g || !g.token){
-      const kort = (svar && svar.length<160 && svar.indexOf('<')<0)? svar : '';
-      throw new Error(!g? 'The gallery is not running on the server yet'
-                    : (kort || 'The server responded ' + r.status));
+    säg(`${T('Preparing')} ${items.length} ${T('files')}`);
+    // The gallery is made once and then kept. Later photos are added to the one that exists,
+    // so a report has a single link no matter how the photos were taken.
+    let g = (insp.gallery && insp.gallery.token) ? {token:insp.gallery.token, url:insp.gallery.url} : null;
+    if(!g){
+      // One retry on a dropped connection: mobile networks drop the first request after idle now and then.
+      let r;
+      for(let attempt=0;;attempt++){
+        try{
+          r = await withTimeout(fetch('/api/media-init', {
+            method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
+            body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
+              inspector:S.inspector.name, items })
+          }), 30000);
+          break;
+        }catch(e){ if(attempt) throw new Error('No contact with the server'); await pause(1500) }
+      }
+      if(r.status===401) throw new Error('Reload the app and try again');
+      // Cloudflare responds with the app's own HTML on unknown /api paths, not with 404.
+      // So don't trust the status code alone - try to parse the response and see if it carries a token.
+      const svar = (await r.text().catch(()=>'')).trim();
+      let j = null;
+      try{ j = JSON.parse(svar) }catch(e){}
+      if(!j || !j.token){
+        const kort = (svar && svar.length<160 && svar.indexOf('<')<0)? svar : '';
+        throw new Error(!j? 'The gallery is not running on the server yet'
+                      : (kort || 'The server responded ' + r.status));
+      }
+      g = {token:j.token, url:j.url};
+      if(S !== insp){ uploading = false; return }
+      insp.gallery = {token:g.token, url:g.url, done:[], count:0, n:0, ts:Date.now()};
+      await flushSave();
     }
 
     let klara = 0, missade = 0, sist = '';
     for(const it of items){
-      if(S !== insp){ uploading = false; return toast(T('Upload cancelled, you switched inspection')) }
+      if(S !== insp){ uploading = false; return säg(T('Upload cancelled, you switched inspection')) }
       let ok = false;
-      // Each file gets a second try after a short pause. The gallery was created a moment ago and
-      // Cloudflare's KV can take a few seconds before every edge sees it, so the first upload may be
-      // answered "Gallery not found" - and mobile connections drop requests now and then.
+      // Each file gets a second try after a short pause. A gallery made a moment ago can take a few
+      // seconds to reach every Cloudflare edge, so the first upload may be answered
+      // "Gallery not found" - and mobile connections drop requests now and then.
       for(let attempt=0; attempt<2 && !ok; attempt++){
         if(attempt) await pause(1500);
         try{
@@ -1726,28 +1761,42 @@ async function uploadGallery(auto){
           const src = it.kind==='video' ? videoURL : await getFull(it.id);
           if(!src) throw new Error('The photo could not be read');
           const blob = await dataUrlToBlob(src);
-          const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
+          // Name and kind travel with the file: a photo sent mid-inspection is not in the
+          // manifest yet, so this is what gives it its room name in the gallery.
+          const q = `t=${g.token}&id=${encodeURIComponent(it.id)}&name=${encodeURIComponent(it.name||'')}`
+                  + `&kind=${it.kind==='video'?'video':'bild'}&ts=${it.ts||0}`;
+          const put = await withTimeout(fetch('/api/media-put?'+q, {
             method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
           }), 120000);
           ok = put.ok;
           if(!ok) sist = (await put.text().catch(()=>'')).trim().slice(0,80) || ('status ' + put.status);
         }catch(e){ sist = String(e && e.message || e).slice(0,80) }
       }
-      if(ok) klara++; else missade++;
-      if(klara % 5 === 0 || klara + missade === items.length) toast(`${T('Uploading')} ${klara+missade} ${T('of')} ${items.length}`);
+      if(ok){
+        klara++;
+        if(S === insp && insp.gallery){
+          insp.gallery.done = (insp.gallery.done||[]).concat(it.id);
+          insp.gallery.count = insp.gallery.done.length;
+          insp.gallery.ts = Date.now();
+        }
+      } else missade++;
+      if(klara % 5 === 0 || klara + missade === items.length) säg(`${T('Uploading')} ${klara+missade} ${T('of')} ${items.length}`);
     }
 
     if(!klara) throw new Error('No file could be uploaded' + (sist? ': ' + sist : ''));
-    S.gallery = {token:g.token, url:g.url, count:klara, n:(missade? -1 : items.length), ts:Date.now()};
-    log(`Photos uploaded: ${klara} of ${items.length}${missade? ', '+missade+' failed':''}`);
-    await flushSave(); if(!auto) render();
-    toast(missade? `${T('Done, but')} ${missade} ${T('files failed')}` : T('The photos are uploaded'));
+    if(S === insp && insp.gallery){
+      insp.gallery.n = pendingItems().length? -1 : galleryItems().length;
+      if(!tyst) log(`Photos uploaded: ${klara} of ${items.length}${missade? ', '+missade+' failed':''}`);
+      await flushSave();
+    }
+    if(!auto) render();
+    säg(missade? `${T('Done, but')} ${missade} ${T('files failed')}` : T('The photos are uploaded'));
   }catch(e){
     const why = String(e && e.message || e).slice(0,120);
-    toast(why.slice(0,80));
+    säg(why.slice(0,80));
     // Into the activity log as well, so the reason ends up in the report and not only in a toast
     // that vanished while the inspector was looking at the camera.
-    if(S === insp) log('Photo upload failed: ' + why);
+    if(S === insp && !tyst) log('Photo upload failed: ' + why);
   }
   uploading = false;
 }
@@ -1764,11 +1813,13 @@ function galleryCard(){
   if(!antal && !g) return '';
   if(!g) return `<div class="card">
     <div class="eyebrow" style="margin-bottom:10px">${T('Full-resolution photos')}</div>
-    <div class="hint" style="margin:0">${T('The')} ${antal} ${antal===1?T('file'):T('files')} ${T('upload automatically when you send or sign, so the report always carries a link where the recipient sees the photos full size and can zoom — and where the video actually plays, which it never does in a PDF.')}</div>
+    <div class="hint" style="margin:0">${T('The')} ${antal} ${antal===1?T('file'):T('files')} ${T('are copied to the server as you take them, so the report survives even if something happens to the phone. The recipient gets a link showing the photos full size, where the video also plays, which it never does in a PDF.')}</div>
   </div>`;
+  const kvar = pendingItems().length;
   return `<div class="card">
     <div class="eyebrow" style="margin-bottom:8px">${T('Full-resolution photos')}</div>
     <div style="font-size:14px">${g.count} ${g.count===1?T('file'):T('files')} ${T('uploaded')} ${stamp(new Date(g.ts))}</div>
+    ${kvar? `<div class="hint">${kvar} ${T('still waiting to upload')}</div>`:''}
     <div class="hint">${T('The link travels with the PDF. Files are kept for one year.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn ghost small" onclick="copyGalleryLink()">${T('Copy link')}</button>

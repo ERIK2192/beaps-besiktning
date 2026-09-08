@@ -261,7 +261,8 @@ const store = NATIVE ? {
   async del(k){ try{ await idb.run('readwrite', s=>s.delete(k)) }catch(e){} },
   async keys(p){ try{ const all = await idb.run('readonly', s=>s.getAllKeys()); return (all||[]).filter(k=>String(k).startsWith(p)) }catch(e){ return [] } }
 };
-const K = { index:'bp:index', insp:id=>'bp:insp:'+id, photo:(i,p)=>'bp:ph:'+i+':'+p, video:i=>'bp:vid:'+i };
+const K = { index:'bp:index', insp:id=>'bp:insp:'+id, photo:(i,p)=>'bp:ph:'+i+':'+p,
+            thumb:(i,p)=>'bp:th:'+i+':'+p, video:i=>'bp:vid:'+i };
 
 const $ = s => document.querySelector(s);
 // Fixed key that accompanies the app's own calls to writing server endpoints
@@ -807,14 +808,33 @@ async function compressFile(file){
   if(src.close) src.close();
   return {data:out, before:file.size, after:bytesOf(out)};
 }
+// Only a small thumbnail of each photo is kept in memory. A full photo is about 720 kB, and as
+// a data URL in memory it is a third bigger again; an inspection with eighty photos held some
+// 77 MB of text plus every decoded image, which is more than a phone gives one web page. The
+// page was then killed by the phone, most often at the next big redraw. The full photo stays in
+// the database and is read one at a time when the PDF, the gallery or a backup needs it.
+const THUMB_MAX = 384, THUMB_Q = 0.72;
+async function makeThumb(dataUrl){
+  try{
+    const im = await loadImg(dataUrl);
+    return draw(im, im.naturalWidth, im.naturalHeight, THUMB_MAX, THUMB_Q);
+  }catch(e){ return null }
+}
+// Reads one full photo from the database. The caller must let go of it before fetching the next.
+async function getFull(pid, inspId){
+  const id = inspId || (S && S.id); if(!id) return null;
+  try{ return await store.get(K.photo(id, pid)) }catch(e){ return null }
+}
 const target = id => (S.rooms||[]).find(r=>r.id===id) || (S.checks||[]).find(c=>c.id===id);
 async function savePhoto(roomId, data){
   unlockIfLocked();
   const room = target(roomId), pid = uid();
-  photoCache[pid] = data;
-  room.photos.push({id:pid, ts:Date.now()});
   const ok = await store.set(K.photo(S.id,pid), data);
-  if(!ok){ storeErr(); room.photos = room.photos.filter(p=>p.id!==pid); delete photoCache[pid]; return false }
+  if(!ok){ storeErr(); return false }
+  const th = (await makeThumb(data)) || data;
+  await store.set(K.thumb(S.id,pid), th);
+  photoCache[pid] = th;
+  room.photos.push({id:pid, ts:Date.now()});
   await flushSave();
   return true;
 }
@@ -895,8 +915,17 @@ async function loadMedia(id){
   const ks = await store.keys('bp:ph:'+id+':');
   let miss = 0;
   for(const k of ks){
-    const v = await store.get(k);
-    if(v) photoCache[k.split(':').pop()] = v; else miss++;
+    const pid = k.split(':').pop();
+    let th = await store.get(K.thumb(id,pid));
+    if(!th){
+      // A photo taken before thumbnails existed. Build one now and let go of the full photo
+      // again straight away, so opening an old report never loads every image into memory.
+      const full = await store.get(k);
+      if(!full){ miss++; continue }
+      th = await makeThumb(full);
+      if(th) await store.set(K.thumb(id,pid), th); else th = full;
+    }
+    photoCache[pid] = th;
   }
   // Some images could not be read (e.g. iOS killed the IDB connection). Warn so the
   // report doesn't silently claim more photos than it carries - a reopen reloads them.
@@ -1692,9 +1721,11 @@ async function uploadGallery(auto){
       for(let attempt=0; attempt<2 && !ok; attempt++){
         if(attempt) await pause(1500);
         try{
-          const blob = it.kind==='video'
-            ? await dataUrlToBlob(videoURL)
-            : await dataUrlToBlob(photoCache[it.id]);
+          // The full photo is fetched here and released again on the next turn of the loop —
+          // photoCache only holds thumbnails, and the gallery must have the real thing.
+          const src = it.kind==='video' ? videoURL : await getFull(it.id);
+          if(!src) throw new Error('The photo could not be read');
+          const blob = await dataUrlToBlob(src);
           const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
             method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
           }), 120000);
@@ -2027,7 +2058,7 @@ function delRoom(id){
   const r=S.rooms.find(x=>x.id===id);
   if((r.photos.length||r.comment) && !confirm(`${T('Remove')} ${r.name} ${T('with contents?')}`)) return;
   saveOpenComment(); saveCheckComments(); unlockIfLocked();
-  r.photos.forEach(p=>store.del(K.photo(S.id,p.id)));
+  r.photos.forEach(p=>{ store.del(K.photo(S.id,p.id)); store.del(K.thumb(S.id,p.id)); delete photoCache[p.id] });
   S.rooms = S.rooms.filter(x=>x.id!==id);
   if(openRoom===id) openRoom=null;
   if(cam.idx >= S.rooms.length) cam.idx = Math.max(0,S.rooms.length-1);
@@ -2037,7 +2068,8 @@ function delPhoto(rid,pid,inCam){
   saveOpenComment(); saveCheckComments(); unlockIfLocked();
   const r=target(rid);
   r.photos = r.photos.filter(p=>p.id!==pid);
-  store.del(K.photo(S.id,pid)); save();
+  store.del(K.photo(S.id,pid)); store.del(K.thumb(S.id,pid)); delete photoCache[pid];
+  save();
   inCam? paintCam() : render();
 }
 function bindPlain(id,key){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ S[key]=el.value; save() }) }
@@ -2155,6 +2187,7 @@ let editList = false;
 function toggleEdit(){ editList = !editList; renderStart() }
 async function wipe(id){
   for(const k of await store.keys('bp:ph:'+id+':')) await store.del(k);
+  for(const k of await store.keys('bp:th:'+id+':')) await store.del(k);
   await store.del(K.video(id));
   await store.del(K.insp(id));
 }
@@ -2386,7 +2419,7 @@ async function buildPdf(){
       }
       const shots = [];
       for(const ph of (c.photos||[])){
-        const raw = photoCache[ph.id]; if(!raw) continue;
+        const raw = await getFull(ph.id); if(!raw) continue;
         packNote();
         const img = await shrinkForPdf(raw, photoBudget); if(!img) continue;
         let iw = cw, ih = cw * img.h / img.w;
@@ -2430,7 +2463,7 @@ async function buildPdf(){
     // measure the photos first so that the heading is never left alone at the bottom
     const shots = [];
     for(const p of r.photos){
-      const raw = photoCache[p.id]; if(!raw) continue;
+      const raw = await getFull(p.id); if(!raw) continue;
       packNote();
       const img = await shrinkForPdf(raw, photoBudget); if(!img) continue;
       let iw = rcw, ih = rcw * img.h / img.w;
@@ -2588,9 +2621,24 @@ async function backup(){
   const barare = (S.rooms||[]).concat(S.checks||[]);
   let video = null;
   try{ if(S.video && S.video.stored) video = await store.get(K.video(S.id)) }catch(e){}
-  const data = {version:1, exported:Date.now(), inspection:S, video,
-    photos:Object.fromEntries(barare.flatMap(r=>(r.photos||[]).map(p=>[p.id, photoCache[p.id]||null])))};
-  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  // Written as a stream of pieces straight into the Blob. Turning a hundred photos into one
+  // giant string first is exactly what a phone runs out of memory on.
+  const parts = ['{"version":1,"exported":' + Date.now() +
+                 ',"inspection":' + JSON.stringify(S) +
+                 ',"video":' + JSON.stringify(video || null) + ',"photos":{'];
+  video = null;
+  let forst = true;
+  for(const r of barare){
+    for(const p of (r.photos||[])){
+      const full = await getFull(p.id);
+      if(!full) continue;
+      parts.push((forst?'':',') + JSON.stringify(p.id) + ':' + JSON.stringify(full));
+      forst = false;
+    }
+  }
+  parts.push('}}');
+  const blob = new Blob(parts, {type:'application/json'});
+  parts.length = 0;
   const name = fileName().replace(/\.pdf$/,'') + '.json';
   const file = new File([blob], name, {type:'application/json'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -2603,6 +2651,9 @@ async function backup(){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 
+// Fallback for when the PDF engine cannot be loaded. It prints the thumbnails from memory,
+// not the full photos: a print page holding a hundred full images is exactly the thing that
+// used to take the app down, and the recipient has the gallery link for full resolution.
 function legacyPrint(){
   const rows = (isCheck()? visibleChecks().map(c=>`<div class="p-room">
     <h3>${esc(c.label)} — ${c.val? (c.val==='ja'?'YES':c.val==='na'?'N/A':'NO'):'–'}</h3>

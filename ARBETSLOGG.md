@@ -386,6 +386,51 @@ required — it is information, not a gate. Tested with 8 checks (standalone det
 iOS and Android, collapsed/expanded, platform steps, full Swedish translation) and
 rendered in headless Edge at 390 px in both languages.
 
+### 2026-09-08 — the real cause of the Banérgatan loss: the app ran the phone out of memory
+
+The colleague reported that everything vanished the moment he added a third bedroom to a long
+inspection with roughly eighty photos. That is not a coincidence, and it was not his mistake.
+
+**The app kept every photo in memory for the whole session.** `photoCache` held the full
+image of every photo as a base64 data URL, and `loadMedia()` read all of them back in as soon
+as a report was opened. A photo is compressed to about 720 kB, which is roughly 960 kB as a
+data URL. Eighty photos is therefore some 77 MB of text, on top of every decoded image in the
+open room and in the camera strip, and on top of the camera's own video buffers. That is more
+than an iPhone grants one web page. Adding a room forces a full redraw, which allocates again
+on top of the peak, so that tap is precisely where the phone kills the page.
+
+**Only a thumbnail is kept in memory now.** Every photo is saved twice: the full image under
+`bp:ph:<insp>:<id>` as before, and a 384 px thumbnail under `bp:th:<insp>:<id>`. `photoCache`
+holds the thumbnail. The full image is read one at a time, and released again, by the three
+places that genuinely need it: the PDF, the gallery upload and the backup. Reports made before
+this build have no thumbnails, so `loadMedia()` builds them on first open, one photo at a time,
+and saves them so the next open is cheap. Nothing is lost and no report needs converting by hand.
+
+`backup()` also stopped building the whole file as one giant string; it now streams the pieces
+straight into the Blob. `delPhoto`, `delRoom` and `wipe` clear the thumbnail as well, and
+`delPhoto` now drops its memory copy too, which it never did.
+
+Measured in a real browser, the same probe run against the previous commit and against this one:
+
+| | before | after |
+|---|---|---|
+| memory for six photos | 1283 kB | 159 kB |
+| photos reaching the PDF builder | 6, at 1283 kB | 6, at 1311 kB |
+| resulting PDF | 165 kB | 168 kB |
+
+The PDF is unchanged, which is the point: the same bytes reach it, they are simply no longer
+all held at once. For eighty real photos the memory figure falls from about 77 MB to about 2 MB.
+
+**Verified with** 21 unit checks (thumbnail written and cached rather than the full photo, a
+failed write leaving no phantom photo, canvas failure falling back to the full image, migration
+of an old report and that it never keeps a full image, a reopen reading no full photos at all,
+deletion clearing both copies, backup streaming into pieces and still carrying every photo at
+full resolution) plus an end-to-end run in headless Edge over http against real IndexedDB.
+
+**Still open.** The video is still held in memory as one data URL, so a long walkthrough is a
+smaller version of the same problem. And a report still exists only on the phone until it is
+sent, which is the loss that actually hurt here.
+
 ---
 
 ## 6. Kvar att göra

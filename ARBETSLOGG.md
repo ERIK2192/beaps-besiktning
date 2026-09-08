@@ -460,6 +460,21 @@ same failure logged at send time, per-file retry, partial upload keeping the lin
 itself incomplete, a dropped connection, the app's own HTML coming back from an unknown path,
 switching inspection mid-upload, and an unreadable photo never being marked as uploaded).
 
+**A photo that is deleted must not reach the recipient.** Uploading during the inspection means
+a photo taken by mistake may already be on the server when it is deleted on the phone. Before a
+report goes out, `tidyGallery()` sends the list of photos that actually remain to the new
+[media-sync.js](functions/api/media-sync.js), which removes everything else from R2 and KV. An
+empty list is refused rather than obeyed: a gallery is only ever tidied down to what remains,
+never emptied, so a bug on the phone cannot erase the one copy that exists off it. A failed
+tidy never blocks a send; it is retried the next time.
+
+**One more found by testing against the live server.** `media-list` listed the photos uploaded
+mid-inspection, but `media-file` still demanded a manifest entry and answered 404 for exactly
+those files, so the gallery would have listed every photo and shown none of them. The manifest
+cannot be the gatekeeper for a photo that is not in it; the R2 fetch is the real check and the
+48-character token is the lock. Verified live: three files serve, an unknown id gives 404, and
+a wrong token gives 404.
+
 **What is still only on the phone:** the room names, comments and answers. They are small, and
 the next step, if wanted, is to send that little bit of text along with the photos so a lost
 phone loses nothing at all.

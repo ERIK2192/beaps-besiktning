@@ -1695,8 +1695,33 @@ window.addEventListener('online', ()=>{ if(S) schedulePush() });
 
 async function ensureGalleryUploaded(){
   if(!S) return;
-  if(!pendingItems().length) return;            // everything already on the server
-  await uploadGallery(true);
+  if(pendingItems().length) await uploadGallery(true);
+  await tidyGallery();
+}
+
+// A photo that was taken and then deleted may already have been copied to the server. Before the
+// report goes out, tell the server which photos actually remain so a deleted one never reaches
+// the recipient. Best effort: it must never stop a report from being sent.
+async function tidyGallery(){
+  if(!S || !S.gallery || !S.gallery.token) return;
+  const insp = S;
+  const ids = galleryItems().map(it=>it.id);
+  if(!ids.length) return;
+  const done = (insp.gallery.done||[]);
+  if(!done.some(id=>ids.indexOf(id)<0)) return;   // nothing was removed, nothing to tidy
+  try{
+    const r = await withTimeout(fetch('/api/media-sync', {
+      method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
+      body: JSON.stringify({ t: insp.gallery.token, ids })
+    }), 20000);
+    if(!r.ok) return;
+    const j = await r.json().catch(()=>null);
+    if(!j || !j.ok || S !== insp || !S.gallery) return;
+    S.gallery.done = done.filter(id=>ids.indexOf(id)>=0);
+    S.gallery.count = S.gallery.done.length;
+    if(j.removed) log(`Deleted photos removed from the gallery: ${j.removed}`);
+    await flushSave();
+  }catch(e){}
 }
 // tyst = running by itself in the background while the inspection is under way: no toasts and
 // no log line, because a moment without coverage is normal and will be retried. A failure at

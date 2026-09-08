@@ -414,6 +414,18 @@ const SV = {
   'The finished report with the signature page has already been emailed to longstay@beaps.se.':'Den färdiga rapporten med signatursidan har redan mejlats till longstay@beaps.se.',
   'Signed':'Signerat',
   'Signature saved':'Signaturen sparades',
+  'Save the app to the home screen':'Spara appen på hemskärmen',
+  'Reports are stored only in the browser they were made in. In a private tab, or in the browser inside Outlook or Teams, they can disappear. The home-screen app keeps them.':'Rapporter sparas bara i den webbläsare de gjordes i. I en privat flik, eller i webbläsaren inuti Outlook eller Teams, kan de försvinna. Hemskärmsappen behåller dem.',
+  'Show how':'Visa hur',
+  'Hide':'Dölj',
+  'Open this address in Safari.':'Öppna den här adressen i Safari.',
+  'Tap the Share button (the square with an arrow).':'Tryck på Dela-knappen (fyrkanten med en pil).',
+  'Scroll down and tap Add to Home Screen, then Add.':'Skrolla ner och tryck på Lägg till på hemskärmen, sedan Lägg till.',
+  'From now on, open the app from the icon.':'Öppna appen från ikonen i fortsättningen.',
+  'Open this address in Chrome.':'Öppna den här adressen i Chrome.',
+  'Open the menu (the three dots).':'Öppna menyn (de tre prickarna).',
+  'Tap Add to Home screen or Install app.':'Tryck på Lägg till på startskärmen eller Installera app.',
+  'Reports made here in the browser are not moved to the icon. Send anything unfinished first, and never delete the icon while it holds unsent reports.':'Rapporter som gjorts här i webbläsaren flyttas inte till ikonen. Skicka det som är ofärdigt först, och ta aldrig bort ikonen medan den har oskickade rapporter.',
   'Clear':'Rensa',
   'Approve signature':'Godkänn signatur',
   // --- PDF/send toasts ---
@@ -2086,6 +2098,25 @@ async function loadIndex(){
   }
   return idx;
 }
+// The reports live in the browser's storage, and iPhone keeps a separate store for Safari, for
+// every app's built-in browser and for a home-screen icon. The icon is the one place they are
+// safe, so the start screen says so until the app runs from one. Information, not a gate.
+const isStandalone = () => !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+let showInstall = false;
+function toggleInstall(){ showInstall = !showInstall; renderStart() }
+function homeScreenCard(){
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const steps = ios
+    ? ['Open this address in Safari.', 'Tap the Share button (the square with an arrow).', 'Scroll down and tap Add to Home Screen, then Add.', 'From now on, open the app from the icon.']
+    : ['Open this address in Chrome.', 'Open the menu (the three dots).', 'Tap Add to Home screen or Install app.', 'From now on, open the app from the icon.'];
+  return `<div class="card" style="border-color:var(--brand-dark);box-shadow:inset 3px 0 0 var(--brand)">
+    <div style="font-weight:650">${T('Save the app to the home screen')}</div>
+    <div class="hint" style="margin-top:4px">${T('Reports are stored only in the browser they were made in. In a private tab, or in the browser inside Outlook or Teams, they can disappear. The home-screen app keeps them.')}</div>
+    ${showInstall? `<ol style="margin:10px 0 4px;padding-left:20px;font-size:14px;line-height:1.5">${steps.map(s=>`<li>${T(s)}</li>`).join('')}</ol>
+      <div class="hint">${T('Reports made here in the browser are not moved to the icon. Send anything unfinished first, and never delete the icon while it holds unsent reports.')}</div>` : ''}
+    <button class="btn ghost small" style="margin-top:10px" onclick="toggleInstall()">${showInstall? T('Hide') : T('Show how')}</button>
+  </div>`;
+}
 async function renderStart(){
   document.body.classList.add('start');
   const idx = await loadIndex();
@@ -2095,6 +2126,7 @@ async function renderStart(){
     </div>
     <div class="wrap" style="padding-top:0">
       <div style="display:flex;justify-content:center;margin:0 0 16px">${langToggle()}</div>
+      ${isStandalone()? '' : homeScreenCard()}
       ${idx.length? `<div class="listhead">
           <span class="eyebrow">${idx.length} ${T('reports')}</span>
           <button onclick="toggleEdit()">${editList?T('Done'):T('Edit')}</button>

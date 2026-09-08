@@ -376,6 +376,16 @@ opens in that app's built-in browser, which has its own storage — not Safari's
 made there is only visible by tapping the same link in the same app again. A Safari
 private tab loses everything when the tab is closed.
 
+**Home-screen card on the start screen.** `homeScreenCard()` shows a small yellow-edged
+card — *Save the app to the home screen*, one sentence on why, and a *Show how* button
+that unfolds the steps (Safari steps on iPhone, Chrome steps elsewhere) plus the warning
+that reports made in the browser do not move to the icon and that the icon must not be
+deleted while it holds unsent reports. It is hidden when the app already runs from an
+icon (`isStandalone()`: `navigator.standalone` or `display-mode: standalone`). Nothing is
+required — it is information, not a gate. Tested with 8 checks (standalone detection on
+iOS and Android, collapsed/expanded, platform steps, full Swedish translation) and
+rendered in headless Edge at 390 px in both languages.
+
 ---
 
 ## 6. Kvar att göra

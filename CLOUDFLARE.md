@@ -117,6 +117,11 @@ I praktiken betyder det:
   är inskickat.
 - **Har någon lagt appen på hemskärmen** pekar den ikonen på den gamla adressen. Den
   behöver tas bort och läggas till på nytt från den nya.
+  **VARNING (iOS): när en hemskärmsapp tas bort raderas all dess data — varje besiktning
+  som inte är mejlad eller säkerhetskopierad försvinner.** Ta bort ikonen först när
+  listan i den är tom. Notera också att hemskärmsappen och Safari har **separata lager**
+  på samma adress: en besiktning gjord via ikonen syns inte om man öppnar länken i Safari,
+  och tvärtom. Det ser ut som att den raderats, men den ligger kvar där den gjordes.
 
 ## Vad som händer med Netlify den 21 september
 

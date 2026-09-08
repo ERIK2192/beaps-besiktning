@@ -413,6 +413,7 @@ const SV = {
   'signed digitally via signing link':'signerade digitalt via signeringslänk',
   'The finished report with the signature page has already been emailed to longstay@beaps.se.':'Den färdiga rapporten med signatursidan har redan mejlats till longstay@beaps.se.',
   'Signed':'Signerat',
+  'Signature saved':'Signaturen sparades',
   'Clear':'Rensa',
   'Approve signature':'Godkänn signatur',
   // --- PDF/send toasts ---
@@ -1454,6 +1455,27 @@ function commitPad(w){
   const box = document.getElementById('sigbox_'+w);
   if(box) box.innerHTML = sigBlock(w); else render();
 }
+// A signature that has been drawn but not yet approved is still a signature. When the report
+// is emailed, shared or sent for signing, keep it — before this the ink was silently dropped
+// and the PDF went out with empty signature lines.
+function commitPendingPads(list){
+  if(!S) return 0;
+  let n = 0;
+  for(const w of (list || ['inspector','counter'])){
+    const p = pads[w];
+    if(!p || p.isEmpty() || S.sig[w]) continue;
+    S.sig[w] = {data:p.c.toDataURL('image/png'), ts:Date.now()};
+    log(`Signed by ${w==='inspector'? (S.inspector.name||'inspector') : (S.counter.name||'counterparty')}`);
+    delete pads[w]; n++;
+    const box = document.getElementById('sigbox_'+w);
+    if(box) box.innerHTML = sigBlock(w);
+  }
+  if(!n) return 0;
+  if(S.sig.inspector && S.sig.counter && !S.signedAt){ S.signedAt = Date.now(); log('Report locked'); render() }
+  save();
+  toast(T('Signature saved'));
+  return n;
+}
 
 /* ---------- wifi measurement ---------- */
 // Measures against Beaps' own Netlify function, so no third-party service needs to be involved.
@@ -1621,13 +1643,21 @@ async function uploadGallery(auto){
 
   const insp = S;
   uploading = true;
+  const pause = ms => new Promise(res=>setTimeout(res, ms));
   try{
     toast(`${T('Preparing')} ${items.length} ${T('files')}`);
-    let r = await withTimeout(fetch('/api/media-init', {
-      method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
-      body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
-        inspector:S.inspector.name, items })
-    }), 30000);
+    // One retry on a dropped connection: mobile networks drop the first request after idle now and then.
+    let r;
+    for(let attempt=0;;attempt++){
+      try{
+        r = await withTimeout(fetch('/api/media-init', {
+          method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
+          body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
+            inspector:S.inspector.name, items })
+        }), 30000);
+        break;
+      }catch(e){ if(attempt) throw new Error('No contact with the server'); await pause(1500) }
+    }
     if(r.status===401) throw new Error('Reload the app and try again');
     // Cloudflare responds with the app's own HTML on unknown /api paths, not with 404.
     // So don't trust the status code alone - try to parse the response and see if it carries a token.
@@ -1640,28 +1670,41 @@ async function uploadGallery(auto){
                     : (kort || 'The server responded ' + r.status));
     }
 
-    let klara = 0, missade = 0;
+    let klara = 0, missade = 0, sist = '';
     for(const it of items){
       if(S !== insp){ uploading = false; return toast(T('Upload cancelled, you switched inspection')) }
-      try{
-        const blob = it.kind==='video'
-          ? await dataUrlToBlob(videoURL)
-          : await dataUrlToBlob(photoCache[it.id]);
-        const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
-          method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
-        }), 120000);
-        if(put.ok) klara++; else missade++;
-      }catch(e){ missade++ }
+      let ok = false;
+      // Each file gets a second try after a short pause. The gallery was created a moment ago and
+      // Cloudflare's KV can take a few seconds before every edge sees it, so the first upload may be
+      // answered "Gallery not found" - and mobile connections drop requests now and then.
+      for(let attempt=0; attempt<2 && !ok; attempt++){
+        if(attempt) await pause(1500);
+        try{
+          const blob = it.kind==='video'
+            ? await dataUrlToBlob(videoURL)
+            : await dataUrlToBlob(photoCache[it.id]);
+          const put = await withTimeout(fetch(`/api/media-put?t=${g.token}&id=${encodeURIComponent(it.id)}`, {
+            method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
+          }), 120000);
+          ok = put.ok;
+          if(!ok) sist = (await put.text().catch(()=>'')).trim().slice(0,80) || ('status ' + put.status);
+        }catch(e){ sist = String(e && e.message || e).slice(0,80) }
+      }
+      if(ok) klara++; else missade++;
       if(klara % 5 === 0 || klara + missade === items.length) toast(`${T('Uploading')} ${klara+missade} ${T('of')} ${items.length}`);
     }
 
-    if(!klara) throw new Error('No file could be uploaded');
+    if(!klara) throw new Error('No file could be uploaded' + (sist? ': ' + sist : ''));
     S.gallery = {token:g.token, url:g.url, count:klara, n:(missade? -1 : items.length), ts:Date.now()};
     log(`Photos uploaded: ${klara} of ${items.length}${missade? ', '+missade+' failed':''}`);
     await flushSave(); if(!auto) render();
     toast(missade? `${T('Done, but')} ${missade} ${T('files failed')}` : T('The photos are uploaded'));
   }catch(e){
-    toast(String(e.message).slice(0,80));
+    const why = String(e && e.message || e).slice(0,120);
+    toast(why.slice(0,80));
+    // Into the activity log as well, so the reason ends up in the report and not only in a toast
+    // that vanished while the inspector was looking at the camera.
+    if(S === insp) log('Photo upload failed: ' + why);
   }
   uploading = false;
 }
@@ -1790,6 +1833,7 @@ async function sendSignRequest(){
   const gammal = (S.signReq && S.signReq.token && (S.signReq.status==='pending' || S.signReq.status==='expired')) ? S.signReq.token : null;
 
   btn.disabled = true; btn.textContent = T('Building PDF…');
+  commitPendingPads(['inspector']);   // the counterparty isn't here, that is why a link is being sent
   await ensureGalleryUploaded();
   const out = await buildPdf();
   if(S !== insp) return reset(T('You switched inspection, nothing was sent.'));
@@ -2016,9 +2060,35 @@ async function pickRestore(){
   };
   inp.click();
 }
+// The list on the start screen is an index kept next to the inspections. Should a row ever be
+// missing from it — an interrupted write, a database connection iOS closed mid-save — the
+// inspection itself is still on the phone under its own key. Put such orphans back in the
+// list instead of letting them look deleted. If the index can't be read at all, nothing is
+// written: a truncated list must never be saved over a good one.
+async function loadIndex(){
+  let idx;
+  try{ idx = await store.getStrict(K.index) }
+  catch(e){ return (await store.get(K.index)) || [] }
+  if(!Array.isArray(idx)) idx = [];
+  const seen = new Set(idx.map(r=>r && r.id));
+  let added = 0;
+  for(const k of await store.keys('bp:insp:')){
+    const id = String(k).slice('bp:insp:'.length);
+    if(!id || seen.has(id)) continue;
+    const s = await store.get(k);
+    if(!s || s.id !== id) continue;
+    idx.push({id:s.id, address:s.address, apt:s.apt, type:s.type, created:s.created, locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt});
+    seen.add(id); added++;
+  }
+  if(added){
+    idx.sort((a,b)=>(b.created||0)-(a.created||0));
+    await store.set(K.index, idx);
+  }
+  return idx;
+}
 async function renderStart(){
   document.body.classList.add('start');
-  const idx = (await store.get(K.index)) || [];
+  const idx = await loadIndex();
   $('#app').innerHTML = `
     <div class="hero">
       ${logoSvg('hlogo')}
@@ -2432,6 +2502,7 @@ async function sharePdf(blob, name){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 async function doExport(){
+  commitPendingPads();
   await ensureGalleryUploaded();
   toast(T('Building PDF'));
   const out = await buildPdf();
@@ -2464,6 +2535,7 @@ async function mailPdf(blob, name){
   }catch(e){ try{ ac.abort() }catch(_){}  return {ok:false, reason:'ingen kontakt'} }
 }
 async function sendPdf(){
+  commitPendingPads();
   await ensureGalleryUploaded();
   toast(T('Building PDF'));
   const out = await buildPdf();

@@ -310,6 +310,72 @@ fjorton avvikelser med långa kommentarer. 33 kontroller, alla gröna.
 
 **Totalt 201 automatiska kontroller** över fem sviter.
 
+### 2026-09-08 — two reports from 2026-09-07: one went out unsigned, one "disappeared"
+
+**What was established.** The move-in PDF for Folkungagatan 59, 1201 has only two lines in
+its activity log: *Inspection created* and *Wifi measured*. No *Signed by*, no *Report
+locked*. So the PDF was emailed while the report was still an unsigned draft: whatever ink
+was on the pads had not been approved, and the app silently dropped it. Nothing else went
+wrong — the PDF is complete apart from the signatures.
+
+For Banérgatan 10, 1602 nothing exists outside the phone unless it was emailed, uploaded as
+a gallery or sent as a signing link — the app keeps everything in the phone's IndexedDB.
+Two things make a report *look* deleted while it is still there:
+
+- **Two hosts.** `beaps-besiktning.netlify.app` still serves the app from before 2026-08-28
+  (deploys paused until 21 September); `beaps-besiktning.pages.dev` serves current `main`.
+  Storage is per address.
+- **Two containers per address on iOS.** A home-screen icon and Safari have separate
+  storage. A report made from the icon is invisible when the same link is opened in
+  Safari. Deleting the home-screen icon deletes its storage outright — the earlier
+  instruction in [CLOUDFLARE.md](CLOUDFLARE.md) to "remove the icon and add it again"
+  now carries that warning.
+
+**Links verified live on pages.dev:** `/sign.html?t=…` and `/galleri.html?t=…` answer
+with a 308 to `/sign?t=…` and `/galleri?t=…` (Cloudflare drops the extension) and the
+token survives the redirect. `sign-load`, `media-list`, `media-init`, `media-put` and
+`media-file` all respond correctly, so KV, R2 and the app token are in place. On
+netlify.app `/sign.html` is 404 and `/api/*` returns the app's HTML — any link pointing
+there fails.
+
+**Two changes in [index.html](index.html):**
+
+- `loadIndex()` — the start screen now reconciles the list against the `bp:insp:*` keys and
+  puts back any report whose row went missing from the index (interrupted write, closed
+  database connection). If the index cannot be read nothing is written, so a truncated
+  list is never saved over a good one.
+- `commitPendingPads()` — a drawn but unapproved signature is kept when the report is
+  emailed, shared or sent for signing, instead of being dropped. *Email PDF* and *Share*
+  take both pads; the signing link takes only the inspector's. Nothing new is required,
+  nothing blocks.
+
+**Tested:** syntax check of the whole app script plus 18 unit checks on the two functions
+(orphan restored newest first, complete index untouched, read failure never writes,
+missing or corrupt index rebuilt, mismatching blob skipped; pads committed only when inked,
+box redrawn, other pad kept, both inked locks the report, approved signature never
+overwritten). Node is not on this machine — VS Code's Electron runs the tests with
+`ELECTRON_RUN_AS_NODE=1`.
+
+**Why the PDF carried no photo/video link.** The email for Folkungagatan was sent from the
+current app (the PDF has the wifi line and English headings, which the old Netlify app
+cannot produce; the email body "Attached: …" is identical on both hosts and proves
+nothing). The link is only written into the PDF when the upload succeeds, and a
+successful upload also writes *Photos uploaded* into the activity log. That line is
+absent, so the upload failed on the phone before the PDF was built — the only sign was
+a toast that vanished in seconds. Uploads with photo- and video-sized files were verified
+working against pages.dev, so the failure was on the phone's side (a dropped request, or
+a `Gallery not found` because KV had not yet propagated the manifest to the edge that
+took the first file). Two changes in `uploadGallery()`:
+
+- The gallery request and every file get one retry after 1.5 s.
+- A failed upload is now written to the activity log as *Photo upload failed: reason*,
+  so the cause is in the report itself the next time.
+
+**One more container.** A link tapped inside Outlook, Teams, WhatsApp, Gmail or Slack
+opens in that app's built-in browser, which has its own storage — not Safari's. A report
+made there is only visible by tapping the same link in the same app again. A Safari
+private tab loses everything when the tab is closed.
+
 ---
 
 ## 6. Kvar att göra

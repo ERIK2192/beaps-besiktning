@@ -10,10 +10,11 @@ export async function onRequest(context) {
   if (fel) return fel;
 
   const id = cleanId(url.searchParams.get('id'));
-  // the uploaded flag is no longer in the manifest; the R2 fetch below is the real
-  // check and returns 404 if the file doesn't exist.
-  const post = manifest.items.find(i => i.id === id);
-  if (!post) return new Response('File not found', { status: 404 });
+  if (!id) return new Response('File not found', { status: 404 });
+  // A photo uploaded while the inspection was still running is not in the manifest at all, so
+  // the manifest cannot be the gatekeeper. The R2 fetch below is the real check and answers
+  // 404 when the file does not exist. The token, which is 48 random characters, is the lock.
+  const post = manifest.items.find(i => i.id === id) || null;
 
   const range = request.headers.get('range');
   let obj;
@@ -32,7 +33,7 @@ export async function onRequest(context) {
   h.set('X-Content-Type-Options', 'nosniff');
   h.set('Accept-Ranges', 'bytes');
   h.set('Content-Disposition',
-    'inline; filename="' + String(post.name || id).replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_') + '"');
+    'inline; filename="' + String((post && post.name) || id).replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_') + '"');
 
   if (obj.range && obj.size != null) {
     const start = obj.range.offset || 0;

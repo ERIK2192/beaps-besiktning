@@ -27,6 +27,8 @@ export async function onRequest(context) {
     ref: b.ref || '', type: b.type || '', address: b.address || '', apt: b.apt || '',
     inspector: b.inspector || '', filename: b.filename || 'Inspection report.pdf',
     to, cc, recipientName: b.recipientName || '', recipientRole: b.recipientRole || '',
+    // which gallery this belongs to, so the signed report can be filed with its own photos
+    gallery: String(b.gallery || '').replace(/[^a-f0-9]/g, '').slice(0, 48),
     signedAt: null, signedName: null, signedRole: null
   };
 

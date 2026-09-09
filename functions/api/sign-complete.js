@@ -8,6 +8,8 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { sendMail, longstay, esc, stamp, typeLabel } from '../../cflib/mail.js';
 import { loadRequest, store, writeMeta, readMeta, b64ToBytes, bytesToB64 } from '../../cflib/sign.js';
+import { readManifest } from '../../cflib/media.js';
+import { dbxOn, uploadFile, cleanPart } from '../../cflib/dropbox.js';
 
 // StandardFonts can only draw WinAnsi. If a character goes outside that, pdf-lib throws.
 const wa = s => String(s == null ? '' : s)
@@ -127,6 +129,18 @@ export async function onRequest(context) {
   } catch (e) {}
 
   const namn = (meta.filename || 'Inspection report.pdf').replace(/\.pdf$/i, '') + ' signed.pdf';
+
+  // The signed report is the one that counts, so it belongs in the Dropbox folder with its
+  // photos. Best effort: it must never stand between a signature and the email.
+  if (dbxOn(env) && meta.gallery) {
+    try {
+      const m = await readManifest(env, meta.gallery);
+      if (m && m.dropbox && m.dropbox.path) {
+        await uploadFile(env, m.dropbox.path + '/' + cleanPart(namn.replace(/\.pdf$/i, '')) + '.pdf',
+          b64ToBytes(finalB64));
+      }
+    } catch (e) {}
+  }
   const objekt = meta.ref || [meta.address, meta.apt].filter(Boolean).join(', ');
 
   const text = [

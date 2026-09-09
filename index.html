@@ -1673,6 +1673,20 @@ const galleryItems = () => {
 
 const dataUrlToBlob = async d => (await fetch(d)).blob();
 
+// Dropbox filing follows the folders Beaps already uses:
+//   Longstay PICTURES / MOVE IN / "MIN - <address> <apt> <tenant>"
+// Only move-ins and move-outs are filed there; the other types do not live in that structure.
+// The server owns the "Longstay PICTURES" part, so nothing here can write elsewhere.
+const DBX_PARENT = {Inflytt:'MOVE IN', Utflytt:'MOVE OUT'};
+function dropboxSubfolder(){
+  if(!S) return null;
+  const parent = DBX_PARENT[S.type];
+  if(!parent) return null;
+  const namn = [PREFIX[S.type] + ' -', S.address, S.apt, S.counter && S.counter.name]
+    .map(x=>String(x==null?'':x).trim()).filter(Boolean).join(' ');
+  return parent + '/' + namn;
+}
+
 // Which photos already have a copy on the server. The ids are kept on the inspection, so the
 // list survives a reload and a phone that was switched off in the middle of a job.
 const galleryDone = () => new Set((S && S.gallery && S.gallery.done) || []);
@@ -1708,17 +1722,22 @@ async function tidyGallery(){
   const ids = galleryItems().map(it=>it.id);
   if(!ids.length) return;
   const done = (insp.gallery.done||[]);
-  if(!done.some(id=>ids.indexOf(id)<0)) return;   // nothing was removed, nothing to tidy
+  const bortagna = done.some(id=>ids.indexOf(id)<0);
+  const sub = dropboxSubfolder();
+  const bytt = !!(insp.dropbox && sub && sub !== insp.dropbox.subfolder);
+  if(!bortagna && !bytt) return;                  // nothing removed and nothing renamed
   try{
     const r = await withTimeout(fetch('/api/media-sync', {
       method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
-      body: JSON.stringify({ t: insp.gallery.token, ids })
+      body: JSON.stringify({ t: insp.gallery.token, ids, subfolder: sub })
     }), 20000);
     if(!r.ok) return;
     const j = await r.json().catch(()=>null);
     if(!j || !j.ok || S !== insp || !S.gallery) return;
     S.gallery.done = done.filter(id=>ids.indexOf(id)>=0);
     S.gallery.count = S.gallery.done.length;
+    // the folder may have been renamed to match a corrected address, which gives a new link
+    if(j.dropbox && j.dropbox.url) S.dropbox = {url:j.dropbox.url, path:j.dropbox.path, subfolder:j.dropbox.subfolder};
     if(j.removed) log(`Deleted photos removed from the gallery: ${j.removed}`);
     await flushSave();
   }catch(e){}
@@ -1749,7 +1768,7 @@ async function uploadGallery(auto, tyst){
           r = await withTimeout(fetch('/api/media-init', {
             method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
             body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
-              inspector:S.inspector.name, items })
+              inspector:S.inspector.name, items, subfolder: dropboxSubfolder() })
           }), 30000);
           break;
         }catch(e){ if(attempt) throw new Error('No contact with the server'); await pause(1500) }
@@ -1768,6 +1787,11 @@ async function uploadGallery(auto, tyst){
       g = {token:j.token, url:j.url};
       if(S !== insp){ uploading = false; return }
       insp.gallery = {token:g.token, url:g.url, done:[], count:0, n:0, ts:Date.now()};
+      // Where the inspection was filed in Dropbox, when Dropbox is set up on the server.
+      if(j.dropbox && j.dropbox.url){
+        insp.dropbox = {url:j.dropbox.url, path:j.dropbox.path, subfolder:j.dropbox.subfolder};
+        log('Filed in Dropbox: ' + (j.dropbox.subfolder || j.dropbox.path));
+      }
       await flushSave();
     }
 
@@ -1971,7 +1995,8 @@ async function sendSignRequest(){
       method:'POST', headers:{'Content-Type':'application/json', ...AUTH}, signal: ac.signal,
       body: JSON.stringify({ pdf:b64, filename:out.name, ref:ref(), type:S.type,
         address:S.address, apt:S.apt, inspector:S.inspector.name,
-        to, cc, recipientName:name, recipientRole:role })
+        to, cc, recipientName:name, recipientRole:role,
+        gallery: (S.gallery && S.gallery.token) || null })
     }), 45000);
   }catch(e){ try{ ac.abort() }catch(_){}  return reset(T('No contact with the server. Check the connection and try again.')) }
   if(!r.ok){
@@ -2400,7 +2425,9 @@ async function buildPdf(){
   // The link at the very top, in its own box. The photos further down are squeezed so
   // the document fits in an email — there they are as they were taken, and the video can
   // be played, which it never can in a PDF.
-  if(S.gallery && S.gallery.url){
+  // The Dropbox folder when the inspection was filed there, otherwise the app's own gallery.
+  const lank = (S.dropbox && S.dropbox.url) || (S.gallery && S.gallery.url) || null;
+  if(lank){
     const harVideo = !!(S.video && S.video.stored);
     const rubrik = harVideo
       ? 'See the video and zoom into the photos'
@@ -2421,9 +2448,14 @@ async function buildPdf(){
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
     rader.forEach(t=>{ doc.text(t, M + 12, by); by += 11 });
     by += 5;
-    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(20, 80, 170);
-    try{ doc.textWithLink(S.gallery.url, M + 12, by, {url: S.gallery.url}) }
-    catch(e){ doc.text(S.gallery.url, M + 12, by) }
+    doc.setFont('helvetica','bold'); doc.setTextColor(20, 80, 170);
+    // A Dropbox share link is far longer than the gallery's. Shrink it until it fits the box
+    // rather than letting it run off the edge of the page.
+    let ls = 9.5;
+    doc.setFontSize(ls);
+    try{ while(ls > 6 && doc.getTextWidth(lank) > CW - 24){ ls -= 0.5; doc.setFontSize(ls) } }catch(e){}
+    try{ doc.textWithLink(lank, M + 12, by, {url: lank}) }
+    catch(e){ doc.text(lank, M + 12, by) }
     doc.setTextColor(0); doc.setFont('helvetica','normal');
     y += boxH + 16;
   }
@@ -2662,7 +2694,9 @@ async function mailPdf(blob, name){
         filename: name,
         kind: isCheck()? 'upplasning' : 'besiktning',
         subject: (isCheck()? 'UpplåsningPDF ' : 'BesiktningPDF ') + ref(),
-        pdf: b64
+        pdf: b64,
+        // lets the server file the report next to its own photos in Dropbox
+        gallery: (S.gallery && S.gallery.token) || null
       })
     }), 25000);
     if(r.status===429) return {ok:false, reason:'quota'};

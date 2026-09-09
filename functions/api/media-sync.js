@@ -4,7 +4,8 @@
 // Photos are copied to the server while the inspection is still running, so a photo that was
 // taken and then deleted may already be up here. Without this it would show up in the
 // recipient's gallery, which is the opposite of what deleting it meant.
-import { cleanId, loadGallery, kv, manifestKey, r2, fileKey, NO_STORE, appOk } from '../../cflib/media.js';
+import { cleanId, loadGallery, kv, manifestKey, r2, fileKey, writeManifest, NO_STORE, appOk } from '../../cflib/media.js';
+import { dbxOn, dbxPath, moveFolder, sharedLink } from '../../cflib/dropbox.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -16,7 +17,7 @@ export async function onRequest(context) {
 
   const url = new URL(request.url);
   url.searchParams.set('t', b.t || '');
-  const { fel, token } = await loadGallery(env, url);
+  const { fel, token, manifest } = await loadGallery(env, url);
   if (fel) return fel;
 
   const keep = new Set((Array.isArray(b.ids) ? b.ids : []).map(cleanId).filter(Boolean));
@@ -45,5 +46,21 @@ export async function onRequest(context) {
     return new Response('Could not tidy the gallery: ' + String(e.message).slice(0, 120), { status: 502 });
   }
 
-  return Response.json({ ok: true, removed: bort, kept: keep.size }, { headers: NO_STORE });
+  // The address or the tenant's name may have been corrected after the folder was created.
+  // Rename it so the filing matches the report, and take a fresh share link, because a Dropbox
+  // link does not reliably survive a move.
+  let dropbox = manifest.dropbox || null;
+  if (dbxOn(env) && dropbox && dropbox.path && b.subfolder && b.subfolder !== dropbox.subfolder) {
+    const to = dbxPath(env, b.subfolder);
+    if (to && to !== dropbox.path) {
+      try {
+        if (await moveFolder(env, dropbox.path, to)) {
+          dropbox = { path: to, subfolder: String(b.subfolder).slice(0, 200), url: await sharedLink(env, to) };
+          await writeManifest(env, token, Object.assign({}, manifest, { dropbox }));
+        }
+      } catch (e) {}
+    }
+  }
+
+  return Response.json({ ok: true, removed: bort, kept: keep.size, dropbox }, { headers: NO_STORE });
 }

@@ -479,6 +479,53 @@ a wrong token gives 404.
 the next step, if wanted, is to send that little bit of text along with the photos so a lost
 phone loses nothing at all.
 
+### 2026-09-09 — move-ins and move-outs file themselves into Dropbox
+
+Beaps already keeps every photo and video in Dropbox by hand. The app now does the filing
+itself, into the folders that already exist:
+
+```
+Longstay PICTURES/MOVE IN/MIN - Folkungagatan 59 1201 Lovable/
+    Hall 2026-09-07 11-11-04.jpg
+    Walkthrough 2026-09-07 11-24-00.mp4
+    MIN Folkungagatan 59, 1201.pdf
+```
+
+The folder is made with the first photo and fills as the inspector works, so the office sees a
+job appearing live. The PDF is filed when the report is sent, and the signed PDF when it comes
+back from a signing link. The link at the top of the PDF is the Dropbox folder. Only move-ins
+and move-outs are filed; damage, annual and shortstay inspections do not live in that structure
+and are left alone. Setup is in [DROPBOX.md](DROPBOX.md).
+
+**The credentials never touch the phone.** index.html is a static page anyone can read the
+source of, so a token there would hand out the whole team Dropbox. All of it runs in the
+functions, with the refresh token in Cloudflare's encrypted secrets beside the mail key.
+Without those secrets every part of this is inert and the app behaves exactly as before.
+
+**Decisions worth remembering:**
+
+- **Files are named by room and capture time**, `Hall 2026-09-07 11-11-04.jpg`, not `Hall 1`.
+  Two photos can then never overwrite each other, which plain `Hall 1` would once a photo has
+  been deleted and the rest have renumbered. It also sorts the folder chronologically.
+- **A corrected address renames the folder** before the report goes out, and a fresh share link
+  is taken, because a Dropbox link does not reliably survive a move.
+- **A deleted photo is removed from the gallery but left in Dropbox.** What is filed stays
+  filed; nothing disappears from the records behind anyone's back.
+- **A team account roots every call in the member's own space** unless `Dropbox-API-Path-Root`
+  is sent, so the root namespace is looked up once and cached. Set `DROPBOX_TEAM=no` for a
+  personal account; the lookup is harmless either way.
+- **`Dropbox-API-Arg` is an HTTP header and must be plain ASCII.** Every Swedish street name
+  would otherwise break its own upload, so the JSON is escaped to `\uXXXX` before it is sent.
+- **The share link is much longer than the gallery link**, so the PDF shrinks that line until
+  it fits instead of running off the page.
+
+**Verified with** 31 unit checks against a stubbed Dropbox (path building, Swedish characters
+surviving as escapes and decoding back, characters Dropbox rejects, a climb out of the root
+being flattened, file naming and collisions, token caching, an existing folder counting as
+success, and the app naming folders exactly as Dropbox already does) plus an import check that
+every one of the 18 function files parses and resolves - a broken import there would take
+`/api/*` down and with it mail, signing and the gallery at once.
+
 ---
 
 ## 6. Kvar att göra

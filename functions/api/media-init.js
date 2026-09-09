@@ -2,6 +2,7 @@
 //   POST /api/media-init  { ref, type, address, apt, inspector, items:[{id, name, kind}] }
 //   -> { ok, token, url }
 import { GALLERI_DAGAR, newToken, writeManifest, cleanId, NO_STORE, appOk, clip } from '../../cflib/media.js';
+import { dbxOn, dbxPath, ensureFolder, sharedLink } from '../../cflib/dropbox.js';
 
 const MAX_POSTER = 600;
 
@@ -32,9 +33,26 @@ export async function onRequest(context) {
     })).filter(i => i.id)
   };
 
+  // File the inspection in Dropbox as well, when it is set up. Best effort throughout: the
+  // gallery is the app's own safety net and must be created even if Dropbox is having a bad day.
+  if (dbxOn(env) && b.subfolder) {
+    const path = dbxPath(env, b.subfolder);
+    if (path) {
+      try {
+        await ensureFolder(env, path);
+        manifest.dropbox = { path, subfolder: clip(b.subfolder), url: await sharedLink(env, path) };
+      } catch (e) {
+        manifest.dropbox = { path, subfolder: clip(b.subfolder), url: null, fel: String(e && e.message).slice(0, 160) };
+      }
+    }
+  }
+
   try { await writeManifest(env, token, manifest) }
   catch (e) { return new Response('Could not create the gallery: ' + String(e.message).slice(0, 160), { status: 502 }) }
 
   const url = new URL(request.url).origin + '/galleri.html?t=' + token;
-  return Response.json({ ok: true, token, url, count: manifest.items.length }, { headers: NO_STORE });
+  return Response.json({
+    ok: true, token, url, count: manifest.items.length,
+    dropbox: manifest.dropbox || null
+  }, { headers: NO_STORE });
 }

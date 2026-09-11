@@ -174,7 +174,9 @@
   /* QR scanning and the key bundle behind a tag */
   .scanbox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
   .scanbox i{width:min(64vw,250px);aspect-ratio:1;border:3px solid var(--brand);border-radius:16px;
-             box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+             box-shadow:0 0 0 100vmax rgba(0,0,0,.45);transition:border-color .12s,transform .12s}
+  .scanbox.hit i{border-color:#4ADE80;transform:scale(.94)}
+  @media (prefers-reduced-motion:reduce){ .scanbox i{transition:none} }
   .cam .scanfoot{padding:14px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
   .cam .scanfoot .msg{font-size:13.5px;color:#C9CDCE;text-align:center;line-height:1.45;min-height:20px}
   .cam .scanfoot .btn{background:transparent;color:#fff;border-color:#555}
@@ -636,7 +638,20 @@ const SV = {
   'Is there a sign with instructions on how to lock?':'Finns skylt med instruktioner hur man låser?',
   'Is there an info sheet or QR code on the door?':'Finns infosheet eller QR-kod på dörren?',
   // --- key bundles ---
+  'Check key in/out':'Checka in/ut nyckel',
   'Scan QR code':'Skanna QR-kod',
+  'Shared log':'Gemensam logg',
+  'Everyone sees the same log.':'Alla ser samma logg.',
+  'Saved here only — will sync when you are online.':'Sparad här — synkas när du är uppkopplad.',
+  'Syncing…':'Synkar…',
+  'waiting to sync':'väntar på synk',
+  'Nothing has been checked out yet.':'Inget är utcheckat än.',
+  'Out right now':'Utlånade just nu',
+  'Latest':'Senaste',
+  'Keys':'Nycklar',
+  'Checked out by':'Utcheckad av',
+  'Checked in by':'Incheckad av',
+  'was with':'var hos',
   'Starting the camera…':'Startar kameran…',
   'Hold the tag inside the frame.':'Håll brickan innanför ramen.',
   'Take a photo of the tag':'Ta ett foto på brickan',
@@ -2304,6 +2319,7 @@ function homeScreenCard(){
 async function renderStart(){
   document.body.classList.add('start');
   const idx = await loadIndex();
+  await keyLocal();
   $('#app').innerHTML = `
     <div class="hero">
       ${logoSvg('hlogo')}
@@ -2311,6 +2327,7 @@ async function renderStart(){
     <div class="wrap" style="padding-top:0">
       <div style="display:flex;justify-content:center;margin:0 0 16px">${langToggle()}</div>
       ${isStandalone()? '' : homeScreenCard()}
+      ${keyCard()}
       ${idx.length? `<div class="listhead">
           <span class="eyebrow">${idx.length} ${T('reports')}</span>
           <button onclick="toggleEdit()">${editList?T('Done'):T('Edit')}</button>
@@ -2333,8 +2350,10 @@ async function renderStart(){
     </div>`;
   $('#bar').className = 'bar raised stack';
   $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">${T('New inspection')}</button>
-    <button class="btn ghost" onclick="openScan()">${T('Scan QR code')}</button>`;
+    <button class="btn ghost" onclick="openScan()">${T('Check key in/out')}</button>`;
   paintTicker();
+  // Catch up with what everyone else has done, then repaint only if it changed something.
+  keySync().then(moved=>{ if(moved && view==='start' && !document.getElementById('keylog')) renderStart() });
 }
 let editList = false;
 function toggleEdit(){ editList = !editList; renderStart() }
@@ -2403,9 +2422,12 @@ function openLog(){
    The check-out log is on this phone only, so it cannot yet answer "who has 112:3"
    across the team. That needs the shared database - see the plan. Everything else here
    is the finished shape. */
-const KEYSTATE = 'bp:keys';       // { '112:3': {status, holder, reason, since, log[]} }
+const KEYSTATE = 'bp:keys';       // { '112:3': {status, holder, reason, since} }, a projection
 const KEYNAME  = 'bp:keyname';    // the name that goes on every line of the log
-let keyState = null, keyMe = '';
+const KEYEV    = 'bp:keyev';      // the log as last seen from the server
+const KEYQ     = 'bp:keyq';       // events written here that have not reached the server yet
+let keyState = null, keyMe = '', keyEvents = null, keyQueue = null;
+let keySyncing = false, keySyncedAt = 0;
 
 function loadScript(src, ready){
   if(ready()) return Promise.resolve(true);
@@ -2419,21 +2441,171 @@ function loadScript(src, ready){
     document.head.appendChild(s);
   });
 }
-const loadJsQR    = () => loadScript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js', ()=>typeof jsQR==='function');
+// Both files are served from our own origin. A key cabinet is usually in a basement,
+// and a script from a CDN is exactly what does not arrive down there.
+const loadJsQR    = () => loadScript('jsqr.js', ()=>typeof jsQR==='function');
 const loadNycklar = () => loadScript('nycklar.js', ()=>Array.isArray(window.NYCKLAR));
 
-async function keyBoot(){
-  if(!keyState) keyState = (await store.get(KEYSTATE)) || {};
-  if(!keyMe)    keyMe    = (await store.get(KEYNAME))  || '';
-  await loadNycklar();
+// Reads what is already on the phone. No network, no register - safe to call on every
+// start screen paint.
+async function keyLocal(){
+  if(!keyState)  keyState  = (await store.get(KEYSTATE)) || {};
+  if(!keyMe)     keyMe     = (await store.get(KEYNAME))  || '';
+  if(!keyEvents) keyEvents = (await store.get(KEYEV))    || [];
+  if(!keyQueue)  keyQueue  = (await store.get(KEYQ))     || [];
 }
+// The full thing: local state plus the register behind the tags.
+async function keyBoot(){ await keyLocal(); await loadNycklar() }
+
 const bundleOf = id => (window.NYCKLAR||[]).find(b=>b.id===id);
 function bstate(id){
-  if(!keyState[id]) keyState[id] = {status:'in', holder:null, reason:'', since:null, log:[]};
+  if(!keyState[id]) keyState[id] = {status:'in', holder:null, reason:'', since:null};
   return keyState[id];
 }
 const keySave = () => store.set(KEYSTATE, keyState);
-function keyLog(id, txt){ bstate(id).log.unshift({ts:Date.now(), txt}); keySave() }
+const eventsFor = id => (keyEvents||[]).filter(e=>e.bundle===id);
+const outNow = () => Object.keys(keyState||{}).filter(id=>keyState[id].status==='out');
+
+/* Where a bundle is, is not stored - it is worked out from the log. The last event for a
+   bundle wins, whoever wrote it, so two phones that were both offline end up agreeing as
+   soon as they have both synced. */
+function applyEvents(){
+  const last = {};
+  for(const e of keyEvents) if(!last[e.bundle] || e.ts > last[e.bundle].ts) last[e.bundle] = e;
+  Object.keys(last).forEach(id=>{
+    const e = last[id], s = bstate(id);
+    const out = e.kind === 'out';
+    s.status = out? 'out' : 'in';
+    s.holder = out? e.who : null;
+    s.reason = out? (e.reason||'') : '';
+    s.since  = out? e.ts : null;
+  });
+}
+async function keyRemember(){
+  await store.set(KEYEV, (keyEvents||[]).slice(0, 400));
+  await store.set(KEYQ, keyQueue||[]);
+  await keySave();
+}
+// Send whatever has not reached the server. Anything that fails stays queued.
+async function keyFlush(){
+  if(!keyQueue || !keyQueue.length) return true;
+  try{
+    const r = await fetch('/api/keys-event', {
+      method:'POST',
+      headers:{...AUTH, 'Content-Type':'application/json'},
+      body: JSON.stringify({events: keyQueue.slice(0,50)})
+    });
+    if(!r.ok) return false;
+    const sent = new Set(keyQueue.slice(0,50).map(e=>e.id));
+    keyQueue = keyQueue.filter(e=>!sent.has(e.id));
+    await store.set(KEYQ, keyQueue);
+    return true;
+  }catch(e){ return false }
+}
+// Pull everyone's events down and fold ours in. Returns true when the log actually moved.
+async function keySync(force){
+  if(keySyncing) return false;
+  if(!force && Date.now() - keySyncedAt < 20000) return false;
+  keySyncing = true;
+  let moved = false;
+  try{
+    await keyLocal();
+    await keyFlush();
+    const r = await fetch('/api/keys-log', {headers:AUTH});
+    if(r.ok){
+      const j = await r.json();
+      if(Array.isArray(j.events)){
+        const before = JSON.stringify(keyEvents.map(e=>e.id));
+        const seen = new Set(j.events.map(e=>e.id));
+        keyEvents = j.events
+          .concat((keyQueue||[]).filter(e=>!seen.has(e.id)))   // ours, still unsent
+          .sort((a,b)=>b.ts-a.ts);
+        applyEvents();
+        await keyRemember();
+        moved = before !== JSON.stringify(keyEvents.map(e=>e.id));
+        keySyncedAt = Date.now();
+      }
+    }
+  }catch(e){}
+  keySyncing = false;
+  return moved;
+}
+// Write one event: visible here at once, on its way to everyone else.
+async function keyWrite(bundle, kind, extra){
+  const b = bundleOf(bundle);
+  const ev = Object.assign({
+    id: uid(), bundle, kind, ts: Date.now(),
+    who: keyMe, reason: '', name: b? (b.n || 'lgh ' + b.l) : ''
+  }, extra || {});
+  keyEvents.unshift(ev);
+  keyQueue.push(ev);
+  applyEvents();
+  await keyRemember();
+  keyFlush();                     // not awaited: the screen must not wait for the network
+  return ev;
+}
+
+function evLine(e){
+  return e.kind === 'out'
+    ? `${T('Checked out by')} ${e.who}${e.reason? ' — ' + e.reason : ''}`
+    : `${T('Checked in by')} ${e.who}${e.from? ' — ' + T('was with') + ' ' + e.from : ''}`;
+}
+
+/* ----- the shared log ----- */
+// A small card on the start screen, painted from what is already on the phone so it costs
+// no waiting. The sync behind it refreshes it a moment later if anything moved.
+function keyCard(){
+  const out = outNow(), q = (keyQueue||[]).length;
+  return `<div class="card" style="border-color:var(--brand-dark);box-shadow:inset 3px 0 0 var(--brand)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+      <span class="eyebrow">${T('Keys')}</span>
+      <button class="addc" onclick="openKeyLog()">${T('Shared log')} ›</button>
+    </div>
+    <div style="margin-top:6px;font-size:15px">
+      ${out.length
+        ? out.slice(0,4).map(id=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0">
+            <b>${esc(id)}</b><span style="font-family:var(--mono);font-size:12px;color:var(--ink2)">${esc(keyState[id].holder||'')}</span></div>`).join('')
+          + (out.length>4? `<div class="hint">+ ${out.length-4}</div>`:'')
+        : `<span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span>`}
+    </div>
+    ${q? `<div class="hint">${q} ${T('waiting to sync')}</div>`:''}
+  </div>`;
+}
+async function openKeyLog(){
+  await keyBoot();
+  const el = document.createElement('div');
+  el.className = 'sheet'; el.id = 'keylog';
+  el.innerHTML = keyLogHtml();
+  document.body.appendChild(el);
+  window.scrollTo(0,0);
+  if(await keySync(true)){ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() }
+}
+function closeKeyLog(){ const el = document.getElementById('keylog'); if(el) el.remove(); renderStart() }
+function keyLogHtml(){
+  const out = outNow(), q = (keyQueue||[]).length;
+  return topbar(T('Shared log'), (keyEvents||[]).length + ' ' + T('entries'), null, "closeKeyLog()") + `
+    <div class="wrap">
+      <div class="hint" style="margin:0 3px 12px">${T('Everyone sees the same log.')}${q? ' ' + q + ' ' + T('waiting to sync') + '.' : ''}</div>
+      <div class="csec">${T('Out right now')}<span class="ccount">${out.length}</span></div>
+      ${out.length? out.map(id=>{ const s = keyState[id]; return `
+        <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
+          <span class="dot filled"></span>
+          <span style="min-width:0"><b>${esc(id)}</b>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--ink2)">
+              ${esc(s.holder||'')}${s.reason? ' · '+esc(s.reason):''} · ${stamp(new Date(s.since))}</div></span>
+          <span class="chev">›</span>
+        </button>`}).join('')
+        : `<div class="card"><span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span></div>`}
+
+      <div class="csec">${T('Latest')}</div>
+      <div class="card">
+        ${(keyEvents||[]).slice(0,60).map(e=>`<div class="logline">
+          <b>${stamp(new Date(e.ts))}</b>
+          <span><b>${esc(e.bundle)}</b>${e.name? ' · '+esc(e.name):''} — ${esc(evLine(e))}</span>
+        </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span>`}
+      </div>
+    </div>`;
+}
 
 /* ----- the scanner ----- */
 let scanRaf = 0, scanStream = null, scanOn = false;
@@ -2455,17 +2627,11 @@ async function openScan(){
     </div>
     <div class="scanfoot">
       <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
-      <label class="btn ghost">${T('Take a photo of the tag')}
-        <input type="file" accept="image/*" capture="environment" class="hidden" id="scanshot"></label>
       <input id="scanman" placeholder="${T('or type the number, e.g. 112:3')}"
              autocapitalize="characters" autocomplete="off" spellcheck="false">
       <button class="btn ghost" onclick="scanManual()">${T('Open the bundle')}</button>
     </div>`;
   document.body.appendChild(el);
-  document.getElementById('scanshot').addEventListener('change', e=>{
-    const f = e.target.files[0]; e.target.value='';
-    if(f) scanPhoto(f);
-  });
   document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
 
   if(!await loadJsQR()) return scanMsg(T('The scanner did not load. Type the number instead.'), true);
@@ -2486,38 +2652,55 @@ function scanMsg(txt, hideBox){
   const m = document.getElementById('scanmsg'); if(m) m.textContent = txt;
   if(hideBox){ const b = document.getElementById('scanbox'); if(b) b.classList.add('hidden') }
 }
+// A 23 mm code held at arm's length covers a small part of the frame, so scaling the
+// whole picture down throws away the very pixels the decoder needs. Read the middle of
+// the frame - what sits inside the yellow square - at close to full resolution instead,
+// and only occasionally sweep the whole frame for a tag held off to one side.
+let scanN = 0;
+function readFrame(v, crop){
+  const vw = v.videoWidth, vh = v.videoHeight;
+  let sx = 0, sy = 0, sw = vw, sh = vh, max = 760;
+  if(crop){
+    sw = sh = Math.round(Math.min(vw, vh) * 0.8);
+    sx = Math.round((vw - sw) / 2); sy = Math.round((vh - sh) / 2);
+    max = 1000;
+  }
+  const f = Math.min(1, max / Math.max(sw, sh));
+  scanCv.width = Math.round(sw * f); scanCv.height = Math.round(sh * f);
+  scanCtx.drawImage(v, sx, sy, sw, sh, 0, 0, scanCv.width, scanCv.height);
+  try{
+    const img = scanCtx.getImageData(0, 0, scanCv.width, scanCv.height);
+    return jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+  }catch(e){ return null }
+}
 function scanTick(){
   if(!scanOn) return;
   const v = document.getElementById('scanview');
   if(v && v.readyState >= 2 && v.videoWidth){
-    const f = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight));
-    scanCv.width = Math.round(v.videoWidth * f); scanCv.height = Math.round(v.videoHeight * f);
-    scanCtx.drawImage(v, 0, 0, scanCv.width, scanCv.height);
-    let hit = null;
-    try{
-      const img = scanCtx.getImageData(0, 0, scanCv.width, scanCv.height);
-      hit = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
-    }catch(e){}
+    scanN++;
+    const hit = readFrame(v, true) || (scanN % 4 === 0 ? readFrame(v, false) : null);
     if(hit && hit.data) return gotCode(hit.data);
   }
   scanRaf = requestAnimationFrame(scanTick);
 }
-async function scanPhoto(file){
-  scanMsg(T('Reading the photo…'));
-  if(!await loadJsQR()) return scanMsg(T('The scanner did not load. Type the number instead.'), true);
+/* The moment a code is read: a short buzz, the frame goes green, and a click.
+   navigator.vibrate is Android only - iOS has no vibration API on the web at all -
+   so the flash and the click are what an iPhone actually gives you. */
+function scanFeedback(){
+  try{ navigator.vibrate && navigator.vibrate(30) }catch(e){}
+  const box = document.getElementById('scanbox');
+  if(box){ box.classList.add('hit'); setTimeout(()=>box.classList.remove('hit'), 220) }
   try{
-    const im = await loadImg(URL.createObjectURL(file));
-    // A phone photo is far bigger than the decoder needs; try a few sizes before giving up.
-    for(const max of [1400, 900, 600]){
-      const f = Math.min(1, max / Math.max(im.width, im.height));
-      scanCv.width = Math.round(im.width * f); scanCv.height = Math.round(im.height * f);
-      scanCtx.drawImage(im, 0, 0, scanCv.width, scanCv.height);
-      const img = scanCtx.getImageData(0, 0, scanCv.width, scanCv.height);
-      const hit = jsQR(img.data, img.width, img.height, {inversionAttempts:'attemptBoth'});
-      if(hit && hit.data) return gotCode(hit.data);
-    }
-    scanMsg(T('No code in that photo. Fill more of the frame with the tag.'));
-  }catch(e){ scanMsg(T('That photo could not be read. Try again, or type the number.')) }
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    const ac = new Ctx(), o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'square'; o.frequency.value = 1720;
+    g.gain.setValueAtTime(.055, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + .09);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + .1);
+    setTimeout(()=>{ try{ ac.close() }catch(e){} }, 400);
+  }catch(e){}
 }
 function scanManual(){
   const el = document.getElementById('scanman');
@@ -2534,7 +2717,7 @@ function gotCode(raw){
     if(scanOn) scanRaf = requestAnimationFrame(scanTick);   // a stray QR must not end the scan
     return;
   }
-  try{ navigator.vibrate && navigator.vibrate(45) }catch(e){}
+  scanFeedback();
   closeScan();
   showBundle(id);
 }
@@ -2578,9 +2761,9 @@ function showBundle(id){
         ${k.q>1? `<span class="kq">×${k.q}</span>` : ''}
       </div>`).join('')}
 
-      ${s.log.length? `<div class="csec">${T('History')}</div>
-        <div class="card">${s.log.slice(0,10).map(l=>
-          `<div class="logline"><b>${stamp(new Date(l.ts))}</b><span>${esc(l.txt)}</span></div>`).join('')}</div>` : ''}
+      ${(()=>{ const ev = eventsFor(id); return ev.length? `<div class="csec">${T('History')}</div>
+        <div class="card">${ev.slice(0,10).map(e=>
+          `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}</span></div>`).join('')}</div>` : '' })()}
     </div>
     <div class="sheetbar">
       <button class="btn ghost" onclick="closeBundle()">${T('Close')}</button>
@@ -2641,10 +2824,7 @@ async function doCheckOut(id){
   }
   const reason = (document.getElementById('koreason').value || '').trim();
   keyMe = name; await store.set(KEYNAME, name);
-  const s = bstate(id);
-  s.status = 'out'; s.holder = name; s.reason = reason; s.since = Date.now();
-  keyLog(id, `Utcheckad av ${name}${reason? ' — '+reason : ''}`);
-  await keySave();
+  await keyWrite(id, 'out', {who:name, reason});
   closeOut(); reopenBundle(id);
   toast(T('Checked out to') + ' ' + name);
 }
@@ -2657,9 +2837,7 @@ async function checkIn(id){
     keyMe = name; await store.set(KEYNAME, name);
   }
   const was = s.holder || '';
-  s.status = 'in'; s.holder = null; s.reason = ''; s.since = null;
-  keyLog(id, `Incheckad av ${name}${was && was !== name ? ' — var hos ' + was : ''}`);
-  await keySave();
+  await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
   reopenBundle(id);
   toast(T('Back in the cabinet'));
 }

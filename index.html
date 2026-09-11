@@ -148,7 +148,7 @@
   .delbtn:active{background:#FBF2F1}
   .listhead{display:flex;align-items:baseline;justify-content:space-between;margin:0 2px 10px}
   .listhead button{font-size:14px;color:var(--ink2);text-decoration:underline}
-  .hero{padding:calc(38px + env(safe-area-inset-top)) 20px 26px;text-align:center}
+  .hero{padding:calc(38px + env(safe-area-inset-top)) 20px 26px;text-align:center;position:relative}
   .empty{text-align:center;padding:26px 18px;border:1px dashed #D3CFC7;border-radius:14px;background:#FBFAF8}
   .bar.raised{bottom:calc(25vh + env(safe-area-inset-bottom));padding-bottom:16px}
   body.start{padding-bottom:calc(25vh + 120px)}
@@ -191,6 +191,23 @@
          padding:5px 10px;border-radius:999px;white-space:nowrap;flex:none}
   .kstat.in{background:#E4F0EA;color:#2E7D5B}
   .kstat.out{background:#F7E4E3;color:var(--rec)}
+  .krow .knum{width:26px;height:26px;flex:none;border-radius:50%;background:var(--ink);color:#fff;
+              font-family:var(--mono);font-size:12px;display:grid;place-items:center}
+  .knums{display:flex;flex-wrap:wrap;gap:8px}
+  .knum-chip{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;
+             padding:8px 15px;font-family:var(--mono);font-size:14px;font-weight:600}
+
+  /* hamburger */
+  .burger{width:40px;height:40px;flex:none;display:grid;place-items:center;gap:4px;border-radius:10px}
+  .burger i{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px}
+  .menu{position:fixed;inset:0;z-index:70;background:rgba(11,13,14,.45);display:flex;justify-content:flex-end}
+  .menu .panel{background:var(--paper);width:min(78vw,300px);height:100%;
+               padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+               display:flex;flex-direction:column;gap:6px;box-shadow:-8px 0 24px rgba(0,0,0,.14)}
+  .menu .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+               text-align:left;padding:15px 4px;border-bottom:1px solid var(--line);font-size:16px}
+  .menu .mitem .chev{color:#BDB9B1;font-size:19px;line-height:1}
+  .menu .mhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
   .shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:5px solid #4A4E4F;flex:none}
   .shutter:active{transform:scale(.94)}
   .recbtn{width:52px;height:52px;border-radius:50%;background:transparent;border:3px solid #6A6E6F;display:flex;align-items:center;justify-content:center;flex:none}
@@ -649,18 +666,22 @@ const SV = {
   'Out right now':'Utlånade just nu',
   'Latest':'Senaste',
   'Keys':'Nycklar',
+  'You have no keys checked out.':'Du har inga nycklar utcheckade.',
+  'Menu':'Meny',
+  'Key log':'Nyckellogg',
+  'Language':'Språk',
+  'Hide history':'Dölj historik',
+  'Read':'Läste',
+  'that is not a key tag.':'det är ingen nyckelbricka.',
+  'Fill the frame with the code and hold still. Good light helps.':'Fyll ramen med koden och håll still. Bra ljus hjälper.',
   'Checked out by':'Utcheckad av',
   'Checked in by':'Incheckad av',
   'was with':'var hos',
   'Starting the camera…':'Startar kameran…',
   'Hold the tag inside the frame.':'Håll brickan innanför ramen.',
-  'Take a photo of the tag':'Ta ett foto på brickan',
   'or type the number, e.g. 112:3':'eller skriv numret, t.ex. 112:3',
   'Open the bundle':'Öppna knippan',
   'The scanner did not load. Type the number instead.':'Skannern laddades inte. Skriv numret i stället.',
-  'Reading the photo…':'Läser fotot…',
-  'No code in that photo. Fill more of the frame with the tag.':'Ingen kod i fotot. Låt brickan fylla mer av bilden.',
-  'That photo could not be read. Try again, or type the number.':'Fotot gick inte att läsa. Försök igen, eller skriv numret.',
   'is not in the key register yet.':'finns inte i nyckelregistret än.',
   'That is not a Beaps key tag.':'Det är inte en Beaps nyckelbricka.',
   'In the cabinet':'I skåpet',
@@ -2323,9 +2344,12 @@ async function renderStart(){
   $('#app').innerHTML = `
     <div class="hero">
       ${logoSvg('hlogo')}
+      <button class="burger" onclick="openMenu()" aria-label="${T('Menu')}"
+              style="position:absolute;top:calc(14px + env(safe-area-inset-top));right:12px">
+        <i></i><i></i><i></i>
+      </button>
     </div>
     <div class="wrap" style="padding-top:0">
-      <div style="display:flex;justify-content:center;margin:0 0 16px">${langToggle()}</div>
       ${isStandalone()? '' : homeScreenCard()}
       ${keyCard()}
       ${idx.length? `<div class="listhead">
@@ -2551,24 +2575,40 @@ function evLine(e){
     : `${T('Checked in by')} ${e.who}${e.from? ' — ' + T('was with') + ' ' + e.from : ''}`;
 }
 
+/* ----- menu ----- */
+function openMenu(){
+  const el = document.createElement('div');
+  el.className = 'menu'; el.id = 'menu';
+  el.addEventListener('click', e=>{ if(e.target === el) closeMenu() });
+  el.innerHTML = `<div class="panel">
+    <div class="mhead">
+      <span class="eyebrow">${T('Menu')}</span>
+      <button style="font-size:22px;line-height:1;padding:4px 8px" onclick="closeMenu()" aria-label="${T('Close')}">×</button>
+    </div>
+    <button class="mitem" onclick="closeMenu();openKeyLog()">
+      <span>${T('Key log')}</span><span class="chev">›</span></button>
+    <div class="mitem" style="border-bottom:0">
+      <span>${T('Language')}</span>${langToggle()}</div>
+  </div>`;
+  document.body.appendChild(el);
+}
+function closeMenu(){ const el = document.getElementById('menu'); if(el) el.remove() }
+
 /* ----- the shared log ----- */
 // A small card on the start screen, painted from what is already on the phone so it costs
 // no waiting. The sync behind it refreshes it a moment later if anything moved.
+// Only what this person is carrying, and only the numbers. Who has the rest is in the log.
+const myKeys = () => outNow().filter(id => (keyState[id].holder||'') === keyMe && keyMe);
 function keyCard(){
-  const out = outNow(), q = (keyQueue||[]).length;
-  return `<div class="card" style="border-color:var(--brand-dark);box-shadow:inset 3px 0 0 var(--brand)">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
-      <span class="eyebrow">${T('Keys')}</span>
-      <button class="addc" onclick="openKeyLog()">${T('Shared log')} ›</button>
+  const mine = myKeys();
+  return `<div class="card">
+    <span class="eyebrow">${T('Keys')}</span>
+    <div style="margin-top:8px">
+      ${mine.length
+        ? `<div class="knums">${mine.map(id=>
+            `<button class="knum-chip" onclick="showBundle('${id}')">${esc(id)}</button>`).join('')}</div>`
+        : `<span class="hint" style="margin:0">${T('You have no keys checked out.')}</span>`}
     </div>
-    <div style="margin-top:6px;font-size:15px">
-      ${out.length
-        ? out.slice(0,4).map(id=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0">
-            <b>${esc(id)}</b><span style="font-family:var(--mono);font-size:12px;color:var(--ink2)">${esc(keyState[id].holder||'')}</span></div>`).join('')
-          + (out.length>4? `<div class="hint">+ ${out.length-4}</div>`:'')
-        : `<span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span>`}
-    </div>
-    ${q? `<div class="hint">${q} ${T('waiting to sync')}</div>`:''}
   </div>`;
 }
 async function openKeyLog(){
@@ -2614,6 +2654,7 @@ const scanCtx = scanCv.getContext('2d', {willReadFrequently:true});
 
 async function openScan(){
   await keyBoot();
+  closeScan();            // same again: one scanner at a time, camera released first
   const el = document.createElement('div');
   el.className = 'cam'; el.id = 'scan';
   el.innerHTML = `
@@ -2635,18 +2676,43 @@ async function openScan(){
   document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
 
   if(!await loadJsQR()) return scanMsg(T('The scanner did not load. Type the number instead.'), true);
+
+  // Where the browser has a barcode reader of its own it is faster and steadier than
+  // anything we can do in JavaScript. Chrome on Android has one; Safari does not, which
+  // is why jsQR is loaded above either way.
+  scanNative = null;
+  try{
+    if(window.BarcodeDetector){
+      const kinds = await BarcodeDetector.getSupportedFormats();
+      if(kinds.includes('qr_code')) scanNative = new BarcodeDetector({formats:['qr_code']});
+    }
+  }catch(e){}
+
   try{
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error('no api'), {name:'NoApi'});
-    scanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}, width:{ideal:1280}}});
+    // Ask for more pixels than the screen needs. A 23 mm code at arm's length is only a
+    // few hundred pixels wide, and the decoder wants every one of them.
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} }
+    });
   }catch(e){
     return scanMsg(camReason(e), true);
   }
+  // Keep the lens hunting for focus rather than locking on the background.
+  try{
+    const track = scanStream.getVideoTracks()[0];
+    const able = track.getCapabilities ? track.getCapabilities() : {};
+    if(able.focusMode && able.focusMode.includes('continuous')){
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+    }
+  }catch(e){}
+
   const v = document.getElementById('scanview');
   if(!v) return;
   v.srcObject = scanStream;
   try{ await v.play() }catch(e){}
   scanMsg(T('Hold the tag inside the frame.'));
-  scanOn = true; scanTick();
+  scanOn = true; scanSince = Date.now(); scanTick();
 }
 function scanMsg(txt, hideBox){
   const m = document.getElementById('scanmsg'); if(m) m.textContent = txt;
@@ -2656,30 +2722,45 @@ function scanMsg(txt, hideBox){
 // whole picture down throws away the very pixels the decoder needs. Read the middle of
 // the frame - what sits inside the yellow square - at close to full resolution instead,
 // and only occasionally sweep the whole frame for a tag held off to one side.
-let scanN = 0;
-function readFrame(v, crop){
+let scanN = 0, scanSince = 0, scanNative = null, scanBusy = false;
+// Each pass looks at a different slice: the middle of the frame at full resolution for a
+// code held close, a wider square, then the whole picture for one held off to the side.
+// Cycling beats picking one, because we cannot know how the tag is being held.
+const SLICES = [0.55, 0.8, 1];
+function readFrame(v, part, invert){
   const vw = v.videoWidth, vh = v.videoHeight;
-  let sx = 0, sy = 0, sw = vw, sh = vh, max = 760;
-  if(crop){
-    sw = sh = Math.round(Math.min(vw, vh) * 0.8);
-    sx = Math.round((vw - sw) / 2); sy = Math.round((vh - sh) / 2);
-    max = 1000;
-  }
-  const f = Math.min(1, max / Math.max(sw, sh));
-  scanCv.width = Math.round(sw * f); scanCv.height = Math.round(sh * f);
-  scanCtx.drawImage(v, sx, sy, sw, sh, 0, 0, scanCv.width, scanCv.height);
+  const side = Math.round(Math.min(vw, vh) * part);
+  const sx = Math.round((vw - side) / 2), sy = Math.round((vh - side) / 2);
+  const f = Math.min(1, 1100 / side);
+  scanCv.width = Math.round(side * f); scanCv.height = Math.round(side * f);
+  scanCtx.drawImage(v, sx, sy, side, side, 0, 0, scanCv.width, scanCv.height);
   try{
     const img = scanCtx.getImageData(0, 0, scanCv.width, scanCv.height);
-    return jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+    return jsQR(img.data, img.width, img.height,
+                {inversionAttempts: invert ? 'attemptBoth' : 'dontInvert'});
   }catch(e){ return null }
 }
-function scanTick(){
+async function scanTick(){
   if(!scanOn) return;
   const v = document.getElementById('scanview');
-  if(v && v.readyState >= 2 && v.videoWidth){
-    scanN++;
-    const hit = readFrame(v, true) || (scanN % 4 === 0 ? readFrame(v, false) : null);
-    if(hit && hit.data) return gotCode(hit.data);
+  if(v && v.readyState >= 2 && v.videoWidth && !scanBusy){
+    scanBusy = true;
+    try{
+      if(scanNative){
+        const found = await scanNative.detect(v);
+        if(found && found.length && found[0].rawValue){ scanBusy = false; return gotCode(found[0].rawValue) }
+      }
+      scanN++;
+      const part = SLICES[scanN % SLICES.length];
+      const hit = readFrame(v, part, scanN % 6 === 0);
+      if(hit && hit.data){ scanBusy = false; return gotCode(hit.data) }
+    }catch(e){}
+    scanBusy = false;
+    // Say something useful if it has been staring at nothing for a while.
+    if(Date.now() - scanSince > 6000){
+      scanSince = Date.now() + 6000;
+      scanMsg(T('Fill the frame with the code and hold still. Good light helps.'));
+    }
   }
   scanRaf = requestAnimationFrame(scanTick);
 }
@@ -2711,9 +2792,13 @@ function gotCode(raw){
   const id = String(raw).trim().toUpperCase().replace(/\s+/g,'');
   const b = bundleOf(id);
   if(!b){
+    // It read something, so say what. A tag from the old test sheet, or a number that is
+    // simply not in the register yet, look identical from the outside otherwise.
+    scanFeedback();
     scanMsg(/^\d+:(\d+|EXTRA)$/.test(id)
       ? `${id} ${T('is not in the key register yet.')}`
-      : T('That is not a Beaps key tag.'));
+      : `${T('Read')} "${String(raw).slice(0,28)}" — ${T('that is not a key tag.')}`);
+    scanSince = Date.now() + 4000;
     if(scanOn) scanRaf = requestAnimationFrame(scanTick);   // a stray QR must not end the scan
     return;
   }
@@ -2731,12 +2816,13 @@ function closeScan(){
 function showBundle(id){
   const b = bundleOf(id), s = bstate(id);
   if(!b) return;
+  closeBundle();          // never stack two bundle sheets on top of each other
   const out = s.status === 'out';
   const keys = b.k.map(k=>({t:k[0], m:k[1]||'', q:k[2]||1, note:k[3]||''}));
   const total = keys.reduce((n,k)=>n+k.q, 0);
 
   const el = document.createElement('div');
-  el.className = 'sheet hasbar'; el.id = 'bundle';
+  el.className = 'sheet hasbar'; el.id = 'bundle'; el.dataset.bundle = id;
   el.innerHTML = topbar(b.n || ('lgh ' + b.l), b.id, null, "closeBundle()") + `
     <div class="wrap">
       <div class="card">
@@ -2752,18 +2838,24 @@ function showBundle(id){
       </div>
 
       <div class="csec">${T('Keys on this bundle')}<span class="ccount">${total}</span></div>
-      ${keys.map(k=>`<div class="krow">
-        <span class="kt">
-          <b>${esc(k.t)}</b>
-          ${k.m? `<span>${esc(k.m)}</span>` : `<span>${T('no marking')}</span>`}
-          ${k.note? `<span>${esc(k.note)}</span>` : ''}
-        </span>
-        ${k.q>1? `<span class="kq">×${k.q}</span>` : ''}
-      </div>`).join('')}
+      ${(()=>{ // one line per physical key, numbered, so you can count them off the ring
+        let n = 0;
+        return keys.map(k=>Array.from({length:k.q}, ()=>`<div class="krow">
+          <span class="knum">${++n}</span>
+          <span class="kt">
+            <b>${esc(k.t)}</b>
+            ${k.m? `<span>${esc(k.m)}</span>` : `<span>${T('no marking')}</span>`}
+            ${k.note? `<span>${esc(k.note)}</span>` : ''}
+          </span>
+        </div>`).join('')).join('');
+      })()}
 
-      ${(()=>{ const ev = eventsFor(id); return ev.length? `<div class="csec">${T('History')}</div>
-        <div class="card">${ev.slice(0,10).map(e=>
-          `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}</span></div>`).join('')}</div>` : '' })()}
+      ${(()=>{ const ev = eventsFor(id); if(!ev.length) return '';
+        return `<button class="addc" style="margin:18px 3px 0" onclick="toggleHist()">
+            ${histOpen? T('Hide history') : T('History') + ' (' + ev.length + ')'}</button>
+          ${histOpen? `<div class="card" style="margin-top:8px">${ev.slice(0,20).map(e=>
+            `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}</span></div>`).join('')}</div>` : ''}`;
+      })()}
     </div>
     <div class="sheetbar">
       <button class="btn ghost" onclick="closeBundle()">${T('Close')}</button>
@@ -2775,6 +2867,11 @@ function showBundle(id){
 }
 function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove() }
 function reopenBundle(id){ closeBundle(); showBundle(id) }
+let histOpen = false;
+function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el){ const id = el.dataset.bundle; closeBundle(); showBundle(id) } }
+// After checking a bundle in or out, go straight back to the scanner. The next ring is
+// usually already in the other hand.
+function backToScan(){ closeBundle(); closeOut(); openScan() }
 
 /* Check out: your name, then what for. Only the name is needed - the log is worth
    nothing without one. Everything else can be left as it stands. */
@@ -2825,8 +2922,8 @@ async function doCheckOut(id){
   const reason = (document.getElementById('koreason').value || '').trim();
   keyMe = name; await store.set(KEYNAME, name);
   await keyWrite(id, 'out', {who:name, reason});
-  closeOut(); reopenBundle(id);
-  toast(T('Checked out to') + ' ' + name);
+  backToScan();
+  toast(id + ' → ' + name);
 }
 async function checkIn(id){
   const s = bstate(id);
@@ -2838,8 +2935,8 @@ async function checkIn(id){
   }
   const was = s.holder || '';
   await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
-  reopenBundle(id);
-  toast(T('Back in the cabinet'));
+  backToScan();
+  toast(id + ' — ' + T('Back in the cabinet'));
 }
 
 /* ---------- PDF ---------- */

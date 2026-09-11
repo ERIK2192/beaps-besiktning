@@ -2869,9 +2869,9 @@ function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.
 function reopenBundle(id){ closeBundle(); showBundle(id) }
 let histOpen = false;
 function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el){ const id = el.dataset.bundle; closeBundle(); showBundle(id) } }
-// After checking a bundle in or out, go straight back to the scanner. The next ring is
-// usually already in the other hand.
-function backToScan(){ closeBundle(); closeOut(); openScan() }
+// After checking a bundle in or out, land on the start screen, where the Keys card now
+// shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
+function backToStart(){ closeBundle(); closeOut(); closeScan(); if(view==='start') renderStart() }
 
 /* Check out: your name, then what for. Only the name is needed - the log is worth
    nothing without one. Everything else can be left as it stands. */
@@ -2922,7 +2922,7 @@ async function doCheckOut(id){
   const reason = (document.getElementById('koreason').value || '').trim();
   keyMe = name; await store.set(KEYNAME, name);
   await keyWrite(id, 'out', {who:name, reason});
-  backToScan();
+  backToStart();
   toast(id + ' → ' + name);
 }
 async function checkIn(id){
@@ -2935,7 +2935,7 @@ async function checkIn(id){
   }
   const was = s.holder || '';
   await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
-  backToScan();
+  backToStart();
   toast(id + ' — ' + T('Back in the cabinet'));
 }
 

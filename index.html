@@ -55,6 +55,8 @@
   .btn:active{background:var(--brand-dark)}
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .btn.ghost:active{background:#F6F5F2}
+  .btn.navy{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.navy:active{background:#0F2445}
   .btn.small{padding:9px 13px;min-height:42px;font-size:14px;width:auto}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:550}
@@ -191,6 +193,10 @@
          padding:5px 10px;border-radius:999px;white-space:nowrap;flex:none}
   .kstat.in{background:#E4F0EA;color:#2E7D5B}
   .kstat.out{background:#F7E4E3;color:var(--rec)}
+  /* the bundle header reads top-down in the order you need it: number, name, address */
+  .bnum{font-size:40px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums}
+  .bname{font-size:19px;font-weight:650;letter-spacing:-.01em;margin-top:7px}
+  .baddr{font-size:14px;color:var(--ink2);margin-top:4px}
   .krow .knum{width:26px;height:26px;flex:none;border-radius:50%;background:var(--ink);color:#fff;
               font-family:var(--mono);font-size:12px;display:grid;place-items:center}
   .knums{display:flex;flex-wrap:wrap;gap:8px}
@@ -669,6 +675,7 @@ const SV = {
   'You have no keys checked out.':'Du har inga nycklar utcheckade.',
   'Menu':'Meny',
   'Key log':'Nyckellogg',
+  'Key bundle':'Nyckelknippa',
   'Language':'Språk',
   'Hide history':'Dölj historik',
   'Read':'Läste',
@@ -2374,7 +2381,7 @@ async function renderStart(){
     </div>`;
   $('#bar').className = 'bar raised stack';
   $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">${T('New inspection')}</button>
-    <button class="btn ghost" onclick="openScan()">${T('Check key in/out')}</button>`;
+    <button class="btn navy" onclick="openScan()">${T('Check key in/out')}</button>`;
   paintTicker();
   // Catch up with what everyone else has done, then repaint only if it changed something.
   keySync().then(moved=>{ if(moved && view==='start' && !document.getElementById('keylog')) renderStart() });
@@ -2828,15 +2835,16 @@ function showBundle(id){
 
   const el = document.createElement('div');
   el.className = 'sheet hasbar'; el.id = 'bundle'; el.dataset.bundle = id;
-  el.innerHTML = topbar(b.n || ('lgh ' + b.l), b.id, null, "closeBundle()") + `
+  el.innerHTML = topbar(T('Key bundle'), '', null, "closeBundle()") + `
     <div class="wrap">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
           <div style="min-width:0">
-            <h2>${esc(b.a)}</h2>
-            <div class="hint" style="margin-top:2px">lgh ${esc(b.l)}${b.n? ' · '+esc(b.n):''}</div>
+            <div class="bnum">${esc(b.id)}</div>
+            ${b.n? `<div class="bname">${esc(b.n)}</div>` : ''}
+            <div class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</div>
           </div>
-          <span class="kstat ${out?'out':'in'}">${out? T('Out') : T('In the cabinet')}</span>
+          <span class="kstat ${out?'out':'in'}" style="margin-top:6px">${out? T('Out') : T('In the cabinet')}</span>
         </div>
         ${out? `<div class="hint" style="margin-top:10px">${T('With')} <b>${esc(s.holder||'')}</b>
           ${T('since')} ${stamp(new Date(s.since))}${s.reason? ' · '+esc(s.reason):''}.</div>` : ''}

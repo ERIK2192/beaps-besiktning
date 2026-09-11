@@ -2541,9 +2541,14 @@ async function keySync(force){
       if(Array.isArray(j.events)){
         const before = JSON.stringify(keyEvents.map(e=>e.id));
         const seen = new Set(j.events.map(e=>e.id));
-        keyEvents = j.events
-          .concat((keyQueue||[]).filter(e=>!seen.has(e.id)))   // ours, still unsent
-          .sort((a,b)=>b.ts-a.ts);
+        const queued = new Set((keyQueue||[]).map(e=>e.id));
+        // Keep what the server has not shown us yet: anything still unsent, and anything
+        // we sent in the last two minutes. KV takes a few seconds to list a fresh entry,
+        // and without this an event we had just written would vanish from our own screen
+        // until the next sync, taking the bundle's status with it.
+        const fresh = Date.now() - 120000;
+        const ours = keyEvents.filter(e => !seen.has(e.id) && (queued.has(e.id) || e.ts > fresh));
+        keyEvents = j.events.concat(ours).sort((a,b)=>b.ts-a.ts);
         applyEvents();
         await keyRemember();
         moved = before !== JSON.stringify(keyEvents.map(e=>e.id));
@@ -2871,7 +2876,7 @@ let histOpen = false;
 function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el){ const id = el.dataset.bundle; closeBundle(); showBundle(id) } }
 // After checking a bundle in or out, land on the start screen, where the Keys card now
 // shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
-function backToStart(){ closeBundle(); closeOut(); closeScan(); if(view==='start') renderStart() }
+async function backToStart(){ closeBundle(); closeOut(); closeScan(); if(view==='start') await renderStart() }
 
 /* Check out: your name, then what for. Only the name is needed - the log is worth
    nothing without one. Everything else can be left as it stands. */
@@ -2922,7 +2927,7 @@ async function doCheckOut(id){
   const reason = (document.getElementById('koreason').value || '').trim();
   keyMe = name; await store.set(KEYNAME, name);
   await keyWrite(id, 'out', {who:name, reason});
-  backToStart();
+  await backToStart();
   toast(id + ' → ' + name);
 }
 async function checkIn(id){
@@ -2935,7 +2940,7 @@ async function checkIn(id){
   }
   const was = s.holder || '';
   await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
-  backToStart();
+  await backToStart();
   toast(id + ' — ' + T('Back in the cabinet'));
 }
 

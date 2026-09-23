@@ -896,6 +896,54 @@ hard-coded host anywhere in a shipped file. Still not run against Cloudflare: th
 send over 4 MB and the first signing link are the real tests - watch for Cloudflare's bot
 rules blocking Resend's fetch of `/api/media-file` and `/api/sign-pdf`.
 
+### 2026-09-23 — the key screens join the rest of the app: white, and half the words
+
+Erik, on seeing the green: *"kör på en vit ruta som bara visar innehav, och initialer ...
+samma i inspektionerna, gör det inte till grön färg, istället vitt som allt annat ... byt ALL
+robott text, och fixa färgerna och ta bort onödig text, fokus på simplicitiet."*
+
+**The three design proposals are gone.** 1 (light peach), 3 (dark peach) and 4 (emerald) were
+built the day before as something to choose between; the choice turned out to be none of them.
+The `:root[data-ktheme]` token sets, every `.ksheet`/`.kcard` colour rule, the switch in the
+menu and the scanner's own chrome all came out - about a hundred lines of CSS for roughly
+thirty of layout. What is left carries no palette: the key screens are white cards on the
+app's paper, navy text, yellow only on the button you press, exactly like every other screen.
+A phone with a theme stored has it removed on the next load, so nobody keeps a dark one.
+
+**Initials instead of names.** A name on every row was the bulk of the text on the log, and
+the number is what anyone is actually looking for. `initials()` turns "Erik Gardbring" into a
+navy circle reading EG; the full name is in the row's `title` and spelled out on the bundle
+itself. The two lists, *Utlånade just nu* and *I lägenhet / hos gäst*, are now one: everything
+that is not in the cabinet, newest first, the apartment on the row when it is in one.
+
+**The "Till — frivilligt" field is gone** from the key card in an inspection. The inspection
+already asked for the counterparty on its first step, so the field was asking twice; the
+hand-over takes that name. An inspection that still carries something typed into the old field
+keeps it.
+
+**And the wording.** Sentences became labels throughout the key flow: *Loggen har inte hämtats
+än — statusen kan vara fel* → *Ej hämtad*; *Du har inga nycklar utcheckade* → *Inga hos dig*;
+*tryck för att lämna den här* → *lämna här*; *Lämna i lägenheten* → *Lämna här*; *Utcheckad av
+Erik — Visning* → *Utlånad · Visning* with EG beside it. The three warnings before a hand-over
+went from sentences to phrases (*Hos Maria · 09:15*, *Hör till lgh 1301 TRAST*). What was
+dropped is wording, not fact: where a bundle came from is still written on the event and still
+visible in the bundle's own history, and the apartment and the guest both stay on a hand-over
+line. 38 entries left the Swedish table; every `T()` string in the code still has one.
+
+**Also corrected:** three lines still promised "den färdiga rapporten med signatursidan" as one
+file. Since the signing split the day before, that had been untrue - the mail carries two.
+
+**Verified:** 236 function checks, 66 key-flow checks in the browser, and the upgrade run again
+from the deployed app to this one - the storage contract is untouched (same database, same key
+map, the only localStorage write removed is the theme), so nothing in progress is affected.
+Eight browser assertions were rewritten rather than deleted: where a line got shorter, the
+check now reads the stored event instead of the sentence, since the data is what has to
+survive a rewording.
+
+**Left alone:** the explanatory text elsewhere in the app - camera permissions, the
+home-screen warning, what the gallery link is for. Those are read once by someone who needs
+them, and shortening them would cost more than it saves. Say so if they should go too.
+
 ---
 
 ## 6. Kvar att göra

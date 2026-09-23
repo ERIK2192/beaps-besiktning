@@ -218,108 +218,41 @@
   .knum-chip{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;
              padding:8px 15px;font-family:var(--mono);font-size:14px;font-weight:600}
 
-  /* ---- the key screens: the design proposals (1, 3, 4) in the Beautiful Apartments palette ----
-     Yellow #FFD340, dark peach #E2987D, light peach #F9D7C5, dark emerald #16453E.
-     Nothing grey or black: text and marks are always emerald, muted text is emerald at
-     reduced opacity, and a hairline is emerald laid over the surface. The choice sits on
-     <html data-ktheme="1|3|4"> (menu, "Key design") and covers every key screen: the
-     Holdings card, the bundle sheet, the key card inside an inspection, the shared log and
-     the scanner's chrome. The rest of the app is untouched. */
-  :root{
-    --k-yel:#FFD340; --k-dpe:#E2987D; --k-lpe:#F9D7C5; --k-em:#16453E;
-    /* 1: light peach base, emerald text, yellow accents */
-    --k-bg:#F9D7C5; --k-card:#F9D7C5; --k-field:rgba(255,211,64,.22); --k-ink:#16453E; --k-ink2:rgba(22,69,62,.7);
-    --k-line:rgba(22,69,62,.22); --k-top:rgba(249,215,197,.93);
-    --k-pri:#FFD340; --k-pri-ink:#16453E; --k-chip:#16453E; --k-chip-ink:#F9D7C5; --k-acc:#FFD340; --k-mark:#FFD340;
-    --k-in:#FFD340; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#16453E; --k-pl-ink:#F9D7C5;
-    --k-sel:#16453E; --k-sel-ink:#F9D7C5; --k-head:#16453E; --k-logo:#16453E; --k-logo-ink:#FFD340; --k-kcard:#F9D7C5;
-  }
-  :root[data-ktheme="3"]{
-    /* 3: dark peach base, light peach fields, emerald details */
-    --k-bg:#E2987D; --k-card:#F9D7C5; --k-field:rgba(226,152,125,.16); --k-line:rgba(22,69,62,.24); --k-top:rgba(226,152,125,.93);
-    --k-pri:#16453E; --k-pri-ink:#F9D7C5; --k-chip:#16453E; --k-chip-ink:#F9D7C5; --k-acc:#FFD340; --k-mark:#FFD340;
-    --k-in:transparent; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#16453E; --k-pl-ink:#F9D7C5;
-    --k-sel:#16453E; --k-sel-ink:#F9D7C5; --k-kcard:#F9D7C5;
-  }
-  :root[data-ktheme="4"]{
-    /* 4: emerald base; peach for text, white for headings and numbers, yellow only on the things you press */
-    --k-bg:#16453E; --k-card:rgba(249,215,197,.07); --k-field:rgba(249,215,197,.12); --k-ink:#F9D7C5; --k-ink2:rgba(249,215,197,.72);
-    --k-line:rgba(249,215,197,.28); --k-top:rgba(22,69,62,.93);
-    --k-pri:#FFD340; --k-pri-ink:#16453E; --k-chip:#FFD340; --k-chip-ink:#16453E; --k-acc:#FFD340; --k-mark:#FFD340;
-    --k-in:#FFD340; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#F9D7C5; --k-pl-ink:#16453E;
-    --k-sel:#FFD340; --k-sel-ink:#16453E; --k-head:#FFFFFF; --k-logo:#FFD340; --k-logo-ink:#16453E; --k-kcard:#16453E;
-  }
-  .ksheet{background:var(--k-bg);color:var(--k-ink)}
-  .ksheet .top h1,.ksheet .csec,.ksheet .bnum,.ksheet .list-item b,.ksheet .hodone .big,.kcard .eyebrow,.kcard .kbrow b,.kcard .hoconf b{color:var(--k-head)}
-  .ksheet .top{background:var(--k-top);border-bottom-color:var(--k-line)}
-  .ksheet .top h1,.ksheet .back,.ksheet .csec{color:var(--k-ink)}
-  .ksheet .eyebrow,.kcard .eyebrow,.ksheet .hint,.kcard .hint,.ksheet .addc,.kcard .addc,
-  .ksheet .logline b,.ksheet .list-item .chev,.ksheet .klsub,.ksheet .baddr,.ksheet .krow .kt span,.ksheet .krow .kq{color:var(--k-ink2)}
-  .ksheet .top .logo rect{fill:var(--k-logo)} .ksheet .top .logo text{fill:var(--k-logo-ink)}
-  .ksheet .langsw{background:transparent;border-color:var(--k-line)}
-  .ksheet .langbtn{background:transparent;color:var(--k-ink2)} .ksheet .langbtn.on{background:var(--k-ink);color:var(--k-bg)}
-  .ksheet .langbtn+.langbtn{border-left-color:var(--k-line)}
-  .ksheet .card{background:var(--k-card);border-color:var(--k-line);color:var(--k-ink)}
-  /* the key card on its own, on the app's paper: a solid ground, whatever the design */
-  .kcard{background:var(--k-kcard);border-color:var(--k-line);color:var(--k-ink)}
-  .ksheet input{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
-  .ksheet input::placeholder{color:var(--k-ink2)}
-  .ksheet input:focus,.ksheet button:focus-visible,.kcard button:focus-visible{outline-color:var(--k-ink)}
-  .ksheet .btn,.kcard .btn{background:var(--k-pri);color:var(--k-pri-ink);border-color:transparent}
-  .ksheet .btn:active,.kcard .btn:active{filter:brightness(.92)}
-  .ksheet .btn.ghost,.kcard .btn.ghost{background:transparent;color:var(--k-ink);border-color:var(--k-ink)}
-  .ksheet .chip{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
-  .ksheet .chip.on{background:var(--k-ink);color:var(--k-bg);border-color:var(--k-ink)}
-  .ksheet .list-item,.ksheet .krow{background:var(--k-card);color:var(--k-ink);border-color:var(--k-line)}
-  .ksheet .logline{border-color:var(--k-line);display:block;font-size:12px;line-height:1.5}
+  /* ---- the key screens ----
+     They look like the rest of the app: white cards on the paper ground, navy text. The
+     three coloured proposals (light peach, dark peach, emerald) were tried and dropped -
+     Erik's call, 2026-09-23: the keys are part of the app, not a place of their own. What
+     is left here is layout only, no palette. */
+  .kstat.pl{background:#EAECF2;color:var(--ink)}
+  .kbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .kbtns .btn{flex:1 1 auto;width:auto}
+  /* log lines wrap instead of holding the timestamp in a rigid column */
+  .ksheet .logline{display:block;font-size:12px;line-height:1.5}
   .ksheet .logline b{display:inline;margin-right:8px}
-  .ksheet .list-item .dot{background:var(--k-line)} .ksheet .list-item .dot.filled{background:var(--k-mark)}
+  /* one physical key per row: type and marking on the same line */
   .ksheet .krow{padding:10px 12px}
   .ksheet .krow .kt{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px}
   .ksheet .krow .kt b{display:inline;font-size:14px}
   .ksheet .krow .kt span{display:inline;margin:0;font-size:12px}
-  .ksheet .krow .knum{background:var(--k-ink);color:var(--k-bg)}
-  .kcard .knum-chip,.ksheet .knum-chip{background:var(--k-chip);color:var(--k-chip-ink);border-color:var(--k-chip)}
-  .ksheet .kstat,.kcard .kstat{border:1px solid var(--k-line)}
-  .kcard .kstat.out{background:var(--k-out);color:var(--k-out-ink)} .kcard .kstat.pl{background:var(--k-pl);color:var(--k-pl-ink);border-color:var(--k-pl)}
-  .ksheet .kstat.in{background:var(--k-in);color:var(--k-in-ink)}
-  .ksheet .kstat.out{background:var(--k-out);color:var(--k-out-ink)}
-  .ksheet .kstat.pl{background:var(--k-pl);color:var(--k-pl-ink);border-color:var(--k-pl)}
-  .ksheet .kstat.unk{background:transparent;color:var(--k-ink2)}
-  .ksheet .kwait,.kcard .kwait{color:var(--k-ink)} .ksheet .kwait::before,.kcard .kwait::before{background:var(--k-acc)}
-  .ksheet .sheetbar{background:linear-gradient(to top,var(--k-bg) 74%,transparent)}
-  .kbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  .kbtns .btn{flex:1 1 auto;width:auto}
   /* the key card inside an inspection: one line per bundle, status first */
-  .kcard .kbrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 0;border-top:1px solid var(--k-line);
-                font-size:13px;color:var(--k-ink);background:none;line-height:1.35}
+  .kcard .kbrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 0;
+                border-top:1px solid var(--line);font-size:13px;color:var(--ink);background:none;line-height:1.35}
   .kcard .kbrow:first-child{border-top:0}
   .kcard .kbrow b{font-family:var(--mono);font-size:14px;flex:none}
-  .kcard .kbrow span:last-child{color:var(--k-ink2);flex:1;min-width:0}
+  .kcard .kbrow span:last-child{color:var(--ink2);flex:1;min-width:0}
   .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--mono);letter-spacing:.06em}
-  .kcard input{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
-  .kcard input::placeholder{color:var(--k-ink2)}
-  .kcard label.eyebrow{margin-bottom:6px}
   /* the confirmation after a hand-over, on the card that made it */
-  .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--k-field);font-size:13px;line-height:1.4}
+  .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;
+          background:#F6F5F2;border:1px solid var(--line);font-size:13px;line-height:1.4}
   .hoconf b{display:block;font-size:14px}
-  .hocheck{width:54px;height:54px;border-radius:50%;background:var(--k-pri);color:var(--k-pri-ink);display:grid;place-items:center;font-size:26px;margin:0 auto 14px}
-  .hocheck.sm{width:28px;height:28px;font-size:15px;margin:0;flex:none}
-  /* the design switch in the menu */
-  .ksw{display:flex;gap:8px}
-  .kswb{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 7px;font-size:13px;font-weight:600;background:#fff}
-  .kswb i{width:18px;height:18px;border-radius:50%;display:block;border:1px solid rgba(22,69,62,.3)}
-  .kswb.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-  /* the scanner's chrome in the same palette; the picture itself is the camera */
-  .cam.kscan{background:var(--k-em);color:var(--k-lpe)}
-  .cam.kscan .view{background:var(--k-em)}
-  .cam.kscan .scanbox i{border-color:var(--k-yel);box-shadow:0 0 0 100vmax rgba(22,69,62,.6)}
-  .cam.kscan .scanfoot .msg{color:var(--k-lpe)}
-  .cam.kscan .scanfoot .dest{font-size:13px;color:#fff;text-align:center;font-weight:600}
-  .cam.kscan .scanfoot .btn{background:transparent;color:var(--k-lpe);border-color:rgba(249,215,197,.5)}
-  .cam.kscan .scanfoot input{background:rgba(249,215,197,.12);border-color:rgba(249,215,197,.4);color:var(--k-lpe)}
-  .cam.kscan .scanfoot input::placeholder{color:rgba(249,215,197,.6)}
-
+  .hocheck{width:28px;height:28px;border-radius:50%;background:var(--brand);color:var(--ink);
+           display:grid;place-items:center;font-size:15px;flex:none}
+  /* initials stand in for a name wherever a line would otherwise run long */
+  .kini{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;flex:none;
+        background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.02em}
+  .kwho{display:flex;align-items:center;gap:7px;min-width:0}
+  /* where the keys are going, shown over the camera while scanning */
+  .cam .scanfoot .dest{font-size:13px;color:#fff;text-align:center;font-weight:600}
   /* hamburger */
   .burger{width:40px;height:40px;flex:none;display:grid;place-items:center;gap:4px;border-radius:10px}
   .burger i{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px}
@@ -577,7 +510,7 @@ const SV = {
   // --- signature ---
   'The counterparty':'Motparten',
   'signed digitally via signing link':'signerade digitalt via signeringslänk',
-  'The finished report with the signature page has already been emailed to longstay@beaps.se.':'Den färdiga rapporten med signatursidan har redan mejlats till longstay@beaps.se.',
+  'Already emailed to longstay@beaps.se.':'Redan mejlad till longstay@beaps.se.',
   'Signed':'Signerat',
   'Signature saved':'Signaturen sparades',
   'Save the app to the home screen':'Spara appen på hemskärmen',
@@ -645,7 +578,7 @@ const SV = {
   // --- remote signing ---
   'The counterparty is not present':'Motparten är inte närvarande',
   'The guest cannot sign now':'Gästen kan inte signera nu',
-  'Emails a link where the counterparty sees the whole report and signs directly in the browser.\n      As soon as that is done, the finished report is emailed to longstay@beaps.se.':'Mejlar en länk där motparten ser hela rapporten och signerar direkt i webbläsaren.\n      Så snart det är gjort mejlas den färdiga rapporten till longstay@beaps.se.',
+  'Emails a link where the counterparty sees the whole report and signs in the browser.':'Mejlar en länk där motparten ser hela rapporten och signerar i webbläsaren.',
   'Remote signing':'Signering på distans',
   'signed via the link that was sent to':'signerade via länken som skickades till',
   'The report has been emailed to longstay@beaps.se with a copy to the recipient.':'Rapporten har mejlats till longstay@beaps.se med en kopia till mottagaren.',
@@ -657,7 +590,7 @@ const SV = {
   'Sent to':'Skickad till',
   'copy':'kopia',
   'valid until':'giltig till',
-  'When the counterparty has signed, the finished report is emailed to longstay@beaps.se automatically.':'När motparten har signerat mejlas den färdiga rapporten till longstay@beaps.se automatiskt.',
+  'Emailed to longstay@beaps.se as soon as it is signed.':'Mejlas till longstay@beaps.se så snart den är signerad.',
   'Check status':'Kontrollera status',
   'Revoke':'Återkalla',
   // --- send signing link sheet ---
@@ -781,102 +714,70 @@ const SV = {
   'Is there a sign with instructions on how to lock?':'Finns skylt med instruktioner hur man låser?',
   'Is there an info sheet or QR code on the door?':'Finns infosheet eller QR-kod på dörren?',
   // --- key bundles ---
+  // Short and spoken, the way the job is talked about: "Utlanad", "I skapet", "Hos dig".
+  // Full sentences and explanations were taken out on 2026-09-23 - the screens say what is
+  // true and leave it there.
   'Check key in/out':'Checka in/ut nyckel',
-  'Scan QR code':'Skanna QR-kod',
-  'Shared log':'Gemensam logg',
-  'Everyone sees the same log.':'Alla ser samma logg.',
-  'Not synced yet':'Ej synkad',
-  'Waiting to sync':'Väntar på synkning',
-  'waiting to sync':'väntar på synk',
-  'The log has not been fetched yet — the status may be out of date.':'Loggen har inte hämtats än — statusen kan vara fel.',
-  'Could not reach the log — showing it as of':'Kunde inte nå loggen — visar läget från',
-  'Nothing has been checked out yet.':'Inget är utcheckat än.',
-  'Out right now':'Utlånade just nu',
-  'out right now':'utlånade just nu',
-  'nothing out right now':'inget utlånat just nu',
-  'Latest':'Senaste',
   'Keys':'Nycklar',
-  'You have no keys checked out.':'Du har inga nycklar utcheckade.',
-  'Menu':'Meny',
   'Key log':'Nyckellogg',
   'Key bundle':'Nyckelknippa',
+  'Latest':'Senaste',
+  'Menu':'Meny',
   'Language':'Språk',
-  'Hide history':'Dölj historik',
-  'Read':'Läste',
-  'that is not a key tag.':'det är ingen nyckelbricka.',
-  'Fill the frame with the code and hold still. Good light helps.':'Fyll ramen med koden och håll still. Bra ljus hjälper.',
-  'Checked out by':'Utcheckad av',
-  'Checked in by':'Incheckad av',
-  'was with':'var hos',
-  'Starting the camera…':'Startar kameran…',
-  'Hold the tag inside the frame.':'Håll brickan innanför ramen.',
-  'or type the number, e.g. 112:3':'eller skriv numret, t.ex. 112:3',
-  'Open the bundle':'Öppna knippan',
-  'The scanner did not load. Type the number instead.':'Skannern laddades inte. Skriv numret i stället.',
-  'is not in the key register yet.':'finns inte i nyckelregistret än.',
-  'That is not a Beaps key tag.':'Det är inte en Beaps nyckelbricka.',
+  'None with you':'Inga hos dig',
+  'All keys are in the cabinet':'Alla nycklar i skåpet',
+  'Nothing here yet':'Inget här än',
+  'out':'ute',
+  'waiting':'väntar',
+  'Not fetched yet':'Ej hämtad',
+  'No contact — showing':'Ingen kontakt — visar',
+  'Updating…':'Uppdaterar…',
+  'Copy link':'Kopiera länk',
+  // the bundle sheet
   'In the cabinet':'I skåpet',
   'Out':'Utlånad',
+  'In apartment':'I lägenhet',
   'With':'Hos',
-  'since':'sedan',
-  'Keys on this bundle':'Nycklar på knippan',
-  'no marking':'omärkt',
+  'In':'I',
+  'Belongs to':'Hör till',
+  'Left in':'Lämnad i',
+  'Left to':'Lämnad till',
   'History':'Historik',
+  'Hide history':'Dölj historik',
   'Check out':'Checka ut',
   'Check in':'Checka in',
-  'Checked out to':'Utcheckad till',
+  'Take it':'Ta med',
   'Back in the cabinet':'Tillbaka i skåpet',
   'Your name':'Ditt namn',
-  'who is taking the keys':'vem som tar nycklarna',
-  'Saved on this phone for next time.':'Sparas på telefonen till nästa gång.',
-  'Logged as':'Loggas som',
+  'Name':'Namn',
   'change':'ändra',
-  'Reason — optional':'Ärende — frivilligt',
-  'Updating…':'Uppdaterar…',
-  'or write your own — can be left empty':'eller skriv eget — får lämnas tomt',
-  'The log needs a name.':'Loggen behöver ett namn.',
+  'Reason':'Ärende',
+  'Something else':'Något annat',
+  'Write your name':'Skriv ditt namn',
+  'Could not save':'Kunde inte spara',
+  // the scanner
+  'Scan QR code':'Skanna QR-kod',
+  'Scan the key':'Skanna nyckeln',
+  'Scan':'Skanna',
+  'Open':'Öppna',
+  'Starting the camera…':'Startar kameran…',
+  'Hold the tag in the frame':'Håll brickan i ramen',
+  'Fill the frame and hold still':'Fyll ramen och håll still',
+  'Scanner unavailable — type the number':'Skannern gick inte att ladda — skriv numret',
+  'not in the register':'finns inte i registret',
+  'Not a key tag':'Ingen nyckelbricka',
   // --- leaving a bundle in an apartment or with a guest ---
-  'Holdings':'Innehav',
-  'Keys for the apartment':'Nycklar till lägenheten',
   'no address yet':'ingen adress än',
   'here':'här',
   'with you':'hos dig',
-  'tap to leave it here':'tryck för att lämna den här',
-  'Nothing left here yet.':'Inget lämnat här än.',
-  'To — optional':'Till — frivilligt',
-  "guest's or tenant's name":'gästens eller hyresgästens namn',
-  'who is leaving the keys':'vem som lämnar nycklarna',
-  'Key number, e.g. 112:3':'Nyckelnummer, t.ex. 112:3',
-  'Scan':'Skanna',
-  'Leave in the apartment':'Lämna i lägenheten',
-  'left in the apartment':'lämnad i lägenheten',
-  'Write or scan the key number.':'Skriv eller skanna nyckelnumret.',
-  'Write the address or apartment number first.':'Skriv adress eller lägenhetsnummer först.',
-  'is already registered in':'är redan registrerad i',
-  'Scan the key to leave':'Skanna nyckeln som lämnas',
-  'Leave this key':'Lämna den här nyckeln',
-  'Destination':'Lämnas till',
-  'Leave anyway':'Lämna ändå',
+  'leave here':'lämna här',
+  'Leave here':'Lämna här',
+  'Leave':'Lämna',
+  'left here':'lämnad här',
+  'already here':'redan här',
   'Scan another':'Skanna en annan',
-  'Left in':'Lämnad i',
-  'Left to':'Lämnad till',
-  'to':'till',
-  'by':'av',
-  'from':'från',
-  'left by':'lämnad av',
-  'In':'I',
-  'In apartment':'I lägenhet',
-  'In apartment / with guest':'I lägenhet / hos gäst',
-  'in apartment':'i lägenhet',
-  'Nothing is in an apartment right now.':'Inget ligger i någon lägenhet just nu.',
-  'Take it':'Ta med',
-  'is registered as in the cabinet.':'är registrerad i skåpet.',
-  'is registered with':'är registrerad hos',
-  'is registered in':'är registrerad i',
-  'belongs to':'hör till',
-  'not':'inte',
-  'Could not save — nothing was changed.':'Kunde inte spara — inget ändrades.',
-  'Key design':'Nyckeldesign',
+  'Scan or type a number':'Skanna eller skriv ett nummer',
+  'Write the address first':'Skriv adressen först',
   // --- the property register behind the two fields on the Property step ---
   'more':'fler',
   'no apartments in the register':'inga lägenheter i registret',
@@ -1696,7 +1597,7 @@ function sigBlock(who){
       <div style="font-size:14px"><b>${esc(s.name||T('The counterparty'))}</b> ${T('signed digitally via signing link')}</div>
       <div class="hint" style="font-family:var(--mono);font-size:11px;margin-top:4px">${stamp(new Date(s.ts))}</div>
     </div>
-    <div class="hint">${T('The finished report with the signature page has already been emailed to longstay@beaps.se.')}</div>`;
+    <div class="hint">${T('Already emailed to longstay@beaps.se.')}</div>`;
   if(s) return `<div class="sigdone"><img src="${s.data}" alt="signature"></div>
     <div class="hint" style="font-family:var(--mono);font-size:11px">${T('Signed')} ${stamp(new Date(s.ts))}</div>`;
   return `<canvas class="sigpad" id="pad_${who}"></canvas>
@@ -2164,7 +2065,7 @@ function signReqCard(){
   if(!q) return `<div class="card">
     <div class="eyebrow" style="margin-bottom:10px">${T('The counterparty is not present')}</div>
     <button class="btn ghost" onclick="openSignRequest()">${T('The guest cannot sign now')}</button>
-    <div class="hint">${T('Emails a link where the counterparty sees the whole report and signs directly in the browser.\n      As soon as that is done, the finished report is emailed to longstay@beaps.se.')}</div>
+    <div class="hint">${T('Emails a link where the counterparty sees the whole report and signs in the browser.')}</div>
   </div>`;
 
   if(q.status==='signed') return `<div class="card">
@@ -2187,7 +2088,7 @@ function signReqCard(){
     <div style="font-size:14px;color:var(--ink2)">
       ${T('Sent to')} ${esc(q.to)}${q.cc? ', '+T('copy')+' '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · '+T('valid until')+' '+stamp(new Date(q.expires)):''}
     </div>
-    <div class="hint">${T('When the counterparty has signed, the finished report is emailed to longstay@beaps.se automatically.')}</div>
+    <div class="hint">${T('Emailed to longstay@beaps.se as soon as it is signed.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn ghost small" onclick="checkSignStatus()">${T('Check status')}</button>
       <button class="btn ghost small" onclick="copySignLink()">${T('Copy link')}</button>
@@ -2849,32 +2750,37 @@ async function keyWrite(bundle, kind, extra){
   return ev;
 }
 
+// A name shrunk to the two letters that fit in a circle: "Erik Gardbring" -> EG. The full
+// name is still on the event, and sits in the title attribute wherever these are shown.
+function initials(name){
+  const w = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!w.length) return '–';
+  return (w.length > 1 ? w[0][0] + w[w.length-1][0] : w[0].slice(0,2)).toUpperCase();
+}
+// What happened, in as few words as it takes. Who did it is shown as initials beside the
+// line, not spelled out inside it.
 function evLine(e){
-  if(e.kind === 'place'){
-    const dest = e.place ? `${T('Left in')} ${e.place}${e.guest? ' · ' + T('to') + ' ' + e.guest : ''}`
-                         : `${T('Left to')} ${e.guest||''}`;
-    return `${dest} · ${T('by')} ${e.who}${e.from? ' · ' + T('from') + ' ' + e.from : ''}`;
-  }
+  // The apartment and the person it went to both stay - that pair is the whole point of a
+  // hand-over. Where it came from is on the event and in the bundle's history; it is not
+  // repeated here.
+  if(e.kind === 'place') return e.place
+    ? `${T('Left in')} ${e.place}${e.guest? ' · ' + e.guest : ''}`
+    : `${T('Left to')} ${e.guest||''}`;
   return e.kind === 'out'
-    ? `${T('Checked out by')} ${e.who}${e.reason? ' — ' + e.reason : ''}${e.from? ' · ' + T('from') + ' ' + e.from : ''}`
-    : `${T('Checked in by')} ${e.who}${e.from? ' — ' + T('was with') + ' ' + e.from : ''}`;
+    ? `${T('Out')}${e.reason? ' · ' + e.reason : ''}`
+    : T('In the cabinet');
 }
-// Where a placed bundle is, in words: the apartment, the guest, or both.
-const placeLabel = s => s.place ? s.place + (s.guest? ' · ' + T('to') + ' ' + s.guest : '') : (T('to') + ' ' + (s.guest||''));
-// One line on where a bundle is right now, for a card that is not the bundle sheet.
-function whereLine(s){
-  if(!keySeenAt) return T('Not synced yet');
-  if(s.status === 'out') return `${T('With')} ${s.holder||''} ${T('since')} ${stamp(new Date(s.since))}`;
-  if(s.status === 'placed') return `${T('In')} ${placeLabel(s)} ${T('since')} ${stamp(new Date(s.since))}`;
-  return T('In the cabinet');
-}
+// Where a placed bundle is: the apartment, the guest, or both.
+const placeLabel = s => [s.place, s.guest].filter(Boolean).join(' · ');
+// Whoever last touched a bundle - the one carrying it, or the one who left it somewhere.
+const whoOf = s => s.status === 'out' ? (s.holder||'') : (s.by||'');
 // A queued line has not reached anyone else's phone yet - flag it wherever it shows up.
-const queuedSuffix = ev => isQueued(ev)? ' · ' + T('waiting to sync') : '';
-// What to say about how fresh the shared state is - the same story wherever a bundle's
-// status is shown, so a stale read never looks as certain as a fresh one.
+const queuedSuffix = ev => isQueued(ev)? ' · ' + T('waiting') : '';
+// Only says something when the shared state is not fresh, so a stale read never looks as
+// certain as a live one. Silent the rest of the time.
 function syncHint(){
-  if(!keySeenAt) return T('The log has not been fetched yet — the status may be out of date.');
-  if(keyFailAt >= keySeenAt) return T('Could not reach the log — showing it as of') + ' ' + stamp(new Date(keySeenAt));
+  if(!keySeenAt) return T('Not fetched yet');
+  if(keyFailAt >= keySeenAt) return T('No contact — showing') + ' ' + stamp(new Date(keySeenAt));
   return '';
 }
 // After a sync that changed something, repaint whichever key screen is showing.
@@ -2905,8 +2811,6 @@ function openMenu(){
     </div>
     <button class="mitem" onclick="closeMenu();openKeyLog()">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
-    <div class="mitem" style="flex-direction:column;align-items:stretch;gap:10px">
-      <span>${T('Key design')}</span>${kthemeToggle()}</div>
     <div class="mitem" style="border-bottom:0">
       <span>${T('Language')}</span>${langToggle()}</div>
   </div>`;
@@ -2920,22 +2824,20 @@ function closeMenu(){ const el = document.getElementById('menu'); if(el) el.remo
 // Only what this person is carrying, and only the numbers. Who has the rest is in the log.
 const myKeys = () => outNow().filter(id => (keyState[id].holder||'') === keyMe && keyMe);
 function keyCard(){
-  const mine = myKeys(), out = outNow(), placed = placedNow(), waiting = (keyQueue||[]).length;
-  const tally = [out.length? out.length + ' ' + T('out right now') : '', placed.length? placed.length + ' ' + T('in apartment') : '']
-    .filter(Boolean).join(' · ') || T('nothing out right now');
+  const mine = myKeys(), ute = outNow().length + placedNow().length, waiting = (keyQueue||[]).length;
   return `<div class="card kcard">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
-      <span class="eyebrow">${T('Holdings')}</span>
-      ${keyMe? `<span class="hint" style="margin:0">${esc(keyMe)}</span>` : ''}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span class="eyebrow">${T('Keys')}</span>
+      ${keyMe? `<span class="kini" title="${esc(keyMe)}">${esc(initials(keyMe))}</span>` : ''}
     </div>
-    <div style="margin-top:8px">
+    <div style="margin-top:10px">
       ${mine.length
         ? `<div class="knums">${mine.map(id=>
             `<button class="knum-chip" onclick="showBundle('${id}')">${esc(id)}</button>`).join('')}</div>`
-        : `<span class="hint" style="margin:0">${T('You have no keys checked out.')}</span>`}
+        : `<span class="hint" style="margin:0">${T('None with you')}</span>`}
     </div>
-    ${waiting? `<div class="kwait" style="margin-top:10px">${waiting} ${T('waiting to sync')}</div>` : ''}
-    <button class="btn ghost small" style="margin-top:12px" onclick="openKeyLog()">${T('Shared log')} · ${tally}</button>
+    ${waiting? `<div class="kwait" style="margin-top:10px">${waiting} ${T('waiting')}</div>` : ''}
+    <button class="btn ghost small" style="margin-top:12px" onclick="openKeyLog()">${T('Key log')}${ute? ' · ' + ute + ' ' + T('out') : ''}</button>
   </div>`;
 }
 /* The log has an address of its own: #nyckellogg. Opening the app with it lands here
@@ -2971,43 +2873,32 @@ async function copyLogLink(){
   try{ await navigator.clipboard.writeText(url); toast(T('Link copied')) }
   catch(e){ prompt(T('Copy the link:'), url) }   // same fallback as the other links
 }
+/* One list: every bundle that is not in the cabinet, whoever has it and wherever it is.
+   The person is the circle of initials on the left - a full name on every row was the bulk
+   of the text on this screen, and the number is what anyone is actually looking for. The
+   name is still there on a press, and spelled out on the bundle itself. */
 function keyLogHtml(){
-  const out = outNow(), placed = placedNow(), q = (keyQueue||[]).length, hint = syncHint();
-  return topbar(T('Shared log'), (keyEvents||[]).length + ' ' + T('entries'), null, "closeKeyLog()") + `
+  const rows = outNow().concat(placedNow()).sort((a,b)=>(keyState[b].since||0) - (keyState[a].since||0));
+  const q = (keyQueue||[]).length, hint = syncHint();
+  return topbar(T('Key log'), keySyncP? T('Updating…') : rows.length + ' ' + T('out'), null, "closeKeyLog()") + `
     <div class="wrap">
-      <div class="hint" style="margin:0 3px 12px;display:flex;justify-content:space-between;gap:12px">
-        <span>${T('Everyone sees the same log.')}${q? ' ' + q + ' ' + T('waiting to sync') + '.' : ''}${keySyncP? ' ' + T('Updating…') : ''}</span>
-        <button class="addc" style="flex:none" onclick="copyLogLink()">${T('Copy link')}</button>
-      </div>
-      ${hint? `<div class="hint" style="margin:0 3px 12px">${hint}</div>` : ''}
-      <div class="csec">${T('Out right now')}<span class="ccount">${out.length}</span></div>
-      ${out.length? out.map(id=>{ const s = keyState[id]; return `
+      ${hint? `<div class="hint" style="margin:0 3px 10px">${hint}</div>` : ''}
+      ${q? `<div class="kwait" style="margin:0 3px 10px">${q} ${T('waiting')}</div>` : ''}
+      ${rows.length? rows.map(id=>{ const s = keyState[id], who = whoOf(s); return `
         <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
-          <span class="dot filled"></span>
+          <span class="kini" title="${esc(who)}">${esc(initials(who))}</span>
           <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
-            <div class="klsub">
-              ${esc(s.holder||'')}${s.reason? ' · '+esc(s.reason):''} · ${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</div></span>
+            <div class="klsub">${s.status==='placed'? esc(placeLabel(s)) + ' · ' : ''}${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</div></span>
           <span class="chev">›</span>
         </button>`}).join('')
-        : `<div class="card"><span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span></div>`}
+        : `<div class="card"><span class="hint" style="margin:0">${T('All keys are in the cabinet')}</span></div>`}
 
-      <div class="csec">${T('In apartment / with guest')}<span class="ccount">${placed.length}</span></div>
-      ${placed.length? placed.map(id=>{ const s = keyState[id]; return `
-        <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
-          <span class="dot filled"></span>
-          <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
-            <div class="klsub">
-              ${esc(placeLabel(s))} · ${stamp(new Date(s.since))} · ${T('left by')} ${esc(s.by||'')}${queuedSuffix(s.ev)}</div></span>
-          <span class="chev">›</span>
-        </button>`}).join('')
-        : `<div class="card"><span class="hint" style="margin:0">${T('Nothing is in an apartment right now.')}</span></div>`}
-
-      <div class="csec">${T('Latest')}</div>
+      <div class="csec"><span>${T('Latest')}</span><button class="addc" onclick="copyLogLink()">${T('Copy link')}</button></div>
       <div class="card">
-        ${(keyEvents||[]).slice(0,60).map(e=>`<div class="logline">
+        ${(keyEvents||[]).slice(0,40).map(e=>`<div class="logline">
           <b>${stamp(new Date(e.ts))}</b>
-          <span><b>${esc(e.bundle)}</b>${e.name? ' · '+esc(e.name):''} — ${esc(evLine(e))}${queuedSuffix(e)}</span>
-        </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span>`}
+          <span><b>${esc(e.bundle)}</b> ${esc(evLine(e))} · <span title="${esc(e.who)}">${esc(initials(e.who))}</span>${queuedSuffix(e)}</span>
+        </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing here yet')}</span>`}
       </div>
     </div>`;
 }
@@ -3027,10 +2918,10 @@ async function openScan(mode){
   scanMode = mode === 'hand' && ho ? 'hand' : 'open';
   const hand = scanMode === 'hand';
   const el = document.createElement('div');
-  el.className = 'cam kscan'; el.id = 'scan';
+  el.className = 'cam'; el.id = 'scan';
   el.innerHTML = `
     <div class="camtop">
-      <span style="font-weight:600">${hand? T('Scan the key to leave') : T('Scan QR code')}</span>
+      <span style="font-weight:600">${hand? T('Scan the key') : T('Scan QR code')}</span>
       <button onclick="closeScan()" style="font-size:15px">${T('Close')}</button>
     </div>
     <div class="view">
@@ -3040,14 +2931,14 @@ async function openScan(mode){
     <div class="scanfoot">
       ${hand? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}
       <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
-      <input id="scanman" placeholder="${T('or type the number, e.g. 112:3')}"
+      <input id="scanman" placeholder="112:3"
              autocapitalize="characters" autocomplete="off" spellcheck="false">
-      <button class="btn ghost" onclick="scanManual()">${hand? T('Leave this key') : T('Open the bundle')}</button>
+      <button class="btn ghost" onclick="scanManual()">${hand? T('Leave') : T('Open')}</button>
     </div>`;
   document.body.appendChild(el);
   document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
 
-  if(!await loadJsQR()) return scanMsg(T('The scanner did not load. Type the number instead.'), true);
+  if(!await loadJsQR()) return scanMsg(T('Scanner unavailable — type the number'), true);
 
   // Where the browser has a barcode reader of its own it is faster and steadier than
   // anything we can do in JavaScript. Chrome on Android has one; Safari does not, which
@@ -3083,7 +2974,7 @@ async function openScan(mode){
   if(!v) return;
   v.srcObject = scanStream;
   try{ await v.play() }catch(e){}
-  scanMsg(T('Hold the tag inside the frame.'));
+  scanMsg(T('Hold the tag in the frame'));
   scanOn = true; scanSince = Date.now(); scanTick();
 }
 function scanMsg(txt, hideBox){
@@ -3131,7 +3022,7 @@ async function scanTick(){
     // Say something useful if it has been staring at nothing for a while.
     if(Date.now() - scanSince > 6000){
       scanSince = Date.now() + 6000;
-      scanMsg(T('Fill the frame with the code and hold still. Good light helps.'));
+      scanMsg(T('Fill the frame and hold still'));
     }
   }
   scanRaf = requestAnimationFrame(scanTick);
@@ -3184,8 +3075,8 @@ function gotCode(raw){
     // simply not in the register yet, look identical from the outside otherwise.
     scanFeedback();
     scanMsg(/^\d+:(\d+|EXTRA)$/.test(id)
-      ? `${id} ${T('is not in the key register yet.')}`
-      : `${T('Read')} "${String(raw).slice(0,28)}" — ${T('that is not a key tag.')}`);
+      ? `${id} — ${T('not in the register')}`
+      : T('Not a key tag'));
     scanSince = Date.now() + 4000;
     if(scanOn) scanRaf = requestAnimationFrame(scanTick);   // a stray QR must not end the scan
     return;
@@ -3253,40 +3144,39 @@ function paintBundle(id){
             ${b.n? `<span class="bname">${esc(b.n)}</span>` : ''}
             <span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span>
           </div>
-          <span class="kstat ${!keySeenAt? 'unk' : (out?'out': placed?'pl':'in')}" style="margin-top:2px">${!keySeenAt? T('Not synced yet') : (out? T('Out') : placed? T('In apartment') : T('In the cabinet'))}</span>
+          <span class="kstat ${!keySeenAt? 'unk' : (out?'out': placed?'pl':'in')}" style="margin-top:2px">${!keySeenAt? T('Not fetched yet') : (out? T('Out') : placed? T('In apartment') : T('In the cabinet'))}</span>
         </div>
-        ${out? `<div class="hint" style="margin-top:10px">${T('With')} <b>${esc(s.holder||'')}</b>
-          ${T('since')} ${stamp(new Date(s.since))}${s.reason? ' · '+esc(s.reason):''}.</div>` : ''}
-        ${placed? `<div class="hint" style="margin-top:10px">${T('In')} <b>${esc(s.place || (T('to') + ' ' + s.guest))}</b>${s.place && s.guest? ' · ' + T('to') + ' <b>' + esc(s.guest) + '</b>' : ''}
-          ${T('since')} ${stamp(new Date(s.since))} · ${T('left by')} ${esc(s.by||'')}.</div>` : ''}
-        ${isQueued(s.ev)? `<div class="kwait" style="margin-top:8px">${T('Waiting to sync')}</div>` : ''}
+        ${out? `<div class="hint" style="margin-top:10px"><b>${esc(s.holder||'')}</b> ·
+          ${stamp(new Date(s.since))}${s.reason? ' · '+esc(s.reason):''}</div>` : ''}
+        ${placed? `<div class="hint" style="margin-top:10px"><b>${esc(placeLabel(s))}</b> ·
+          ${stamp(new Date(s.since))} · ${esc(s.by||'')}</div>` : ''}
+        ${isQueued(s.ev)? `<div class="kwait" style="margin-top:8px">${T('waiting')}</div>` : ''}
         ${hint? `<div class="hint" style="margin-top:8px">${hint}</div>` : ''}
         <div class="field" style="margin-top:14px">
           ${(!keyMe || koNameOpen)? `
             <label>${T('Your name')}</label>
-            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('who is taking the keys')}"
-                   autocomplete="name" enterkeyhint="done">
-            <div class="hint">${T('Saved on this phone for next time.')}</div>`
-            : `<div class="hint" style="margin:0">${T('Logged as')} <b>${esc(keyMe)}</b> · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
+            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}"
+                   autocomplete="name" enterkeyhint="done">`
+            : `<div class="hint" style="margin:0">${esc(keyMe)} · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
         </div>
         ${!out? `<div class="field">
-            <label>${T('Reason — optional')}</label>
+            <label>${T('Reason')}</label>
             <div class="chips" id="kochips">
               ${REASONS.map(r=>`<button class="chip${keepReason===r?' on':''}" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
             </div>
-            <input id="koreason" style="margin-top:10px" value="${esc(keepReason)}" placeholder="${T('or write your own — can be left empty')}"
+            <input id="koreason" style="margin-top:10px" value="${esc(keepReason)}" placeholder="${T('Something else')}"
                    oninput="document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'))">
           </div>` : ''}
       </div>
 
-      <div class="csec">${T('Keys on this bundle')}<span class="ccount">${total}</span></div>
+      <div class="csec">${T('Keys')}<span class="ccount">${total}</span></div>
       ${(()=>{ // one line per physical key, numbered, so you can count them off the ring
         let n = 0;
         return keys.map(k=>Array.from({length:k.q}, ()=>`<div class="krow">
           <span class="knum">${++n}</span>
           <span class="kt">
             <b>${esc(k.t)}</b>
-            ${k.m? `<span>${esc(k.m)}</span>` : `<span>${T('no marking')}</span>`}
+            ${k.m? `<span>${esc(k.m)}</span>` : '<span>—</span>'}
             ${k.note? `<span>${esc(k.note)}</span>` : ''}
           </span>
         </div>`).join('')).join('');
@@ -3331,7 +3221,7 @@ function koPick(btn, reason){
 async function koName(){
   const f = document.getElementById('koname');
   const name = (f ? f.value : keyMe).trim();
-  if(!name){ toast(T('The log needs a name.')); try{ f && f.focus() }catch(e){} return '' }
+  if(!name){ toast(T('Write your name')); try{ f && f.focus() }catch(e){} return '' }
   if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
   return name;
 }
@@ -3347,7 +3237,7 @@ async function checkOut(id){
     const s = bstate(id);
     const from = s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && s.holder !== name ? s.holder : '');
     const ev = await keyWrite(id, 'out', {who:name, reason, from});
-    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    if(!ev){ toast(T('Could not save')); return }
     await backToStart();
     toast(id + ' → ' + name);
   }finally{ koBusy = false }
@@ -3360,7 +3250,7 @@ async function checkIn(id){
     const s = bstate(id);
     const was = s.status === 'placed' ? placeLabel(s) : (s.holder || '');
     const ev = await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
-    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    if(!ev){ toast(T('Could not save')); return }
     await backToStart();
     toast(id + ' — ' + T('Back in the cabinet'));
   }finally{ koBusy = false }
@@ -3393,9 +3283,11 @@ function inspApt(){
   const place = [S.address, S.apt ? 'lgh ' + S.apt : ''].filter(Boolean).join(', ').trim();
   return { apt: '', place, known: false };
 }
-// Who the keys go to: the counterparty, unless the card says otherwise.
-const inspTo = () => S.keyTo != null ? S.keyTo : ((S.counter && S.counter.name) || '');
-const hoDest = () => !ho ? '' : (ho.place || '') + (ho.guest ? (ho.place ? ' · ' : '') + T('to') + ' ' + ho.guest : '');
+// Who the keys go to. It is the counterparty, always - the inspection already asked for that
+// name on the first step, and asking again on the key card was a field for nothing. (An
+// inspection that still carries a name typed into the old field keeps it.)
+const inspTo = () => S.keyTo || ((S.counter && S.counter.name) || '');
+const hoDest = () => !ho ? '' : [ho.place, ho.guest].filter(Boolean).join(' · ');
 
 // The card on the inspection's key section: what is here, what you carry for this
 // apartment, and the one field that does the hand-over. Painted from what is already on
@@ -3410,32 +3302,30 @@ function inspKeyCard(){
   const last = hoLast && hoLast.insp === S.id ? hoLast.ev : null;
   return `<div class="card kcard" id="inspkeys">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <span class="eyebrow">${T('Keys for the apartment')}</span>
+      <span class="eyebrow">${T('Keys')}</span>
       <span class="hint" style="margin:0">${esc(ctx.place || T('no address yet'))}</span>
     </div>
-    ${last ? `<div class="hoconf"><span class="hocheck sm">✓</span><div>
+    ${last ? `<div class="hoconf"><span class="hocheck">✓</span><div>
         <b>${esc(last.bundle)}${last.name ? ' · ' + esc(last.name) : ''}</b>
         <div>${esc(evLine(last))} · ${stamp(new Date(last.ts))}${queuedSuffix(last)}</div></div></div>` : ''}
     <div style="margin-top:8px">
       ${here.map(id => { const s = keyState[id]; return `<div class="kbrow"><span class="kstat pl">${T('here')}</span><b>${esc(id)}</b>
-          <span>${esc(evLine(s.ev))} · ${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</span></div>` }).join('')}
+          <span>${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</span></div>` }).join('')}
       ${carried.map(id => `<button class="kbrow" onclick="inspPick('${id}')"><span class="kstat out">${T('with you')}</span><b>${esc(id)}</b>
-          <span>${T('tap to leave it here')}</span></button>`).join('')}
-      ${!here.length && !carried.length && !last ? `<span class="hint" style="margin:0">${T('Nothing left here yet.')}</span>` : ''}
+          <span>${T('leave here')}</span></button>`).join('')}
+      ${!here.length && !carried.length && !last ? `<span class="hint" style="margin:0">${T('Nothing here yet')}</span>` : ''}
     </div>
-    <div class="field" style="margin-top:12px"><label class="eyebrow">${T('To — optional')}</label>
-      <input id="kbto" value="${esc(inspTo())}" placeholder="${T("guest's or tenant's name")}" autocomplete="off" oninput="S.keyTo=this.value;save()"></div>
-    <div class="field">
+    <div class="field" style="margin-top:12px">
       ${(!keyMe || koNameOpen) ? `<label class="eyebrow">${T('Your name')}</label>
-          <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('who is leaving the keys')}" autocomplete="name" enterkeyhint="done">`
-        : `<div class="hint" style="margin:0">${T('Logged as')} <b>${esc(keyMe)}</b> · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
+          <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}" autocomplete="name" enterkeyhint="done">`
+        : `<div class="hint" style="margin:0">${esc(keyMe)} · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
     </div>
     <div class="addrow">
-      <input id="kbnum" value="${esc(keepNum)}" placeholder="${T('Key number, e.g. 112:3')}" autocapitalize="characters" autocomplete="off" spellcheck="false"
+      <input id="kbnum" value="${esc(keepNum)}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
              onkeydown="if(event.key==='Enter')inspLeave()">
       <button class="btn ghost small" onclick="inspScan()">${T('Scan')}</button>
     </div>
-    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T('Leave in the apartment')}</button>
+    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T('Leave here')}</button>
   </div>`;
 }
 // Repaint the card in place - never the whole view, which would wipe a comment mid-typing.
@@ -3444,7 +3334,7 @@ function paintInspKeyCard(){
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   el.outerHTML = inspKeyCard();
-  if(focused === 'kbnum' || focused === 'kbto' || focused === 'koname'){
+  if(focused === 'kbnum' || focused === 'koname'){
     const f = document.getElementById(focused);
     if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
   }
@@ -3463,18 +3353,17 @@ async function hoBegin(){
   if(!canHandover()) return false;
   await keyBoot();
   const ctx = inspApt();
-  if(!ctx.place){ toast(T('Write the address or apartment number first.')); return false }
+  if(!ctx.place){ toast(T('Write the address first')); return false }
   const name = await koName(); if(!name) return false;
   koNameOpen = false;
-  const to = document.getElementById('kbto'); if(to) S.keyTo = to.value;
   ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), got:null, notes:[], step:'scan' };
   return true;
 }
 async function inspLeave(){
   const f = document.getElementById('kbnum'), raw = f ? f.value.trim() : '';
-  if(!raw){ toast(T('Write or scan the key number.')); try{ f && f.focus() }catch(e){} return }
+  if(!raw){ toast(T('Scan or type a number')); try{ f && f.focus() }catch(e){} return }
   const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
-  if(!bundleOf(id)){ await keyBoot(); if(!bundleOf(id)){ toast(`${id} ${T('is not in the key register yet.')}`); return } }
+  if(!bundleOf(id)){ await keyBoot(); if(!bundleOf(id)){ toast(`${id} — ${T('not in the register')}`); return } }
   if(!await hoBegin()) return;
   hoGot(id);
 }
@@ -3485,12 +3374,12 @@ async function inspScan(){ if(!await hoBegin()) return; openScan('hand') }
 function hoGot(id){
   if(!ho || !bundleOf(id)) return;
   const s = bstate(id), b = bundleOf(id);
-  if(s.status === 'placed' && ho.apt && s.apt === ho.apt){ toast(`${id} ${T('is already registered in')} ${s.place}.`); ho = null; return }
+  if(s.status === 'placed' && ho.apt && s.apt === ho.apt){ toast(`${id} — ${T('already here')}`); ho = null; return }
   ho.got = id; ho.notes = [];
-  if(!keySeenAt) ho.notes.push(T('The log has not been fetched yet — the status may be out of date.'));
-  else if(s.status === 'out' && s.holder && s.holder !== keyMe) ho.notes.push(`${id} ${T('is registered with')} ${s.holder} ${T('since')} ${stamp(new Date(s.since))}.`);
-  else if(s.status === 'placed') ho.notes.push(`${id} ${T('is registered in')} ${placeLabel(s)}.`);
-  if(ho.apt && String(id).split(':')[0] !== ho.apt) ho.notes.push(`${id} ${T('belongs to')} lgh ${b.l}${b.n ? ' ' + b.n : ''}, ${T('not')} ${ho.place}.`);
+  if(!keySeenAt) ho.notes.push(T('Not fetched yet'));
+  else if(s.status === 'out' && s.holder && s.holder !== keyMe) ho.notes.push(`${T('With')} ${s.holder} · ${stamp(new Date(s.since))}`);
+  else if(s.status === 'placed') ho.notes.push(`${T('In')} ${placeLabel(s)}`);
+  if(ho.apt && String(id).split(':')[0] !== ho.apt) ho.notes.push(`${T('Belongs to')} lgh ${b.l}${b.n ? ' ' + b.n : ''}`);
   if(!ho.notes.length) return hoSave();
   ho.step = 'review'; hoSheet(); paintHandover(); window.scrollTo(0,0);
 }
@@ -3503,11 +3392,13 @@ async function hoSave(){
     const id = ho.got, s = bstate(id);
     const from = s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && s.holder !== name ? s.holder : '');
     const ev = await keyWrite(id, 'place', { who:name, place:ho.place, guest:ho.guest, apt:ho.apt, from });
-    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    if(!ev){ toast(T('Could not save')); return }
     hoLast = { insp: S ? S.id : null, ev }; ho = null;
     closeHandover();
-    if(S) log(`Key ${id} left in the apartment${ev.guest ? ' to ' + ev.guest : ''}`);
-    toast(`${id} — ${T('left in the apartment')}`);
+    // Goes into the inspection's own log, and from there into the PDF - so it names the
+    // apartment rather than saying "the apartment".
+    if(S) log(`Key ${id} left in ${ev.place || 'the apartment'}${ev.guest ? ' to ' + ev.guest : ''}`);
+    toast(`${id} — ${T('left here')}`);
     const f = document.getElementById('kbnum'); if(f) f.value = '';
     paintInspKeyCard();
   }finally{ hoBusy = false }
@@ -3528,13 +3419,13 @@ function hoRescan(){ if(!ho) return; ho.step = 'scan'; ho.got = null; ho.notes =
 function paintHandover(){
   const el = document.getElementById('handover'); if(!el || !ho || ho.step !== 'review' || !ho.got) return;
   const b = bundleOf(ho.got);
-  el.innerHTML = topbar(T('Leave in the apartment'), ho.got, null, 'closeHandover()') + `<div class="wrap">
+  el.innerHTML = topbar(T('Leave here'), ho.got, null, 'closeHandover()') + `<div class="wrap">
       <div class="card">
         <div class="bhead"><span class="bnum">${esc(b.id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
         ${ho.notes.map(n => `<div class="hint" style="margin-top:8px">${esc(n)}</div>`).join('')}
-        <div style="margin-top:12px;font-size:14px">${T('Destination')}: <b>${esc(hoDest())}</b></div>
+        <div style="margin-top:12px;font-size:14px"><b>${esc(hoDest())}</b></div>
         <div class="kbtns">
-          <button class="btn" onclick="hoSave()">${T('Leave anyway')}</button>
+          <button class="btn" onclick="hoSave()">${T('Leave')}</button>
           <button class="btn ghost" onclick="hoRescan()">${T('Scan another')}</button>
         </div>
       </div>
@@ -3542,26 +3433,9 @@ function paintHandover(){
     <div class="sheetbar"><button class="btn ghost" onclick="closeHandover()">${T('Cancel')}</button></div>`;
 }
 
-/* ----- the three design proposals -----
-   Same screens, same behaviour, three palettes (1, 3 and 4 - the yellow one, 2, was dropped);
-   see the :root[data-ktheme] blocks in the CSS. The choice is per phone, remembered in
-   localStorage; the green one is the default, and a phone that had 2 stored falls back to it. */
-const KTHEMES = { '1':['Ljus persika','#F9D7C5','#FFD340'], '3':['Mörk persika','#E2987D','#F9D7C5'], '4':['Grön','#16453E','#F9D7C5'] };
-let KTHEME = '4';
-try{ const t = localStorage.getItem('beaps-ktheme'); if(KTHEMES[t]) KTHEME = t }catch(e){}
-function applyKTheme(){ document.documentElement.dataset.ktheme = KTHEME }
-function setKTheme(t){
-  if(!KTHEMES[t]) return;
-  KTHEME = t; try{ localStorage.setItem('beaps-ktheme', t) }catch(e){}
-  applyKTheme();
-  if(document.getElementById('menu')){ closeMenu(); openMenu() }
-}
-function kthemeToggle(){
-  return `<div class="ksw" role="group" aria-label="${T('Key design')}">${Object.keys(KTHEMES).map(t=>
-    `<button class="kswb${KTHEME===t?' on':''}" onclick="setKTheme('${t}')" aria-pressed="${KTHEME===t}" title="${esc(KTHEMES[t][0])}">
-       <i style="background:linear-gradient(135deg,${KTHEMES[t][1]} 50%,${KTHEMES[t][2]} 50%)"></i>${t}</button>`).join('')}</div>`;
-}
-applyKTheme();
+// The three coloured proposals that used to live here are gone: the key screens are white
+// like the rest of the app. The stored choice is dropped so no phone keeps a dark one.
+try{ localStorage.removeItem('beaps-ktheme') }catch(e){}
 
 /* ----- the properties behind the two fields on the Property step -----
    Addresses and apartments out of fastigheter.js, offered as you type. Nothing is forced:

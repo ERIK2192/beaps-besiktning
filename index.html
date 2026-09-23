@@ -34,7 +34,10 @@
   html,body{margin:0;padding:0}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;
        padding-bottom:calc(96px + env(safe-area-inset-bottom))}
-  .eyebrow{font-family:var(--serif);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+  /* Labels read as words, not as spaced-out capitals. The uppercase, wide-tracked micro-type
+     this app used to be full of is what made it look like a form; plain serif at a small size
+     says the same thing and gets out of the way. */
+  .eyebrow{font-family:var(--serif);font-size:13px;font-weight:600;color:var(--ink2)}
   h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
   h1{font-size:18px} h2{font-size:15px}
   button{font-family:inherit;font-size:16px;cursor:pointer;border:0;background:none;color:inherit}
@@ -105,12 +108,12 @@
   .crow.child{margin-left:16px}
   .crow.flash{border-color:var(--ink);box-shadow:0 0 0 3px rgba(22,50,92,.13)}
   .csec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:24px 3px 10px;
-        font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+        font-family:var(--serif);font-size:15px;font-weight:700;color:var(--ink)}
   .csec:first-child{margin-top:2px}
   .ccount{opacity:.7;flex:none}
-  .nocmt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);
+  .nocmt{font-family:var(--serif);font-size:11px;color:var(--ink2);
          border:1px solid var(--line);border-radius:5px;padding:2px 6px;white-space:nowrap}
-  .cwhen{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:5px}
+  .cwhen{font-family:var(--serif);font-size:11px;color:var(--ink2);margin-bottom:5px}
   .clabel{font-size:17px;font-weight:650;line-height:1.35;margin-bottom:10px}
   .cbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:10px}
   .ynrow{display:flex;gap:8px;flex:1 1 200px;min-width:0}
@@ -168,7 +171,7 @@
             background:linear-gradient(to top,var(--paper) 74%,rgba(242,241,237,0))}
   .sheetbar .btn{margin:0}
   .hint{font-size:13px;color:var(--ink2);margin-top:6px}
-  .locknote{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:var(--brand);border:1px solid var(--brand-dark);border-radius:6px;padding:6px 9px;display:inline-block}
+  .locknote{font-family:var(--serif);font-size:12px;background:var(--brand);border:1px solid var(--brand-dark);border-radius:6px;padding:6px 9px;display:inline-block}
   .list-item{display:flex;gap:13px;align-items:center;padding:15px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;width:100%;text-align:left}
   .list-item .chev{margin-left:auto;color:#BDB9B1;font-size:19px;line-height:1}
   .rowwrap{display:flex;align-items:stretch;gap:8px;margin-bottom:8px}
@@ -223,12 +226,12 @@
   .krow .kt b{display:block;font-size:16px;font-weight:600;line-height:1.25}
   .krow .kt span{display:block;font-family:var(--mono);font-size:12px;color:var(--ink2);margin-top:2px;word-break:break-word}
   .krow .kq{font-family:var(--num);font-size:14px;color:var(--ink2);flex:none}
-  .kstat{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  .kstat{font-family:var(--serif);font-size:12px;
          padding:5px 10px;border-radius:999px;white-space:nowrap;flex:none}
   .kstat.in{background:#E4F0EA;color:#2E7D5B}
   .kstat.out{background:#F7E4E3;color:var(--rec)}
   .kstat.unk{background:#EEE9DF;color:var(--ink2)}
-  .kwait{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#8A5E00}
+  .kwait{display:inline-flex;align-items:center;gap:6px;font-family:var(--serif);font-size:12px;color:#8A5E00}
   .kwait::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--brand);flex:none}
   /* the bundle header runs along one line - number, name, address - small and unstacked */
   .bhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
@@ -267,7 +270,7 @@
   /* name and initials on one line: the name takes the room, the initials just three letters */
   .namerow{display:flex;gap:8px}
   .namerow input:first-child{flex:1;min-width:0}
-  .namerow input:last-child{width:84px;flex:none;font-family:var(--num);text-align:center;letter-spacing:.08em;text-transform:uppercase}
+  .namerow input:last-child{width:84px;flex:none;font-family:var(--num);text-align:center;text-transform:uppercase}
   .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--num);letter-spacing:.06em}
   /* the confirmation after a hand-over, on the card that made it */
   .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;
@@ -449,8 +452,11 @@ const SV = {
   'Internet':'Internet',
   'Measured':'Mätt',
   'Measure again':'Mät igen',
-  "Optional: run a speed test against the Beaps server. Make sure the phone is on the apartment's wifi.":'Valfritt: kör ett hastighetstest mot Beaps-servern. Se till att telefonen är på lägenhetens wifi.',
   'Measure wifi':'Mät wifi',
+  "Make sure the phone is on the apartment's wifi.":'Se till att telefonen är uppkopplad till lägenhetens wifi.',
+  'Type or scan the keys you leave in the apartment.':'Skriv in eller skanna de nycklar du lämnar i lägenheten.',
+  'Set your name in the menu':'Sätt ditt namn i menyn',
+  'Saved on this phone. Used on every key line and on a new inspection.':'Sparas på telefonen. Används på varje nyckelrad och i nya besiktningar.',
   'Sign':'Signera',
   // extra room names (quick-add chips)
   'Living room':'Vardagsrum',
@@ -511,7 +517,6 @@ const SV = {
   'N/A':'E/T',
   'Comment':'Kommentar',
   'Photo':'Bild',
-  "Measure wifi runs a speed test against Beaps' server. Make sure the phone is on the apartment's wifi.":'Mät wifi kör ett hastighetstest mot Beaps server. Se till att telefonen är på lägenhetens wifi.',
   'Everything is answered':'Allt är besvarat',
   // --- room cards ---
   'Photograph':'Fotografera',
@@ -784,7 +789,6 @@ const SV = {
   'change':'ändra',
   'Reason':'Ärende',
   'Something else':'Något annat',
-  'Write your name':'Skriv ditt namn',
   'Could not save':'Kunde inte spara',
   // the scanner
   'Scan QR code':'Skanna QR-kod',
@@ -798,7 +802,6 @@ const SV = {
   'not in the register':'finns inte i registret',
   'Not a key tag':'Ingen nyckelbricka',
   // --- leaving a bundle in an apartment or with a guest ---
-  'no address yet':'ingen adress än',
   'here':'här',
   'with you':'hos dig',
   'leave here':'lämna här',
@@ -814,7 +817,14 @@ const SV = {
   'Apartments at':'Lägenheter på'
 };
 const T = s => (LANG==='sv' && SV[s]!=null) ? SV[s] : s;
-function setLang(l){ if(l!=='sv'&&l!=='en') return; LANG=l; try{ localStorage.setItem('beaps-lang',l) }catch(e){} render(); }
+// The language is set once, in the menu, and kept on the phone. Changing it there repaints
+// the menu too, so the labels behind the switch follow it straight away.
+function setLang(l){
+  if(l!=='sv'&&l!=='en') return;
+  LANG=l; try{ localStorage.setItem('beaps-lang',l) }catch(e){}
+  render();
+  if(document.getElementById('menu')){ closeMenu(); openMenu() }
+}
 
 let S=null, photoCache={}, videoURL=null, view='start', openRoom=null, saveTimer=null;
 
@@ -1154,7 +1164,7 @@ function topbar(title, sub, pct, back){
   return `<div class="top"><div class="row">
     ${back?`<button class="back" onclick="${back}" aria-label="${T('Back')}">‹</button>`:''}
     <div style="min-width:0"><div class="eyebrow">${esc(sub||'')}</div><h1>${esc(title)}</h1></div>
-    ${langToggle('margin-left:auto')}${brand()}
+    <span style="margin-left:auto">${brand()}</span>
   </div>${pct!=null?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}</div>`;
 }
 function leave(){ flushSave(); S=null; photoCache={}; videoURL=null; openRoom=null; view='start'; renderStart(); window.scrollTo(0,0) }
@@ -1234,7 +1244,7 @@ async function render(){
         ${S.wifi? `<div style="font-size:14px">${esc(wifiLine(S.wifi))}</div>
           <div class="hint">${T('Measured')} ${stamp(new Date(S.wifi.ts))}</div>
           <button class="btn ghost small" style="margin-top:10px" onclick="measureWifiRoom()">${T('Measure again')}</button>`
-        : `<div class="hint" style="margin:0 0 10px">${T("Optional: run a speed test against the Beaps server. Make sure the phone is on the apartment's wifi.")}</div>
+        : `<div class="hint" style="margin:0 0 10px">${T("Make sure the phone is on the apartment's wifi.")}</div>
            <button class="btn ghost" onclick="measureWifiRoom()">${T('Measure wifi')}</button>`}
       </div>
       ${inspKeyCard()}
@@ -1376,7 +1386,7 @@ function checkRow(c){
         <button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>
       </span>
     </div>
-    ${c.key==='internet'? `<div class="hint">${T("Measure wifi runs a speed test against Beaps' server. Make sure the phone is on the apartment's wifi.")}</div>`:''}
+    ${c.key==='internet'? `<div class="hint">${T("Make sure the phone is on the apartment's wifi.")}</div>`:''}
     ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${T('Comment')}">`:''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
@@ -2549,8 +2559,9 @@ async function delAll(){
 }
 async function newInsp(){
   editList = false;
+  // The inspector is the name set in the menu; it is the same person every time on this phone.
   S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
-        inspector:{name:''}, counter:{name:'',role:''},
+        inspector:{name:keyMe||''}, counter:{name:'',role:''},
         rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
         video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null, gallery:null,
         signedAt:null, closedAt:null, log:[] };
@@ -2845,7 +2856,10 @@ window.addEventListener('online', ()=>{ keySync(true).then(refreshKeyViews) });
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') keySync().then(refreshKeyViews) });
 
 /* ----- menu ----- */
-function openMenu(){
+/* Everything you set once and the phone remembers lives here: who you are, and which
+   language the app speaks. Nothing else in the app asks for either again. */
+async function openMenu(){
+  await keyLocal();
   const el = document.createElement('div');
   el.className = 'menu'; el.id = 'menu';
   el.addEventListener('click', e=>{ if(e.target === el) closeMenu() });
@@ -2858,10 +2872,38 @@ function openMenu(){
       <span>${T('Check key in/out')}</span><span class="chev">›</span></button>
     <button class="mitem" onclick="closeMenu();openKeyLog()">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
+    <div class="mitem" style="flex-direction:column;align-items:stretch;gap:8px">
+      <span>${T('Your name')}</span>
+      <div class="namerow">
+        <input id="menuname" value="${esc(keyMe)}" placeholder="${T('Name')}" autocomplete="name"
+               enterkeyhint="done" onchange="saveMenuName()">
+        <input id="menuini" value="${esc(myIni())}" placeholder="${T('Initials')}" maxlength="3"
+               autocapitalize="characters" autocomplete="off" spellcheck="false"
+               onchange="saveMenuName()" aria-label="${T('Initials')}">
+      </div>
+      <span class="hint" style="margin:0">${T('Saved on this phone. Used on every key line and on a new inspection.')}</span>
+    </div>
     <div class="mitem" style="border-bottom:0">
       <span>${T('Language')}</span>${langToggle()}</div>
   </div>`;
   document.body.appendChild(el);
+}
+// Initials follow the name unless you have written your own. The field is read against both
+// the old name and the new one: a field still holding the letters the previous name gave
+// counts as untouched and follows the new name, and only something neither name would have
+// produced is kept as yours. Without that, changing the name alone would freeze the old
+// initials in place as if they had been typed.
+async function saveMenuName(){
+  const n = document.getElementById('menuname'), g = document.getElementById('menuini');
+  const forra = keyMe;
+  const name = (n ? n.value : keyMe).trim();
+  if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
+  const typed = g ? cleanIni(g.value) : '';
+  const eget = (typed && typed !== initials(name) && typed !== initials(forra)) ? typed : '';
+  if(eget !== keyIni){ keyIni = eget; await store.set(KEYINI, eget) }
+  if(g) g.value = myIni();
+  if(view === 'start') renderStart();
+  const card = document.getElementById('inspkeys'); if(card) paintInspKeyCard();
 }
 function closeMenu(){ const el = document.getElementById('menu'); if(el) el.remove() }
 
@@ -2870,13 +2912,12 @@ function closeMenu(){ const el = document.getElementById('menu'); if(el) el.remo
 // no waiting. The sync behind it refreshes it a moment later if anything moved.
 // Only what this person is carrying, and only the numbers. Who has the rest is in the log.
 const myKeys = () => outNow().filter(id => (keyState[id].holder||'') === keyMe && keyMe);
+// What you are carrying, and nothing else. How many keys the whole company has out is a
+// question for the log, which lives in the menu.
 function keyCard(){
-  const mine = myKeys(), ute = outNow().length + placedNow().length, waiting = (keyQueue||[]).length;
+  const mine = myKeys(), waiting = (keyQueue||[]).length;
   return `<div class="card kcard">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <span class="eyebrow">${T('Keys')}</span>
-      ${keyMe? `<span class="kini" title="${esc(keyMe)}">${esc(myIni())}</span>` : ''}
-    </div>
+    <span class="eyebrow">${T('Keys')}</span>
     <div style="margin-top:10px">
       ${mine.length
         ? `<div class="knums">${mine.map(id=>
@@ -2884,7 +2925,6 @@ function keyCard(){
         : `<span class="hint" style="margin:0">${T('None with you')}</span>`}
     </div>
     ${waiting? `<div class="kwait" style="margin-top:10px">${waiting} ${T('waiting')}</div>` : ''}
-    <button class="btn ghost small" style="margin-top:12px" onclick="openKeyLog()">${T('Key log')}${ute? ' · ' + ute + ' ' + T('out') : ''}</button>
   </div>`;
 }
 /* The log has an address of its own: #nyckellogg. Opening the app with it lands here
@@ -3154,11 +3194,10 @@ function showBundle(id){
   // a failed fetch changes the hint too.
   keySync(true).then(()=>{ const s = document.getElementById('bundle'); if(s && s.dataset.bundle===id) paintBundle(id) });
 }
-function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove(); koNameOpen = false }
+function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove() }
 let histOpen = false;
 function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
-let koNameOpen = false;
-function koEditName(){ koNameOpen = true; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
+
 // After checking a bundle in or out, land on the start screen, where the Keys card now
 // shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
 async function backToStart(){ closeBundle(); closeScan(); if(view==='start') await renderStart() }
@@ -3201,18 +3240,7 @@ function paintBundle(id){
           ${stamp(new Date(s.since))} · ${esc(s.by||'')}</div>` : ''}
         ${isQueued(s.ev)? `<div class="kwait" style="margin-top:8px">${T('waiting')}</div>` : ''}
         ${hint? `<div class="hint" style="margin-top:8px">${hint}</div>` : ''}
-        <div class="field" style="margin-top:14px">
-          ${(!keyMe || koNameOpen)? `
-            <label>${T('Your name')}</label>
-            <div class="namerow">
-              <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}"
-                     autocomplete="name" enterkeyhint="done">
-              <input id="koini" value="${esc(keepIni || myIni())}" placeholder="${T('Initials')}"
-                     autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="3" aria-label="${T('Initials')}">
-            </div>`
-            : `<div class="hint" style="margin:0">${esc(keyMe)} · <b>${esc(myIni())}</b> · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
-        </div>
-        ${!out? `<div class="field">
+        ${!out? `<div class="field" style="margin-top:14px">
             <label>${T('Reason')}</label>
             <div class="chips" id="kochips">
               ${REASONS.map(r=>`<button class="chip${keepReason===r?' on':''}" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
@@ -3272,20 +3300,12 @@ function koPick(btn, reason){
 // The name is the one thing the log cannot do without. It is read from the field when one is
 // shown, otherwise it is the saved one; either way it is saved for next time.
 async function koName(){
-  const f = document.getElementById('koname');
-  const name = (f ? f.value : keyMe).trim();
-  if(!name){ toast(T('Write your name')); try{ f && f.focus() }catch(e){} return '' }
-  // The initials are read against the name as it was, so a field still holding the two
-  // letters the old name gave counts as untouched and follows the new name. Only something
-  // neither name would have produced is stored as your own.
-  const g = document.getElementById('koini');
-  const ini = g ? cleanIni(g.value) : null;
-  const rort = ini !== null && ini !== '' && ini !== initials(keyMe) && ini !== initials(name);
+  // Set once, in the menu, and kept on the phone. An inspection that already names its
+  // inspector counts as having set it, so an older report still writes a name to the log.
+  let name = (keyMe || '').trim();
+  if(!name && S && S.inspector && S.inspector.name) name = S.inspector.name.trim();
+  if(!name){ toast(T('Set your name in the menu')); openMenu(); return '' }
   if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
-  if(ini !== null){
-    const eget = rort ? ini : '';
-    if(eget !== keyIni){ keyIni = eget; await store.set(KEYINI, eget) }
-  }
   return name;
 }
 async function checkOut(id){
@@ -3362,15 +3382,12 @@ function inspKeyCard(){
   // With an apartment, only the bundles that belong to it. Without one - an inspection not
   // filled in yet - everything you carry, so there is still something to tap.
   const carried = ctx.apt ? myKeys().filter(id => String(id).split(':')[0] === ctx.apt) : myKeys();
-  const numEl = document.getElementById('kbnum'), nameEl = document.getElementById('koname');
-  const iniEl = document.getElementById('koini');
-  const keepNum = numEl ? numEl.value : '', keepName = nameEl ? nameEl.value : '', keepIni = iniEl ? iniEl.value : '';
+  const numEl = document.getElementById('kbnum');
+  const keepNum = numEl ? numEl.value : '';
   const last = hoLast && hoLast.insp === S.id ? hoLast.ev : null;
   return `<div class="card kcard" id="inspkeys">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <span class="eyebrow">${T('Keys')}</span>
-      <span class="hint" style="margin:0">${esc(ctx.place || T('no address yet'))}</span>
-    </div>
+    <span class="eyebrow">${T('Keys')}</span>
+    <div class="hint" style="margin:4px 0 0">${T('Type or scan the keys you leave in the apartment.')}</div>
     ${last ? `<div class="hoconf"><span class="hocheck">✓</span><div>
         <b>${esc(last.bundle)}${last.name ? ' · ' + esc(last.name) : ''}</b>
         <div>${esc(evLine(last))} · ${stamp(new Date(last.ts))}${queuedSuffix(last)}</div></div></div>` : ''}
@@ -3381,16 +3398,7 @@ function inspKeyCard(){
           <span>${T('leave here')}</span></button>`).join('')}
       ${!here.length && !carried.length && !last ? `<span class="hint" style="margin:0">${T('Nothing here yet')}</span>` : ''}
     </div>
-    <div class="field" style="margin-top:12px">
-      ${(!keyMe || koNameOpen) ? `<label class="eyebrow">${T('Your name')}</label>
-          <div class="namerow">
-            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}" autocomplete="name" enterkeyhint="done">
-            <input id="koini" value="${esc(keepIni || myIni())}" placeholder="${T('Initials')}"
-                   autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="3" aria-label="${T('Initials')}">
-          </div>`
-        : `<div class="hint" style="margin:0">${esc(keyMe)} · <b>${esc(myIni())}</b> · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
-    </div>
-    <div class="addrow">
+    <div class="addrow" style="margin-top:12px">
       <input id="kbnum" value="${esc(keepNum)}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
              onkeydown="if(event.key==='Enter')inspLeave()">
       <button class="btn ghost small" onclick="inspScan()">${T('Scan')}</button>
@@ -3427,7 +3435,7 @@ async function hoBegin(){
   // hand-over - the bundle number says which apartment the keys belong to on its own, and the
   // line reads "Lamnad" rather than naming a place. Erik's call, 2026-09-23, while testing.
   const name = await koName(); if(!name) return false;
-  koNameOpen = false;
+
   ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), got:null, notes:[], step:'scan' };
   return true;
 }

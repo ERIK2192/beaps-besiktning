@@ -1087,6 +1087,60 @@ function checks, the upgrade run.
 report is the one document a customer keeps, so it is worth doing - but every line width
 changes with the font, so it wants its own pass and its own look at the output.
 
+### 2026-09-23 — one identity, one place for it, and labels that read as words
+
+Seven things off Erik's list, all of them the same complaint underneath: the app kept asking
+for things it already knew, and shouting the answers back in spaced-out capitals.
+
+**Who you are is set once.** Name and initials now live in the menu, saved on the phone
+(`saveMenuName`). Nothing else asks. The key card inside an inspection and the bundle sheet
+both lost their name and initials fields; `koName()` reads the saved name, falls back to the
+inspection's own inspector when the phone has none - so an older report still writes a name to
+the log - and only when there is neither does it say so and open the menu. A new inspection
+starts with the inspector already filled in from it. Fixed while testing: changing only the
+name would have frozen the old initials in place as if you had typed them, because the field
+still held them; they are now read against the old name as well as the new one, so they follow
+along unless they are genuinely your own.
+
+**The start screen shows what you carry, nothing else.** The Keys card is your bundles and
+that is all - the "Key log · N out" button and the initials badge are gone. How many keys the
+company has out is a question for the log, and the log is reached from the menu.
+
+**The language switch left the top bar.** It sat in every header on every screen for a choice
+made once; it is in the menu beside the name now, and changing it there repaints the menu so
+the labels behind it follow.
+
+**The key card says what to do and nothing more:** "Skriv in eller skanna de nycklar du lämnar
+i lägenheten", the bundles already here or in your pocket, the number field, Skanna, Lämna här.
+The address line went - it repeated what the header above already says, and read "ingen adress
+än" on a fresh inspection, which is noise. The apartment is still matched underneath, exactly
+as before; it is just not printed.
+
+**The wifi hint is one line:** "Se till att telefonen är uppkopplad till lägenhetens wifi." The
+sentence about running a speed test against the Beaps server described the plumbing, not the
+job.
+
+**Labels read as words.** `.eyebrow`, `.csec`, `.cwhen`, `.nocmt`, `.locknote`, `.kstat` and
+`.kwait` lose `text-transform: uppercase` and their wide tracking, and move to the serif at a
+slightly larger size. "SHORTSTAY UPPLÅSNING · 0/30 IFYLLDA" is now "Shortstay upplåsning · 0/30
+ifyllda". Only the initials field keeps its uppercase, because initials are uppercase.
+
+**Asked for and not built: picking the wifi network and typing its password from inside the
+app.** A web page cannot do it, on any phone. The browser is not allowed to list nearby
+networks or join one - there is no API for it and there will not be one, because a page that
+could read the networks around you could locate you, and a page that could join one could move
+a phone onto a network of its choosing. It is the phone's own wifi settings or nothing. The
+hint now just says to be on the apartment's wifi.
+
+**Verified** in headless Edge, 50 checks in Swedish and English: the start card without the log
+button or initials, no language switch in either top bar, the menu holding name, initials,
+language, log and check-in/out, the name saving and the initials following it or staying yours,
+a new inspection prefilled, the key card without address or identity but still matching the
+apartment, a hand-over written without asking for a name, the mismatch review and its cancel,
+the bundle sheet asking for no identity, the short wifi hint with no speed-test wording, all
+seven label styles free of uppercase and tracking, and the property suggestions still working.
+Harness: `outputs/keyflow-test/` (drive3.js is the current one).
+
 ---
 
 ## 6. Kvar att göra

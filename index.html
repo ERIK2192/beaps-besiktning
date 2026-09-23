@@ -55,8 +55,6 @@
   .btn:active{background:var(--brand-dark)}
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .btn.ghost:active{background:#F6F5F2}
-  .btn.navy{background:var(--ink);color:#fff;border:0}
-  .btn.navy:active{background:#0F2445}
   .btn.small{padding:9px 13px;min-height:42px;font-size:14px;width:auto}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:14px;font-weight:550}
@@ -779,7 +777,6 @@ const SV = {
   'already here':'redan här',
   'Scan another':'Skanna en annan',
   'Scan or type a number':'Skanna eller skriv ett nummer',
-  'Write the address first':'Skriv adressen först',
   // --- the property register behind the two fields on the Property step ---
   'more':'fler',
   'no apartments in the register':'inga lägenheter i registret',
@@ -2481,9 +2478,11 @@ async function renderStart(){
            </div>`}
       ${editList && idx.length? `<button class="btn ghost small" style="width:100%;margin-top:6px;color:var(--rec)" onclick="delAll()">${T('Delete all')} ${idx.length} ${T('reports')}</button>`:''}
     </div>`;
-  $('#bar').className = 'bar raised stack';
-  $('#bar').innerHTML = `<button class="btn" onclick="newInsp()">${T('New inspection')}</button>
-    <button class="btn navy" onclick="openScan()">${T('Check key in/out')}</button>`;
+  // One button at the bottom. Checking a key in or out moved into the menu (Erik, 2026-09-23):
+  // it is a side errand next to starting an inspection, and the Keys card above already shows
+  // what you are carrying.
+  $('#bar').className = 'bar raised';
+  $('#bar').innerHTML = `<button class="btn" style="width:100%" onclick="newInsp()">${T('New inspection')}</button>`;
   paintTicker();
   // Catch up with what everyone else has done, then repaint only if it changed something.
   keySync().then(refreshKeyViews);
@@ -2813,6 +2812,8 @@ function openMenu(){
       <span class="eyebrow">${T('Menu')}</span>
       <button style="font-size:22px;line-height:1;padding:4px 8px" onclick="closeMenu()" aria-label="${T('Close')}">×</button>
     </div>
+    <button class="mitem" onclick="closeMenu();openScan()">
+      <span>${T('Check key in/out')}</span><span class="chev">›</span></button>
     <button class="mitem" onclick="closeMenu();openKeyLog()">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
     <div class="mitem" style="border-bottom:0">

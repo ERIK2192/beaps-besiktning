@@ -997,6 +997,27 @@ duplicate it), 236 function checks, and the upgrade run. The PDF was built for r
 browser and its text read back out of the file - `outputs/keyflow-test/shots/receipt.pdf`,
 `cdp.cjs shots 4 pdf`.
 
+### 2026-09-23 — checking a key in or out moves into the menu
+
+The start screen had two buttons stacked at the bottom, *Ny besiktning* in yellow and *Checka
+in/ut nyckel* in navy. Erik asked for the second one under the hamburger, and it belongs
+there: starting an inspection is what the screen is for, a key errand is a side trip. The menu
+now reads *Checka in/ut nyckel · Nyckellogg · Språk* - the action first, then the view of it -
+and the bar is one full-width button.
+
+Nothing else moved. The Keys card on the start screen still shows what you are carrying and
+still opens the log in one tap; what costs an extra tap now is the scanner. The menu only
+exists on the start screen (the hamburger is drawn in `renderStart`, not in `topbar`), which is
+where the scanner was reachable from before, so nothing became harder to find from inside an
+inspection - it was never there.
+
+**Swept out while in there:** `.btn.navy`, whose only user was that button, and the dead
+translation `'Write the address first'` left behind when the address stopped being required.
+
+**Verified:** 86 key-flow checks (5 new: the bar holds one button and it is the right one, the
+scanner is in the menu and comes first, the log is beside it), 236 function checks, and the
+upgrade run.
+
 ---
 
 ## 6. Kvar att göra

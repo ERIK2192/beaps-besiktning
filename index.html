@@ -742,6 +742,8 @@ const SV = {
   'Belongs to':'Hör till',
   'Left in':'Lämnad i',
   'Left to':'Lämnad till',
+  'Left':'Lämnad',
+  'the apartment':'lägenheten',
   'History':'Historik',
   'Hide history':'Dölj historik',
   'Check out':'Checka ut',
@@ -1167,6 +1169,7 @@ async function render(){
     app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${list.length} ${T('filled')}`,
       20+Math.round(done/Math.max(1,list.length)*65), 'leave()') + `<div class="wrap">
       ${checkList(list)}
+      ${inspKeyCard()}
     </div>`;
     bar.innerHTML = `<button class="btn" onclick="go('sign')">${T('Done')}</button>`;
     inspKeyPrime();
@@ -1181,7 +1184,7 @@ async function render(){
         <button class="btn" onclick="openCam(S.rooms[0]&&S.rooms[0].id)">${T('Camera')}</button>
         <div class="hint">${T('Drop photos on a room to add them. Drag the handle to move the room.')}</div>
       </div>
-      ${S.rooms.map(r => roomCard(r) + (r.fixed ? inspKeyCard() : '')).join('')}
+      ${S.rooms.map(roomCard).join('')}
       <div class="card">
         <div class="eyebrow" style="margin-bottom:9px">${T('Add room')}</div>
         <div class="addrow" style="margin-bottom:10px">
@@ -1206,6 +1209,7 @@ async function render(){
         : `<div class="hint" style="margin:0 0 10px">${T("Optional: run a speed test against the Beaps server. Make sure the phone is on the apartment's wifi.")}</div>
            <button class="btn ghost" onclick="measureWifiRoom()">${T('Measure wifi')}</button>`}
       </div>
+      ${inspKeyCard()}
     </div>`;
     bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
       <button class="btn" onclick="go('sign')">${T('Sign')}</button>`;
@@ -1301,7 +1305,7 @@ async function render(){
 // headings are inserted where the section changes, with how far that section has progressed
 function checkList(list){
   let out = '', sect = null;
-  list.forEach((c,i)=>{
+  list.forEach(c=>{
     if(c.section && c.section !== sect){
       sect = c.section;
       const rows = list.filter(x=>x.section===sect);
@@ -1309,9 +1313,6 @@ function checkList(list){
         <span class="ccount">${rows.filter(x=>x.val).length}/${rows.length}</span></div>`;
     }
     out += checkRow(c);
-    // The key card sits at the end of the door-and-keys section, where the keys are handled.
-    const nx = list[i+1];
-    if(c.section === 'Door & keys' && (!nx || nx.section !== c.section)) out += inspKeyCard();
   });
   return out;
 }
@@ -2763,9 +2764,12 @@ function evLine(e){
   // The apartment and the person it went to both stay - that pair is the whole point of a
   // hand-over. Where it came from is on the event and in the bundle's history; it is not
   // repeated here.
-  if(e.kind === 'place') return e.place
-    ? `${T('Left in')} ${e.place}${e.guest? ' · ' + e.guest : ''}`
-    : `${T('Left to')} ${e.guest||''}`;
+  if(e.kind === 'place'){
+    if(e.place) return `${T('Left in')} ${e.place}${e.guest? ' · ' + e.guest : ''}`;
+    // An inspection with no address yet still logs the hand-over; the bundle number already
+    // says which apartment the keys belong to.
+    return e.guest ? `${T('Left to')} ${e.guest}` : T('Left');
+  }
   return e.kind === 'out'
     ? `${T('Out')}${e.reason? ' · ' + e.reason : ''}`
     : T('In the cabinet');
@@ -3287,7 +3291,7 @@ function inspApt(){
 // name on the first step, and asking again on the key card was a field for nothing. (An
 // inspection that still carries a name typed into the old field keeps it.)
 const inspTo = () => S.keyTo || ((S.counter && S.counter.name) || '');
-const hoDest = () => !ho ? '' : [ho.place, ho.guest].filter(Boolean).join(' · ');
+const hoDest = () => !ho ? '' : ([ho.place, ho.guest].filter(Boolean).join(' · ') || T('the apartment'));
 
 // The card on the inspection's key section: what is here, what you carry for this
 // apartment, and the one field that does the hand-over. Painted from what is already on
@@ -3296,7 +3300,9 @@ function inspKeyCard(){
   if(!canHandover()) return '';
   const ctx = inspApt();
   const here = placedNow().filter(id => { const s = keyState[id]; return ctx.apt ? s.apt === ctx.apt : (!!ctx.place && s.place === ctx.place) });
-  const carried = ctx.apt ? myKeys().filter(id => String(id).split(':')[0] === ctx.apt) : [];
+  // With an apartment, only the bundles that belong to it. Without one - an inspection not
+  // filled in yet - everything you carry, so there is still something to tap.
+  const carried = ctx.apt ? myKeys().filter(id => String(id).split(':')[0] === ctx.apt) : myKeys();
   const numEl = document.getElementById('kbnum'), nameEl = document.getElementById('koname');
   const keepNum = numEl ? numEl.value : '', keepName = nameEl ? nameEl.value : '';
   const last = hoLast && hoLast.insp === S.id ? hoLast.ev : null;
@@ -3353,7 +3359,9 @@ async function hoBegin(){
   if(!canHandover()) return false;
   await keyBoot();
   const ctx = inspApt();
-  if(!ctx.place){ toast(T('Write the address first')); return false }
+  // The address is not required. An inspection that has not been filled in yet still logs a
+  // hand-over - the bundle number says which apartment the keys belong to on its own, and the
+  // line reads "Lamnad" rather than naming a place. Erik's call, 2026-09-23, while testing.
   const name = await koName(); if(!name) return false;
   koNameOpen = false;
   ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), got:null, notes:[], step:'scan' };
@@ -3395,9 +3403,20 @@ async function hoSave(){
     if(!ev){ toast(T('Could not save')); return }
     hoLast = { insp: S ? S.id : null, ev }; ho = null;
     closeHandover();
-    // Goes into the inspection's own log, and from there into the PDF - so it names the
-    // apartment rather than saying "the apartment".
-    if(S) log(`Key ${id} left in ${ev.place || 'the apartment'}${ev.guest ? ' to ' + ev.guest : ''}`);
+    // The receipt the PDF prints. The keys are copied off the register as they stood at the
+    // moment of the hand-over, so the report says what was actually handed over even if the
+    // register is corrected later - and so the PDF needs nothing loaded to draw it.
+    if(S){
+      const b = bundleOf(id);
+      // Type, marking and how many - and nothing else. The register's fourth field is an
+      // internal note (several rows still say "vart gar denna???") and a receipt a tenant
+      // signs is not the place for our own question marks.
+      S.keysOut = (S.keysOut || []).filter(k => k.bundle !== id);
+      S.keysOut.push({ bundle:id, name:ev.name||'', place:ev.place||'', guest:ev.guest||'',
+                       ts:ev.ts, who:ev.who||'',
+                       keys: b ? b.k.map(k => [k[0]||'', k[1]||'', k[2]||1]) : [] });
+      log(`Key ${id} left in ${ev.place || 'the apartment'}${ev.guest ? ' to ' + ev.guest : ''}`);
+    }
     toast(`${id} — ${T('left here')}`);
     const f = document.getElementById('kbnum'); if(f) f.value = '';
     paintInspKeyCard();
@@ -3632,6 +3651,49 @@ async function buildPdf(){
   if(S.video) line(`Video recorded ${stamp(new Date(S.video.ts))}`, 10);
   if(S.wifi) line(`Internet: ${wifiLine(S.wifi)}`, 10);
   y += 8;
+
+  /* A receipt for the keys, not a question about them. It appears only when a bundle was
+     actually handed over during this inspection, and then it lists every physical key on the
+     ring by type and marking - which is the thing a move-in or move-out argument is later
+     about, and which no free-text "3 nycklar + bricka" can settle. Drawn from S.keysOut,
+     copied off the register at the moment of the hand-over. */
+  if((S.keysOut||[]).length){
+    for(const k of S.keysOut){
+      // Type and marking only. The register's fourth field is an internal note - several
+      // rows still say "vart gar denna???" - and a report that goes to a tenant is not the
+      // place for our own question marks.
+      const rader = [];
+      let n = 0;
+      for(const key of (k.keys||[])){
+        const antal = key[2] || 1;
+        for(let i = 0; i < antal; i++) rader.push([++n, key[0] || '-', key[1] || '']);
+      }
+      const till = [k.place, k.guest].filter(Boolean).join(' · ');
+      const boxH = 34 + (till? 12 : 0) + 12 + rader.length*12 + 12;
+      need(boxH + 10);
+      doc.setFillColor(247, 247, 244); doc.setDrawColor(190); doc.setLineWidth(.9);
+      doc.roundedRect(M, y, CW, boxH, 6, 6, 'FD');
+
+      let by = y + 16;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110);
+      doc.text('KEYS HANDED OVER', M + 12, by); by += 14;
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(0);
+      doc.text(`${k.bundle}${k.name? '  ' + k.name : ''}`, M + 12, by); by += 13;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
+      if(till){ doc.text(till, M + 12, by); by += 12 }
+      doc.text(`${stamp(new Date(k.ts))}${k.who? '  ·  handed over by ' + k.who : ''}`, M + 12, by); by += 14;
+
+      doc.setFontSize(9); doc.setTextColor(0);
+      for(const [nr, typ, mark] of rader){
+        doc.setTextColor(140); doc.text(String(nr), M + 14, by);
+        doc.setTextColor(0);   doc.text(typ, M + 30, by);
+        doc.setTextColor(90);  doc.text(mark, M + 170, by);
+        by += 12;
+      }
+      doc.setTextColor(0);
+      y += boxH + 12;
+    }
+  }
 
   if(isCheck()){
     // summary first, so the recipient sees the deviations without scrolling

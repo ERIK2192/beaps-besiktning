@@ -944,6 +944,59 @@ survive a rewording.
 home-screen warning, what the gallery link is for. Those are read once by someone who needs
 them, and shortening them would cost more than it saves. Say so if they should go too.
 
+### 2026-09-23 — the key card moves to the bottom, drops the address, and becomes a receipt
+
+Three things Erik asked for the same afternoon, while testing.
+
+**The card sits last.** It used to be wedged in mid-page: after the Keys room on a move-in or
+move-out, and at the end of the door-and-keys section of a shortstay checklist. Both are gone;
+it is now the last card on the page in either view. `checkList()` is back to doing only what
+its name says.
+
+**No address needed.** `hoBegin` refused a hand-over until the Property step had been filled
+in. That guard is gone - the bundle number already says which apartment the keys belong to, so
+requiring the address as well was the app demanding something, which is the one thing it must
+not do (see section 8). Without an address the event simply carries no place and the line
+reads *Lämnad till Nina Nilsson*, or *Lämnad* when there is no name either. The card also
+lists everything you are carrying when the apartment is unknown, rather than nothing, so there
+is still something to tap.
+
+**And the PDF gets a receipt, not a question.** Erik: *"Det ska också komma upp som något
+annat på PDF:en. Inte en fråga men bara separat, keys handed over? Kom på nått smart."* A
+yes/no would have said nothing that the activity log did not. What the report now carries is a
+boxed block, *KEYS HANDED OVER*, listing **every physical key on the ring** by type and
+marking:
+
+```
+KEYS HANDED OVER
+112:3  TÄRNA
+lgh 1102 TÄRNA · Anna Svensson
+2026-09-23 12:07  ·  handed over by Erik
+  1  Lägenhetsnyckel   1352574
+  2  Postboxnyckel     Din Box
+  3  HG-nyckel         AS 19S
+  4  Oidentifierad     38R
+  5  Bricka            MFR198549179
+```
+
+That is the thing a move-out argument is actually about, and no free-text "3 nycklar + bricka"
+in the Keys room can settle it. The block appears only when a bundle was handed over, so an
+inspection without one is unchanged. It is drawn from a new `S.keysOut`, written at the moment
+of the hand-over with the keys copied off the register as they stood then - so the report says
+what was handed over even if the register is corrected later, and the PDF needs nothing loaded
+to draw it. A second hand-over of the same bundle replaces its row rather than adding one.
+`S.keysOut` rides along in backups and restores, since those serialise the whole inspection.
+
+**Caught while looking at the output:** the register's fourth field is an internal note, and
+twenty rows still say *"vart går denna???"*. The first draft printed it straight into the
+report. Type and marking only now, both in the PDF and in what is stored.
+
+**Verified:** 81 key-flow checks in the browser (13 new: the card's position in both views, a
+hand-over with no address at all, the receipt's contents, and that re-leaving a bundle does not
+duplicate it), 236 function checks, and the upgrade run. The PDF was built for real in the
+browser and its text read back out of the file - `outputs/keyflow-test/shots/receipt.pdf`,
+`cdp.cjs shots 4 pdf`.
+
 ---
 
 ## 6. Kvar att göra

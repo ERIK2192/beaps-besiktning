@@ -1,6 +1,7 @@
 // Mail helper for Cloudflare Pages Functions.
 // Difference from the Netlify version: environment variables come from env, not process.env.
 // Cloudflare Workers has no process object at all.
+import { bytesToB64 } from './sign.js';
 
 const parseFrom = raw => {
   const m = /^(.*)<(.+)>$/.exec(raw || '');
@@ -39,13 +40,16 @@ export const stamp = ms => new Intl.DateTimeFormat('sv-SE', {
 // bounce. Set MAIL_REPLY_TO to a reachable address so replies land there.
 export const replyTo = env => (env.MAIL_REPLY_TO || '').trim();
 
-// { to, cc, subject, text, html, attachments:[{filename, content(base64)}] }
+// { to, cc, subject, text, html, attachments:[{filename, content(base64)} | {filename, path(url)}] }
+// A `path` attachment is a URL the mail service fetches itself while it builds the message. That
+// is how a big report travels: the bytes go from R2 to Resend without ever sitting base64-encoded
+// in a worker, which matters on a plan with ten milliseconds of CPU per request.
 export async function sendMail(env, { to, cc, subject, text, html, attachments }) {
   const from = mailFrom(env);
   const svara = replyTo(env);
   const toList = [].concat(to || []).map(x => (x || '').trim()).filter(Boolean);
   const ccList = [].concat(cc || []).map(x => (x || '').trim()).filter(Boolean);
-  const files = (attachments || []).filter(a => a && a.content);
+  const files = (attachments || []).filter(a => a && (a.content || a.path));
   if (!toList.length) return { ok: false, error: 'No recipient specified' };
 
   if (env.RESEND_API_KEY) {
@@ -60,7 +64,11 @@ export async function sendMail(env, { to, cc, subject, text, html, attachments }
         subject,
         text,
         ...(html ? { html } : {}),
-        ...(files.length ? { attachments: files.map(a => ({ filename: a.filename, content: a.content })) } : {})
+        ...(files.length ? {
+          attachments: files.map(a => a.content
+            ? { filename: a.filename, content: a.content }
+            : { filename: a.filename, path: a.path, content_type: 'application/pdf' })
+        } : {})
       })
     });
     if (r.status === 429) return { ok: false, error: 'quota' };
@@ -69,6 +77,13 @@ export async function sendMail(env, { to, cc, subject, text, html, attachments }
   }
 
   if (env.SENDGRID_API_KEY) {
+    // SendGrid only takes the bytes inline, so a hosted report is fetched and encoded here.
+    for (const a of files) {
+      if (a.content || !a.path) continue;
+      const r = await fetch(a.path);
+      if (!r.ok) return { ok: false, error: 'Mail error: could not fetch the attachment (' + r.status + ')' };
+      a.content = bytesToB64(new Uint8Array(await r.arrayBuffer()));
+    }
     const r = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + env.SENDGRID_API_KEY, 'Content-Type': 'application/json' },

@@ -3,9 +3,10 @@
  * Loaded on demand by index.html the first time a QR code is scanned, so it costs
  * nothing on an ordinary inspection.
  *
- * The QR code on a tag holds the bundle number and nothing else — "112:3". No link,
- * no address. A stranger who scans a dropped ring gets a number that means nothing
- * outside this file.
+ * The QR code on a tag holds the bundle number, bare ("112:3") or as the link
+ * https://beaps.se/#nyckel=112:3 — no address, no key data either way. A stranger who
+ * scans a dropped ring gets a number, or the company website, and nothing that means
+ * anything outside this file.
  *
  * Shape:
  *   id  bundle number exactly as the key list has it, "112:3" or "112:EXTRA"

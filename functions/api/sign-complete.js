@@ -1,13 +1,22 @@
-// Receives the signature, inserts it as a final page in the stored report and
-// emails the finished document to longstay with a copy to the person who signed.
+// Receives the signature and emails the signed record to longstay with a copy to the person
+// who signed: the report exactly as it stood when the link was created, plus a one-page
+// signature certificate.
 //
-// The report is always fetched from KV, never from the recipient's browser, so the content
-// cannot be changed in transit. Only the signature image comes from outside.
+// The report is never rewritten. Appending a page to it means having pdf-lib parse and
+// re-serialise the whole document, which costs far more than the ten milliseconds of CPU a
+// request gets on Cloudflare's free plan - and rewriting is the one thing the report must not
+// undergo, since the point of the whole flow is that what was signed is what was shown. So the
+// signature goes into its own page (a few milliseconds to build) carrying the SHA-256 of the
+// report it belongs to, and the mail carries the two files together. The report itself the mail
+// service fetches from sign-pdf; no worker ever holds it.
+//
+// The report is always the stored one, never the recipient's copy, so the content cannot be
+// changed in transit. Only the signature image comes from outside.
 //
 //   POST /api/sign-complete  { t, sig(dataURL png), name, role }
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { sendMail, longstay, esc, stamp, typeLabel } from '../../cflib/mail.js';
-import { loadRequest, store, writeMeta, readMeta, b64ToBytes, bytesToB64 } from '../../cflib/sign.js';
+import { loadRequest, store, writeMeta, readMeta, b64ToBytes, bytesToB64, reportExists, reportStream } from '../../cflib/sign.js';
 import { readManifest } from '../../cflib/media.js';
 import { dbxOn, uploadFile, cleanPart } from '../../cflib/dropbox.js';
 
@@ -23,8 +32,8 @@ const A4 = { w: 595.28, h: 841.89 };
 const INK = rgb(0.086, 0.196, 0.361);
 const GREY = rgb(0.43, 0.49, 0.58);
 
-async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
-  const doc = await PDFDocument.load(b64ToBytes(pdfB64));
+async function signaturePage(sigDataUrl, meta, signedAt) {
+  const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const page = doc.addPage([A4.w, A4.h]);
@@ -49,12 +58,23 @@ async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
     ['Role', meta.signedRole || meta.recipientRole || '-'],
     ['Signed', stamp(signedAt)],
     ['Signing link sent to', meta.to + (meta.cc ? ', copy ' + meta.cc : '')],
-    ['Link created', stamp(meta.created)]
+    ['Link created', stamp(meta.created)],
+    ['Report', meta.filename || 'Inspection report.pdf']
   ];
   for (const [k, v] of rows) {
     page.drawText(wa(k), { x: M, y: y - 10, size: 10, font, color: GREY });
     page.drawText(wa(v), { x: M + 180, y: y - 10, size: 10, font, color: INK });
     y -= 19;
+  }
+
+  // The fingerprint of the report this page belongs to. Split in two, because 64 characters
+  // in one line runs off the page.
+  if (meta.sha256) {
+    page.drawText('Report fingerprint', { x: M, y: y - 10, size: 10, font, color: GREY });
+    page.drawText('SHA-256', { x: M, y: y - 22, size: 8, font, color: GREY });
+    page.drawText(meta.sha256.slice(0, 32), { x: M + 180, y: y - 10, size: 9, font, color: INK });
+    page.drawText(meta.sha256.slice(32), { x: M + 180, y: y - 22, size: 9, font, color: INK });
+    y -= 31;
   }
   y -= 22;
 
@@ -76,9 +96,17 @@ async function signaturePage(pdfB64, sigDataUrl, meta, signedAt) {
   for (const rad of [
     'Signed digitally via a one-time link sent by Beaps. The recipient saw the entire',
     'report with photos and comments before the signature was given, and confirmed',
-    'that the report was read. The document above is unchanged since the link was created.'
+    'that the report was read.',
+    '',
+    'This page belongs with the report named above, which accompanies it and is',
+    meta.sha256
+      ? 'unchanged since the link was created - the fingerprint above is that of the'
+      : 'unchanged since the link was created. It was never rewritten in order to be',
+    meta.sha256
+      ? 'file that was shown and signed, and identifies it.'
+      : 'signed, so what was shown is what is filed.'
   ]) {
-    page.drawText(wa(rad), { x: M, y: y - 8, size: 8, font, color: GREY });
+    if (rad) page.drawText(wa(rad), { x: M, y: y - 8, size: 8, font, color: GREY });
     y -= 12;
   }
 
@@ -103,8 +131,10 @@ export async function onRequest(context) {
   if (!b.sig || String(b.sig).indexOf('base64,') < 0) return new Response('Signature missing', { status: 400 });
   if (String(b.sig).length > 3 * 1024 * 1024) return new Response('The signature is too large', { status: 413 });
 
-  const pdfB64 = await store(env).get('pdf/' + token, 'text');
-  if (!pdfB64) return new Response('The report was not found', { status: 404 });
+  // Only that it is there - the bytes are never pulled into the worker.
+  if (!await reportExists(env, meta, token)) {
+    return new Response('The report was not found', { status: 404 });
+  }
 
   const signedAt = Date.now();
   const signed = {
@@ -113,9 +143,9 @@ export async function onRequest(context) {
     signedRole: (b.role || meta.recipientRole || '').trim().slice(0, 120)
   };
 
-  let finalB64;
+  let certB64;
   try {
-    finalB64 = await signaturePage(pdfB64, b.sig, signed, signedAt);
+    certB64 = await signaturePage(b.sig, signed, signedAt);
   } catch (e) {
     return new Response('Could not finalize the PDF: ' + String(e && e.message).slice(0, 200), { status: 500 });
   }
@@ -128,16 +158,22 @@ export async function onRequest(context) {
     if (nu && nu.status === 'cancelled') return new Response('The link has been revoked', { status: 410 });
   } catch (e) {}
 
-  const namn = (meta.filename || 'Inspection report.pdf').replace(/\.pdf$/i, '') + ' signed.pdf';
+  const rapportNamn = meta.filename || 'Inspection report.pdf';
+  const certNamn = rapportNamn.replace(/\.pdf$/i, '') + ' - signature.pdf';
 
-  // The signed report is the one that counts, so it belongs in the Dropbox folder with its
-  // photos. Best effort: it must never stand between a signature and the email.
+  // Both files belong in the Dropbox folder with the photos. The report is streamed out of its
+  // own storage rather than held here, the way a walkthrough video is in media-put. Best effort
+  // throughout: none of it may stand between a signature and the email.
   if (dbxOn(env) && meta.gallery) {
     try {
       const m = await readManifest(env, meta.gallery);
       if (m && m.dropbox && m.dropbox.path) {
-        await uploadFile(env, m.dropbox.path + '/' + cleanPart(namn.replace(/\.pdf$/i, '')) + '.pdf',
-          b64ToBytes(finalB64));
+        await uploadFile(env, m.dropbox.path + '/' + cleanPart(certNamn.replace(/\.pdf$/i, '')) + '.pdf',
+          b64ToBytes(certB64));
+        const kropp = await reportStream(env, meta);
+        if (kropp) {
+          await uploadFile(env, m.dropbox.path + '/' + cleanPart(rapportNamn.replace(/\.pdf$/i, '')) + '.pdf', kropp);
+        }
       }
     } catch (e) {}
   }
@@ -153,7 +189,9 @@ export async function onRequest(context) {
     `Signed: ${stamp(signedAt)}`,
     `Link sent to: ${meta.to}${meta.cc ? ' (copy ' + meta.cc + ')' : ''}`,
     '',
-    'The signed report is attached.'
+    'Two files are attached: the report as it was signed, and the signature page',
+    'belonging to it. The report was not rewritten in order to be signed, so what',
+    'the counterparty saw is exactly what is filed.'
   ].filter(x => x !== '').join('\n');
 
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#16325C;line-height:1.5">
@@ -166,7 +204,9 @@ export async function onRequest(context) {
       <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signed</td><td style="padding:2px 0">${esc(stamp(signedAt))}</td></tr>
       <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Link sent to</td><td style="padding:2px 0">${esc(meta.to)}${meta.cc ? ' (copy ' + esc(meta.cc) + ')' : ''}</td></tr>
     </table>
-    <p>The signed report is attached.</p>
+    <p><b>Two files are attached:</b> the report as it was signed, and the signature page
+    belonging to it. The report was not rewritten in order to be signed, so what the
+    counterparty saw is exactly what is filed.</p>
   </div>`;
 
   const m = await sendMail(env, {
@@ -174,13 +214,25 @@ export async function onRequest(context) {
     cc: [meta.to, meta.cc].filter(Boolean),
     subject: `BesiktningPDF ${objekt} - signed`,
     text, html,
-    attachments: [{ filename: namn, content: finalB64 }]
+    attachments: [
+      // The report is fetched by the mail service straight from its storage, so a 16 MB
+      // move-out never passes through this worker.
+      { filename: rapportNamn, path: new URL(request.url).origin + '/api/sign-pdf?t=' + token },
+      { filename: certNamn, content: certB64 }
+    ]
   });
   if (!m.ok) return new Response(m.error || 'The email could not be sent', { status: m.error === 'quota' ? 429 : 502 });
 
-  await store(env).put('signed/' + token, finalB64, { expirationTtl: 90 * 86400 });
-  // Also renew the original's TTL so sign-pdf can show the report for as long as the meta lives.
-  await store(env).put('pdf/' + token, pdfB64, { expirationTtl: 90 * 86400 }).catch(() => {});
+  // One page, so KV is the right home for it. This is what sign-pdf serves as ?cert=1.
+  await store(env).put('cert/' + token, certB64, { expirationTtl: 90 * 86400 });
+  // Renew an old KV-stored report's TTL so sign-pdf can show it for as long as the meta lives.
+  // A report in R2 has no expiry to renew.
+  if (!signed.pdfId) {
+    try {
+      const gammal = await store(env).get('pdf/' + token, 'text');
+      if (gammal) await store(env).put('pdf/' + token, gammal, { expirationTtl: 90 * 86400 });
+    } catch (e) {}
+  }
   await writeMeta(env, token, signed);
 
   return Response.json({ ok: true, signedAt, to: longstay(env) });

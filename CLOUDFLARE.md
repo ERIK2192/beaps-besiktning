@@ -57,6 +57,11 @@ Signeringen behöver en plats att lägga protokollen på medan de väntar på si
 5. Lägg till den för **Production**. Vill du att förhandsvisningar också ska fungera,
    lägg till samma binding för **Preview**.
 
+**The same namespace also holds the key log.** Besides the signing protocols, `SIGNSTORE`
+holds every key-bundle check-out and check-in as a `kev/<ts>-<id>` entry - the event itself
+rides in the key's metadata, kept for 3 years - read back by `/api/keys-log`. No extra binding
+is needed for it; it shares the namespace set up above.
+
 ## 3b. Lagring för bilder och video
 
 Galleriet — det som gör att mottagaren kan zooma i bilderna och spela videon — behöver
@@ -96,9 +101,10 @@ Variabler läses in vid bygget, så de gäller inte förrän en ny deploy körts
 2. `https://beaps-besiktning.pages.dev/` — appen ska starta.
 3. Gör en testbesiktning och tryck **Mät wifi** på raden *Funkar internet?*.
 4. Gör en utflytt och skicka en **signeringslänk till dig själv**. Öppna den, signera,
-   och se att protokollet kommer i mejlen.
+   och se att **två** filer kommer i mejlen: protokollet och signatursidan.
 
 Steg 4 är det viktiga. Det är den enda delen som aldrig körts skarpt någonstans.
+Gör den gärna en gång till med en utflytt på **över 4 MB** — det är den vägen som är ny.
 
 ---
 
@@ -139,19 +145,25 @@ den — då slipper du frågan för alltid.
 ## Om signeringen strular
 
 Cloudflares gratisnivå har ett tak på **10 millisekunder processortid per anrop**.
-Att foga in signatursidan i ett protokoll på flera megabyte tar sannolikt mer än så.
+Det är därför signaturen sedan 2026-09-22 **inte** fogas in i protokollet: att låta
+pdf-lib läsa in och skriva om ett protokoll på flera megabyte kostar långt mer än så.
+I stället byggs signatursidan som ett eget ensidigt PDF (några millisekunder), och
+mejlet bär två filer — protokollet precis som det signerades, plus signatursidan med
+protokollets SHA-256 på sig. Protokollet självt ligger i R2 och hämtas av mejltjänsten
+direkt från `/api/sign-pdf`; ingen funktion håller det någonsin i minnet.
 
 Allt annat är opåverkat: appen, mejlutskicket och wifi-mätningen väntar på nätverk,
 inte på processorn, och räknas därför inte mot taket.
 
-Blir signeringen svaret `Kunde inte färdigställa PDF:en` eller ett fel om överskridna
-resurser finns två vägar:
+Skulle signeringen ändå svara `Kunde inte färdigställa PDF:en` sitter felet i
+signaturbilden, inte i storleken — den enda pdf-lib rör numera. Vill du ha tillbaka
+**en** fil i stället för två krävs **Workers Paid, 5 dollar i månaden**, som tar bort
+taket; då kan `sign-complete.js` foga ihop dem igen.
 
-1. **Workers Paid, 5 dollar i månaden.** Tar bort taket. Billigare än att uppgradera Netlify.
-2. **Flytta ihopfogningen till mottagarens webbläsare.** Kostar inget, men då bygger
-   signerarens telefon ihop den färdiga PDF:en i stället för servern — vilket i teorin
-   gör det möjligt att ändra protokollet innan det skickas vidare. En halvtimmes
-   omskrivning. Säg till om det behövs.
+**R2 städas inte av sig självt.** Ett protokoll bakom en signeringslänk tas bort när
+länken återkallas, men ett signerat ligger kvar (det ska gå att visa så länge länken
+finns). Galleriets bilder fungerar likadant. Vill du ha ett tak, sätt en
+livscykelregel på R2-hinken i Cloudflares kontrollpanel.
 
 ## Filerna, om du undrar
 

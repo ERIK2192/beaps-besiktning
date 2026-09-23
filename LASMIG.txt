@@ -43,5 +43,14 @@ I APPEN:
   Ovriga typer: Mejla PDF skickar till longstay@beaps.se.
     Amne: "BesiktningPDF <MIN/MOU> <adress>, <lgh>".
     Dela oppnar delningsmenyn for t.ex. kund eller AirDrop.
-  Ar PDF:en over ca 4 MB (manga bilder) gar den inte via mejl-
-  funktionen; da oppnas delningsmenyn i stallet.
+  Ar PDF:en over 4 MB laddas den forst upp till galleriets lagring
+  och mejlet bar en lank som mejltjansten hamtar sjalv - det sker
+  automatiskt, man ser bara "Laddar upp rapporten NN %".
+  Forst over 16 MB oppnas delningsmenyn i stallet.
+  (Pa Netlify galler fortfarande gransen 4 MB rakt av.)
+
+  Signeringslank: samma sak, taket ar 16 MB. Pa Cloudflare kommer
+  signeringen tillbaka som TVA filer - protokollet som det signerades,
+  plus en signatursida med protokollets SHA-256 pa sig. Protokollet
+  skrivs alltsa inte om for att signeras. Pa Netlify fogas signaturen
+  in i protokollet som forut, en fil, max 4 MB.

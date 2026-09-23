@@ -3,9 +3,38 @@
 // Two differences from the Netlify version:
 //   1. Storage is Cloudflare KV (env.SIGNSTORE) instead of Netlify Blobs.
 //   2. Workers has no Buffer. All base64 goes through atob/btoa instead.
+import { r2 } from './media.js';
 
 export const GILTIGHET_DAGAR = 30;
-export const MAX_PDF = 4 * 1024 * 1024;
+export const MAX_PDF = 16 * 1024 * 1024;
+
+// The report behind a signing link lives in R2 as raw bytes under a random id, not as base64
+// in KV. Base64 makes a 16 MB report 21 MB, which is close to KV's 25 MB ceiling for one value,
+// and turning it back into bytes byte by byte costs more CPU than the free plan gives a whole
+// request. Links made before this change still keep theirs in KV under `pdf/<token>`, so both
+// are read; only new links are written to R2.
+export const newPdfId = () =>
+  [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join('');
+export const isPdfId = s => /^[a-f0-9]{48}$/.test(s || '');
+export const pdfKey = id => 'sign/' + id;
+
+// Is the report still there? The link must never go out pointing at nothing.
+export async function reportExists(env, meta, token) {
+  if (meta && isPdfId(meta.pdfId)) {
+    try { return !!(await r2(env).head(pdfKey(meta.pdfId))) } catch (e) { return false }
+  }
+  try { return !!(await store(env).get('pdf/' + token, 'text')) } catch (e) { return false }
+}
+
+// The report as a stream that can be handed to Dropbox without ever being held in the worker.
+// Null when it is gone - and null for an old KV link too: turning megabytes of base64 back
+// into bytes one byte at a time is the very cost this road exists to avoid, and those reports
+// reached Dropbox through send-pdf when they were emailed.
+export async function reportStream(env, meta) {
+  if (!meta || !isPdfId(meta.pdfId)) return null;
+  const obj = await r2(env).get(pdfKey(meta.pdfId));
+  return obj ? obj.body : null;
+}
 
 export const NO_STORE = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',

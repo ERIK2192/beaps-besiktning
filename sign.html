@@ -128,7 +128,11 @@ async function load(){
 function signedScreen(){
   screenMessage('ok','✓','The report is signed',
     (meta.signedName? esc(meta.signedName)+' signed ' : 'Signed ')
-    + esc(stamp(meta.signedAt)) + '.<br>A copy has been emailed to you and to Beaps.');
+    + esc(stamp(meta.signedAt)) + '.<br>A copy has been emailed to you and to Beaps.'
+    // Both files the signing produced, so the record is reachable from the link itself and
+    // not only from the mailbox.
+    + `<br><br><a href="/api/sign-pdf?t=${token}" target="_blank" rel="noopener">The report</a>`
+    + ` &nbsp;·&nbsp; <a href="/api/sign-pdf?t=${token}&amp;cert=1" target="_blank" rel="noopener">The signature page</a>`);
 }
 
 function signForm(){

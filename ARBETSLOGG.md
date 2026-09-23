@@ -1,5 +1,7 @@
 # Beaps Besiktning — arbetslogg
 
+**Appen används dagligen i verksamheten. Alla ändringar måste granskas noggrant och verifieras så att befintliga arbetsflöden och sparade uppgifter inte rubbas.**
+
 Samlad logg över vad appen är, hur den hänger ihop och vad som ändrats.
 Uppdatera den här filen när något ändras, så finns hela bilden på ett ställe.
 
@@ -27,6 +29,9 @@ Två lägen:
 | [index.html](index.html) | Hela appen |
 | [sign.html](sign.html) | Sidan motparten landar på när hen får en signeringslänk |
 | [logo.png](logo.png) | Logotypen, används av sign.html (appen har sin inbakad) |
+| [nycklar.js](nycklar.js) | Nyckelregistret (knippa → nycklar), hämtas först när det behövs |
+| [fastigheter.js](fastigheter.js) | Fastighetsregistret (adress → lägenheter), hämtas först när det behövs |
+| [jsqr.js](jsqr.js) | Inbäddad QR-avläsare (tredjepartsbibliotek, ingen CDN) |
 | [package.json](package.json) | Beroenden för funktionerna: `@netlify/blobs`, `pdf-lib` |
 | [netlify.toml](netlify.toml) | Publicerar rotmappen, pekar ut funktionsmappen |
 | [netlify/lib/mail.mjs](netlify/lib/mail.mjs) | Delad mejlhjälp för signeringsfunktionerna |
@@ -36,6 +41,10 @@ Två lägen:
 | [netlify/functions/sign-complete.mjs](netlify/functions/sign-complete.mjs) | Tar emot signaturen · `/api/sign-complete`, `/api/sign-cancel` |
 | [netlify/functions/speedtest.mjs](netlify/functions/speedtest.mjs) | Wifi-mätningen · `/api/speed-ping`, `/api/speed-down`, `/api/speed-up` |
 | [functions/api/](functions/api/) | Cloudflares versioner av funktionerna |
+| [functions/api/keys-event.js](functions/api/keys-event.js) | Tar emot en in/utcheckning · `/api/keys-event` |
+| [functions/api/keys-log.js](functions/api/keys-log.js) | Läser den delade nyckelloggen · `/api/keys-log` |
+| [functions/api/report-put.js](functions/api/report-put.js) | Parkerar ett stort protokoll i R2 inför mejlet · `/api/report-put` |
+| [functions/api/sign-upload.js](functions/api/sign-upload.js) | Tar emot protokollet till en signeringslänk · `/api/sign-upload` |
 | [cflib/](cflib/) | delad mejl- och signeringshjälp för Cloudflare |
 | [CLOUDFLARE.md](CLOUDFLARE.md) | steg för steg att sätta upp appen på Cloudflare Pages |
 | [LASMIG.txt](LASMIG.txt) | Deploy- och mejlinstruktioner till den som sätter upp Netlify |
@@ -66,10 +75,16 @@ Går det inte att ladda faller appen tillbaka på webbläsarens utskriftsfunktio
 **Mejl.** PDF:en skickas base64-kodad till `/api/send-pdf`, som mejlar den vidare via
 Resend eller SendGrid beroende på vilken API-nyckel som är satt i Netlify.
 Upplåsningar går till guestservice@beaps.se, allt annat till longstay@beaps.se.
-Är filen över ca 4 MB öppnas delningsmenyn i stället.
+Upp till 4 MB åker PDF:en base64-kodad i anropet. Större protokoll (upp till 16 MB)
+laddas först upp som råa bytes till galleriets R2-mapp via `/api/report-put`, och mejlet
+bär en länk till `/api/media-file` som Resend själv hämtar när det bygger meddelandet.
+Över 16 MB, eller om galleriet saknas, öppnas delningsmenyn i stället.
 
-**Signering på distans** är det enda som lagras utanför telefonen. Protokollet läggs i
-**Netlify Blobs** bakom en slumpad 48-teckens token, i 30 dagar. Se avsnitt 5.
+**Signering på distans** är det enda som lagras utanför telefonen. På Netlify läggs
+protokollet i **Netlify Blobs** bakom en slumpad 48-teckens token, i 30 dagar. På
+Cloudflare laddas det upp som råa bytes till **R2** via `/api/sign-upload` och nås genom
+länkens token; bara riktigt gamla länkar har kvar sin base64 i KV. Signaturen fogas inte
+in i protokollet — den blir en egen ensidig PDF och mejlet bär båda filerna. Se avsnitt 5.
 
 **Miljövariabler i Netlify** (se [LASMIG.txt](LASMIG.txt) för hela uppsättningen):
 `RESEND_API_KEY` eller `SENDGRID_API_KEY`, `MAIL_FROM`,
@@ -526,6 +541,361 @@ success, and the app naming folders exactly as Dropbox already does) plus an imp
 every one of the 18 function files parses and resolves - a broken import there would take
 `/api/*` down and with it mail, signing and the gallery at once.
 
+### 2026-09-15 — key bundles: one tap to check out, and a log that keeps old check-outs
+
+A tag carries only the bundle number, e.g. "112:3" - the register behind it (which keys, which
+apartment) lives in `nycklar.js`, and the QR decoder is the vendored `jsqr.js`. Every check-out
+and check-in is one row in KV, written by `functions/api/keys-event.js` and read back by every
+phone from `functions/api/keys-log.js`.
+
+**Today:** checking out no longer opens a second sheet - the name field and the reason chips
+live on the bundle view itself, and the yellow button writes the event in one tap. The bundle
+view syncs with the server the moment it opens. A bundle's status is now recomputed from the
+server's last-event-per-bundle projection, not just the recent tail, so an old check-out that
+was never checked back in can no longer fall off the log and start looking "in the cabinet"
+again. Anything not yet on the server shows "Waiting to sync" on the bundle, the shared log and
+the start screen, and a queued event retries on reconnect or when the app returns to the
+foreground, rather than waiting for the next visit to the start screen.
+
+**Fixed along the way:** KV lists this prefix oldest-first, so the old 5000-event scan cap would
+have dropped the *newest* events once the log grew past it. The scan now reads everything (a
+page cap of 200 × 1000 only guards against a runaway loop) and returns the per-bundle state
+next to the 500-event tail. Two events in the same millisecond used to be settled by whichever
+was read last; both the phones and the server now break the tie on id (KV's own key order), and
+a new event is stamped later than the one that currently decides that bundle, so a check-in
+registers even after a check-out from a phone whose clock runs ahead.
+
+**Open decision:** the tag holds a bare number ("112:3") that only the in-app scanner
+understands. A QR code the phone's ordinary camera can open would have to be a URL, and that
+page would need staff-only protection before it could show a bundle - the app token guarding
+`/api/keys-event` and `/api/keys-log` ships inside the client and only deters casual scraping.
+Cloudflare Access in front of the app is the obvious candidate; it is not built.
+
+### 2026-09-15 — the same QR code, two ways in
+
+New tags may carry a link instead of a bare number: `https://beaps.se/#nyckel=112:3`.
+Scanned with the phone's ordinary camera it opens beaps.se - the company website, which
+knows nothing about keys and gets nothing built for it here. Scanned inside the app, the
+scanner reads the number out of the link (`tagNumber()` in `index.html`, just above
+`gotCode`) and opens the same bundle sheet a bare number would, with no extra tap. Only an
+exact shape is accepted - `https`, host `beaps.se` or `www.beaps.se`, path `/`,
+`#nyckel=<number>` - and the link itself is never opened or followed, only read; anything
+else falls into the existing "not a key tag" message. Old bare-number tags and manual entry
+are unchanged.
+
+This is QR parsing only: it grants no access, adds no endpoint, and exposes nothing new.
+Protecting the scanner and the bundle view from a stranger who finds one of these links is
+a separate task, and Cloudflare Access must not be switched on in front of the whole app
+before mapping what that does to daily users, signing links (`sign.html`) and the external
+galleries (`galleri.html`). A new test sheet, `Downloads/Beaps-nyckelbrickor-testark-url.pdf`,
+is being built alongside the older sheets, which are kept.
+
+### 2026-09-15 — a direct link to the shared log
+
+`https://beaps-besiktning.pages.dev/#nyckellogg` opens the shared key log straight away, on a
+first visit as well as on a reload: the app boots to the start screen as always and then opens
+the log sheet on top of it, so the report list and any queued key events are exactly where they
+were. The hash follows the sheet - set when the log opens (from the menu too), cleared when it
+closes - and a "Copy link" sits in the log's hint line. The log says "Updating…" while it fetches,
+and keeps the existing "not fetched yet" / "could not reach the log — showing it as of HH:MM"
+lines when it cannot. The link is a shortcut into the app, not around it: the data still comes
+through `/api/keys-log` with the same guard as everything else, and whatever access check the
+app gets later must run at boot, before `LOG_HASH` is looked at (the last lines of the script).
+
+### 2026-09-22 — a bundle is left in the apartment from inside the inspection; four colour proposals
+
+**The third place.** A bundle used to be either in the cabinet or with a person. It can now be
+left in an apartment, with a guest or tenant, or both: a new event kind `place` in
+[functions/api/keys-event.js](functions/api/keys-event.js) (`apt` = the object number, 112 in
+112:3; `place` = the label the log shows, "lgh 1102 TÄRNA"; `guest` = the name it went to; any
+may be empty) and a third status, `placed`, in the phones' projection (`applyEvents` in
+index.html). Where a bundle is stays "the last event for it, whatever kind", so Holdings, the
+placed list, the bundle sheet and the shared log all read one fact, and a bundle can never
+show in two places.
+
+**Only inside an inspection.** Erik's call, for simplicity: the hand-over happens on a card
+*Nycklar till lägenheten* in a shortstay unlock, a move-in or a move-out (`HANDOVER_TYPES`), at
+the end of the door-and-keys section of the checklist, or right after the Keys room. The
+apartment is the inspection's own, matched to the register on address and apartment number
+(`inspApt`); an address the register has not got yet is named by what the inspection says,
+address included, so the log line still says which house. The name it goes to is the
+counterparty, or whatever is typed in *Till*. The bundle is scanned (same scanner, same tag as
+a check-out, `openScan('hand')`) or typed in the number field, and the event is written the
+moment the tag is read: from the cabinet straight into the apartment, or from the inspector's
+own holdings, both without questions. Only a bundle registered with somebody else, or
+belonging to another apartment, gets a second look first (*Lämna ändå* / *Skanna en annan*).
+The card shows the confirmation, what is already here, and what you carry for this apartment
+(tap to fill the field). The line also goes into the inspection's own activity log, and so
+into the PDF. Closing the scanner or the review writes nothing; a failed local save rolls back
+and says so. The start screen and the bundle sheet have no hand-over button; a placed bundle's
+sheet offers *Ta med* (out, to you) and *Checka in*, both logging where it came from.
+
+**Log and history.** A hand-over reads
+`2026-09-22 10:00 · 112:3 · TÄRNA — Lämnad i lgh 1102 TÄRNA · till Anna Svensson · av Erik`.
+The shared log has a new section *I lägenhet / hos gäst* beside *Utlånade just nu*. Nothing
+old is rewritten. A phone still on the previous index.html shows a placed bundle as "in the
+cabinet" until it reloads (it knows only `out`); the server takes both versions' events.
+
+**Also fixed on the way.** `keyWrite` rolls back and says so when the phone cannot store the
+event. Two overlapping flushes (the write's own and the sync behind it) no longer post the
+same event twice - the server deduped by id, but each was a KV write.
+
+**Three design proposals (1, 3, 4)**, menu → *Nyckeldesign*, remembered per phone. They cover the key
+screens only - Holdings card, the key card in an inspection, bundle sheet, review sheet, shared
+log, the scanner's chrome - in the Beautiful Apartments palette: yellow #FFD340, dark peach
+#E2987D, light peach #F9D7C5, emerald #16453E; no grey, no black. 1 light peach base, 3 dark
+peach base, and **4 emerald base with peach text, white headings and numbers, yellow only on
+the buttons - the default, and the general line to go by** (Erik, 2026-09-22). A yellow-based
+2 was tried and dropped the same day, 1 lost its yellow bar on the tag, and 4's yellow text
+became white. They are `:root[data-ktheme]` token sets in index.html; a phone that still has 2
+stored falls back to 4. All three run the same code. Text in the key
+screens runs horizontally: the bundle header on one line at 22 px, key rows and log lines
+flowing.
+
+**The tags.** Front 37.5 × 23.5 mm landscape: the wordmark on *one* line across the width (the
+two rows of `beaps-web-logo.svg` measured in a browser and set side by side, `tags.cjs`),
+smaller and quieter, phone number under it. Back 23.5 × 37.5 mm portrait: the QR code on a
+plain light-peach field with four modules of quiet zone, the number along the width beneath
+it, bigger. The code is black on a white field on all three (Erik's call, after an emerald-on-
+peach round); the number is black, white on the green. The phone number is bold (7 pt, 600)
+on all three, and the corners are square - the real tags are rectangular. Green: wordmark,
+phone and number white. Dark peach (3): wordmark, phone and
+number in a deeper emerald, #0D2F2A - black was too harsh, the brand green too faint, and a
+fattened wordmark was tried and dropped. Light peach (1): wordmark and phone emerald, number
+black. The QR
+codes are now generated here (`qrgen.cjs`, version 1, byte mode, level M) and every one is
+decoded with the app's own `jsqr.js` before it is used, so the sheet covers all 30 bundles in
+the register instead of the six sample codes. Print sheet:
+`outputs/qr-design/Beaps-nyckelbrickor-gron.pdf` (also copied to Downloads) - six test pairs,
+every back for Upplandsgatan 91B, a page of fronts, and the other two palettes to compare.
+Presentation: `outputs/qr-design/Beaps-nyckelflode-3-forslag.html` and `.pdf`.
+
+**Verified** in headless Edge against a mock ledger, 50 checks: the lists after sync, the card
+prefilled from the inspection, typed and scanned hand-overs, the review and its cancel leaving
+everything unchanged, cabinet straight to apartment, take-over from a colleague, the checklist
+placement for a shortstay unlock, no card on an annual inspection, an address the register does
+not know, no address at all, check-in and take-it from an apartment, a failed save rolling
+back, the three themes. Harness in `outputs/keyflow-test/` (README there). Not run against
+Cloudflare; the function parses.
+
+### 2026-09-22 — big longstay reports go out by mail instead of stopping at the share sheet
+
+**The problem.** The PDF builder gives each photo `3.3 MB / photo count`, but never less
+than 80 KB, so a move-out with seventy photos comes out at about 5.6 MB. `mailPdf` refused
+anything over 4.2 MB and opened the share sheet. That cap was a leftover from Netlify's 6 MB
+request limit; Cloudflare takes 100 MB, Resend 40 MB per mail, and beaps.se (Microsoft 365)
+about 25 MB.
+
+**Why not just raise the cap.** The PDF travelled base64-encoded inside a JSON body that the
+worker parses and re-serialises. On the free plan's ten milliseconds of CPU per request, a
+15 MB JSON body is a coin toss. So the bytes must never sit in a worker as text.
+
+**What happens now.** Up to 4 MB nothing changed. Above it, and up to 16 MB, the app PUTs
+the raw PDF to the new `/api/report-put?t=<gallery token>`, which streams it into R2 under
+`gallery/<token>/report-<16 random hex>` (no CPU: the stream goes straight through) and
+answers with that id. `send-pdf` is then called with `hosted:<id>` instead of `pdf`, checks
+the shape of the id and that the object is there, and mails a Resend `path` attachment
+pointing at `/api/media-file?t=<token>&id=<id>` - Resend fetches the file itself while it
+builds the message. Dropbox filing reads the bytes back out of R2 on this road. Over 16 MB,
+or when there is no gallery to park in, the share sheet opens as before.
+
+**Why the id is random.** The report has no `/up/` marker in KV, so the gallery never lists
+it and `media-sync` never deletes it - but the gallery token is printed in the report and
+may be passed on to a tenant, and a fixed `id=report` would let anyone holding that link
+guess their way to a PDF with names and signatures the photos do not carry. A new send gets
+a new id and `report-put` deletes the previous one, so a gallery keeps exactly one report.
+
+The upload shows "Uploading the report NN %" while it runs (XHR, since fetch has no upload
+progress), retries once on a dropped connection like the photo upload, and has the same
+120 s timeout. `send-pdf` refuses a base64 body over 6 MB with 413 so nobody can push a big
+JSON body through the old road. `sendMail` accepts `{filename, path}` next to
+`{filename, content}`; the SendGrid branch fetches and inlines a hosted file since SendGrid
+has no URL attachments.
+
+**Not changed:** the signing link still takes 4 MB at most (`MAX_PDF`) - `sign-complete`
+runs pdf-lib over the whole file in the worker, which is a separate CPU problem.
+
+**Verified with 118 checks** in `outputs/report-mail-test/` (Electron as Node, README there):
+the whole app script parses; every function file imports; `report-put` refuses GET, a missing
+app header, a bad or unknown or expired token, an empty body and 17 MB, stores 12 bytes under
+a random id as `application/pdf`, deletes nothing on the first send, and on the second gives a
+different id, deletes exactly the previous report and keeps the new one; `send-pdf` forwards
+base64 unchanged, routes check-ins to guestservice, refuses 6 MB+ base64 and a body with
+neither field, refuses a `hosted` id that is `true`, `report`, a path traversal, uppercase or
+too short - without mailing anything - answers 404 for a gallery or an object that is not
+there, builds the media-file URL on the request's own origin with filename and content type,
+reads R2 exactly once for Dropbox and uploads to `<folder>/<name>.pdf`; SendGrid gets the
+fetched bytes as base64. On the phone side: 2 MB and exactly 4 MB go inline with the gallery
+token, 9 MB uploads first with the app header and 120 s timeout and passes the id it got back
+as `hosted`, the post waits 60 s hosted against 25 s inline, progress toasts fire once per
+percentage, 16.5 MB and 9 MB-without-gallery return `size` with no traffic, PUT 413 → size and
+401 → reload without retry, one dropped connection retries and succeeds, two give up with the
+last reason and never post, neither an HTML 200 from Cloudflare nor a 200 without an id counts
+as an upload, and a 404 or 429 from send-pdf maps to the existing toasts. **Not run against
+Cloudflare yet** - the first live send over 4 MB is the real test; watch for Cloudflare's bot
+rules blocking Resend's fetch of `/api/media-file` (the mail would then fail with 502 and the
+share sheet opens).
+
+### 2026-09-22 — the property register: addresses and apartments behind the two fields
+
+**Where the data was.** The app's key register, [nycklar.js](nycklar.js), holds 30 bundles, all
+Upplandsgatan 91B, objects 112-119. The full list it was seeded from - `Nyckellista Pondus
+Pro.pdf`, in Downloads - is intact and was read out in full: 1 184 key rows, **369 bundles, 100
+apartments, 23 addresses**, objects 112 to 403. Even 91B is short in the app: the list has 41
+bundles there, and objects 123, 125 and 126 (eleven bundles, apartments 1501 and up) never made
+it in. Nothing in the app is missing from the list, and the key count per bundle matches for all
+30, so what is there is right as far as it goes. 20 rows are still marked "vart går denna???"
+and 79 have no key type - that is the review the full import waits on.
+
+**A second source arrived:** the door-code list out of Beaps (Dataverse, `bdev_property`, active
+properties with a code filled in, taken 2026-09-22) - 73 addresses with codes and the hours they
+work. 59 of them have no keys in the key list at all, and 9 addresses in the key list have no
+door code. "S:t Eriksgatan 53B" in one list is "Sankt Eriksgatan 53B" in the other.
+
+**What was built from it.** [fastigheter.js](fastigheter.js), a property register: **82
+addresses, 100 apartments**, the addresses merged from both sources, the apartment numbers and
+names from the key list. It is fetched on demand the first time the Property step is shown, like
+the key register, so a phone that never opens that step pays nothing for it.
+
+Both fields on that step now suggest as you type (`paintPropSug` in index.html). The address
+field offers matches once anything is typed; matching is word by word in any order, so "eriksg
+53b" finds Sankt Eriksgatan 53B and "91b uppl" finds Upplandsgatan 91B, and S:t folds to Sankt
+so either spelling lands on the same property. Once the address names a property, its
+apartments are listed straight away, number and name, and a tap fills the field. **Nothing is
+forced**: both fields still take anything typed, an address the register has not got simply
+suggests nothing, and the suggestions disappear once a field names something exactly. Picking
+writes through the same path as typing, so nothing downstream has to know where the value came
+from.
+
+**The point of it, beyond the typing:** the key card inside an inspection finds its apartment by
+matching the inspection's address and apartment number against the key register. An address
+written the same way every time is what makes that match land, and a picked address always is.
+
+**The door codes are deliberately not in the app.** index.html and everything beside it is
+served as-is from a public address, so a code in a file there is a code anyone who finds the app
+can read. The list is kept in `outputs/fastigheter/portkoder.txt`, outside the deploy, together
+with the generator and a merge report. `outputs/` is now in [.gitignore](.gitignore) so neither
+the codes nor the extracted key list can be committed by an absent-minded `git add -A`. If the
+codes should reach the phones, the way to do it is an endpoint behind the same guard as the key
+log - or better, Cloudflare Access - not a file in the deploy.
+
+**Verified** in headless Edge, 68 checks in Swedish and English (the 50 key-flow ones plus 18
+for this): the register loading on the Property step, an empty field suggesting nothing, typing
+narrowing, word matching in any order, the two spellings of S:t, an unknown address suggesting
+nothing and keeping what was typed, picking writing address and apartment, apartments matching
+on name as well as number, an address with no apartments in the list, free text surviving, the
+key card matching the apartment after a pick, and the door codes being absent from the register.
+
+### 2026-09-22 — the signing link takes a big report too, and stops rewriting it
+
+Same day, same cause as the entry above, but a harder one. The signing link capped at 4 MB,
+and raising the cap alone would have made things worse: the link would go out fine and then
+fail at the moment the counterparty signed.
+
+**Why.** `sign-complete` did the heaviest thing in the codebase. It read the report back out
+of KV as base64, turned it into bytes one byte at a time, had pdf-lib parse and re-serialise
+the whole document to append the signature page, then encoded the result back to base64.
+That is hundreds of milliseconds of CPU for a real report, against the free plan's ten. The
+setup notes had flagged it as untested and probably over budget, and step 4 in
+[CLOUDFLARE.md](CLOUDFLARE.md) - send a link, sign it, receive the report - is on record as
+the one part never run live anywhere.
+
+**The decision.** Two ways out: Workers Paid at five dollars a month, which lifts CPU to
+30 s and lets the merge stand; or stop merging. We chose to stop merging and stay on free.
+
+**What the recipient gets now.** Two files instead of one: the report exactly as it was
+signed, and a one-page signature certificate carrying who signed, when, the signature image,
+the confirmation text, the report's filename, and the report's **SHA-256** so the pair can be
+told to belong together. Building one page from scratch is a few milliseconds. Nothing
+rewrites the report - which is also the stronger position: what the counterparty saw is
+byte-for-byte what is filed, rather than something re-serialised afterwards.
+
+**The rest of the road.** The report now goes up as raw bytes to the new
+`/api/sign-upload`, which streams it into R2 under `sign/<48 random hex>` and answers with
+the id; `sign-request` ties that id to the link's token instead of putting base64 in KV
+(16 MB of PDF is 21 MB of base64, near KV's 25 MB ceiling for one value). `sign-pdf` streams
+from R2 and answers Range, so the signer's phone can page through a large document instead
+of waiting for all of it - and that same URL is what the mail service fetches to attach the
+report, so no worker ever holds it. The signature certificate is small, so it stays in KV and
+`sign-pdf?t=…&cert=1` serves it; the signed page in `sign.html` now links to both files.
+Revoking a link deletes the R2 object. Dropbox gets both files, the report streamed out of R2
+rather than held in memory.
+
+**The fingerprint is computed on the phone**, not here: hashing 16 MB would eat the request's
+whole CPU budget. That is safe because it is the inspector's own phone that supplies both the
+report and the hash, so there is nothing to be gained by it lying about one of them - the
+signer, who is the party the integrity guarantee is about, never touches either.
+
+**Nothing old breaks.** Links already out there keep their base64 in KV and are still served,
+still signable, and get the same two files. A host without `sign-upload` - an older Netlify
+deploy answers 404, Cloudflare answers the app's own HTML with 200 - makes the app fall back
+to the base64 road at the old 4 MB cap, so `netlify.app` behaves exactly as it did.
+
+**Verified with 206 checks** across three harnesses in `outputs/report-mail-test/` (Electron
+as Node; pdf-lib is not installed here, so `sign-complete`'s PDFDocument is stubbed and what
+is checked is the orchestration around it). For the signing flow specifically: `sign-upload`
+refuses GET, a missing app header, an empty body and 17 MB, and stores under `sign/<id>`
+without touching KV; `sign-request` takes the uploaded road and records the id and
+fingerprint, refuses an id with no object behind it without mailing, drops a malformed
+fingerprint, and still takes the legacy base64 road into KV at the old 4 MB cap; `sign-pdf`
+streams from R2 with Range and the right filename, falls back to KV for an old link, 404s
+when the report is gone, 410s on a revoked link, and serves the certificate under its own
+name; `sign-complete` creates a document rather than loading one, draws exactly one page with
+the signature image, never reads the report into the worker, mails two attachments with the
+report as a fetched path and the certificate inline, prints the signer, both halves of the
+fingerprint and the report's name, stores `cert/` and no longer stores a merged file, and
+still refuses an already-signed, revoked or expired link, a missing or oversized signature,
+and a report that has gone; an old KV link signs and gets its TTL renewed; Dropbox receives
+both files - only the certificate for an old KV link, since decoding it to hand over is the
+cost being avoided; revoking deletes the R2 object. **Not run against Cloudflare yet** - and since
+pdf-lib is stubbed here, the certificate's real rendering is unverified: send one signing
+link to yourself before the first sharp one.
+
+### 2026-09-23 — the review before it went out: proving the phones lose nothing
+
+Everything above went live in one go, so the whole of it was read through first, with one
+question in front: an inspector is halfway through a move-out on his phone right now, and
+opening the new app must not cost him a single photo or comment.
+
+**What the storage actually shows.** The database is untouched: same name `beaps-besiktning`,
+same version 1, same store `kv`, and the key map (`bp:index`, `bp:insp:`, `bp:ph:`, `bp:th:`,
+`bp:vid:`) is byte for byte what it was. localStorage still holds only the language, plus the
+new key-design choice. Every delete path in the app is the one that was already there -
+`wipe`, deleting a photo, deleting a video - and the only new deletion in the whole diff is
+`store.del('bp:keys')`, the retired key projection, which is recomputed from the shared log
+and so carries nothing of its own. The app token is the same in all five files.
+
+**The upgrade run** (`outputs/migrate-test/`, 39 checks, headless Edge). A mock server serves
+*both* versions on one origin - `?ver=old` is `git show HEAD:index.html`, the copy the phones
+are running - so the new app opens the very database the old one wrote. The old app does a
+day's work through its own `newInsp`/`save`/`log`: a move-out seven rooms in with comments,
+three photos and an activity log; a shortstay unlock with six checklist points answered and a
+comment; a signed and closed move-in with both signatures and a gallery token; and a bundle
+checked out. Then the new app opens it. Every report is in the list and painted; no stored
+record disappeared and none was rewritten; every room, comment, hand-added room, photo
+reference and photo byte is there; the checklist keeps its rows, its answers and its comment;
+the signed one is still signed, still locked, still has both signatures; the key log keeps its
+name and the bundle is still out with the same person; and the new app writes back into the
+same record without losing a room. No script error, and nothing the app had to warn about.
+
+**The chain nobody had run** (`outputs/report-mail-test/chain-test.mjs`, 27 checks). The other
+harnesses mock `/api/media-file` away, so the one link that had never been exercised was the
+endpoint Resend actually fetches. Run for real against a shared R2: the report parks, comes
+back byte for byte whole and by Range, the mail's own URL resolves, a wrong gallery token and
+the guessable id `report` get nothing, `media-sync` leaves the report alone, the gallery never
+lists it, and a second send replaces the first so a gallery keeps exactly one.
+
+**Fixed in the review.** `sign.html` now offers a signature-page link on every signed page,
+but a link signed *before* the split has no `cert/` - back then the page was merged in and
+archived under `signed/`. That link would have answered 404 on reports signed in the last 30
+days. `sign-pdf` now falls back to the archived document and names it accordingly.
+
+**Totals:** 236 function checks, 68 key-flow checks in the browser, 39 upgrade checks, every
+`T()` string in the code has a Swedish translation, and no debug hook, `console.log` or
+hard-coded host anywhere in a shipped file. Still not run against Cloudflare: the first live
+send over 4 MB and the first signing link are the real tests - watch for Cloudflare's bot
+rules blocking Resend's fetch of `/api/media-file` and `/api/sign-pdf`.
+
 ---
 
 ## 6. Kvar att göra
@@ -686,6 +1056,8 @@ filtrerar hårt. Det ensamt skulle förklara alltihop. Se `netlify/functions/sen
 ---
 
 ## 8. Principer
+
+**Appen används dagligen i verksamheten. Alla ändringar måste granskas noggrant och verifieras så att befintliga arbetsflöden och sparade uppgifter inte rubbas.**
 
 **Appen kräver aldrig något.** Man ska kunna lämna punkter obesvarade, skicka utan
 kommentar och signera i vilken ordning som helst. Appen får upplysa, räkna och markera —

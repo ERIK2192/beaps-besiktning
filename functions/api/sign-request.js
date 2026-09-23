@@ -3,7 +3,13 @@
 //
 //   POST /api/sign-request -> { ok, token, url, expires }
 import { sendMail, isEmail, esc, stamp, appOk, typeLabel } from '../../cflib/mail.js';
-import { GILTIGHET_DAGAR, MAX_PDF, newToken, store, writeMeta, b64Bytes } from '../../cflib/sign.js';
+import { GILTIGHET_DAGAR, newToken, store, writeMeta, b64Bytes, isPdfId, pdfKey } from '../../cflib/sign.js';
+import { r2 } from '../../cflib/media.js';
+
+// A PDF sent base64 inside this request is the older road (see sign-upload). It is kept for
+// hosts without that endpoint, and stays at the size the worker can afford to parse; a bigger
+// report arrives as an id instead, with the bytes already in R2.
+const MAX_INLINE_PDF = 4 * 1024 * 1024;
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -17,8 +23,17 @@ export async function onRequest(context) {
   const cc = (b.cc || '').trim();
   if (!isEmail(to)) return new Response('Invalid recipient address', { status: 400 });
   if (cc && !isEmail(cc)) return new Response('Invalid CC address', { status: 400 });
-  if (!b.pdf) return new Response('PDF missing', { status: 400 });
-  if (b64Bytes(b.pdf) > MAX_PDF) return new Response('size', { status: 413 });
+  // Either the report is already in R2 and we were handed its id, or it came base64 in the body.
+  const pdfId = String(b.pdfId || '');
+  const uppladdad = isPdfId(pdfId);
+  if (!uppladdad && !b.pdf) return new Response('PDF missing', { status: 400 });
+  if (!uppladdad && b64Bytes(b.pdf) > MAX_INLINE_PDF) return new Response('size', { status: 413 });
+  if (uppladdad) {
+    // Check it is really there before a link to it goes out by email.
+    let head = null;
+    try { head = await r2(env).head(pdfKey(pdfId)) } catch (e) {}
+    if (!head) return new Response('The report was not found', { status: 404 });
+  }
 
   const token = newToken();
   const now = Date.now();
@@ -29,12 +44,21 @@ export async function onRequest(context) {
     to, cc, recipientName: b.recipientName || '', recipientRole: b.recipientRole || '',
     // which gallery this belongs to, so the signed report can be filed with its own photos
     gallery: String(b.gallery || '').replace(/[^a-f0-9]/g, '').slice(0, 48),
+    // where the report is, when it went up as bytes rather than base64
+    pdfId: uppladdad ? pdfId : null,
+    // The phone's SHA-256 of the report, printed on the signature certificate so the two can be
+    // told to belong together. Computed there and not here because hashing 16 MB would eat the
+    // request's whole CPU budget - and it is the inspector's own phone that supplies both the
+    // report and the hash, so there is nothing to be gained by it lying about one of them.
+    sha256: /^[a-f0-9]{64}$/.test(b.sha256 || '') ? b.sha256 : null,
     signedAt: null, signedName: null, signedRole: null
   };
 
   try {
-    await store(env).put('pdf/' + token, b.pdf,
-      { expirationTtl: GILTIGHET_DAGAR * 86400 + 7 * 86400 });
+    if (!uppladdad) {
+      await store(env).put('pdf/' + token, b.pdf,
+        { expirationTtl: GILTIGHET_DAGAR * 86400 + 7 * 86400 });
+    }
     await writeMeta(env, token, meta);
   } catch (e) {
     return new Response('Could not store the report: ' + String(e && e.message).slice(0, 200), { status: 502 });

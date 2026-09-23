@@ -2,3 +2,9 @@ node_modules/
 .netlify/
 .DS_Store
 Thumbs.db
+
+# Arbetsmaterial och kallor, ligger utanfor deployen.
+outputs/
+
+# Kraschlogg fran den lokala Electron-korningen, inget med appen att gora.
+debug.log

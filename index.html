@@ -82,6 +82,16 @@
   .thumb .ts{position:absolute;left:0;right:0;bottom:0;background:rgba(16,19,20,.72);color:#fff;font-family:var(--mono);font-size:9px;padding:3px 4px}
   .thumb .x{position:absolute;top:4px;right:4px;background:rgba(16,19,20,.8);color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;line-height:22px;text-align:center}
   .addrow{display:flex;gap:8px;align-items:center} .addrow input{flex:1}
+  /* suggestions under the address and apartment fields on the Property step */
+  .sug{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .sugrow{display:flex;align-items:baseline;gap:7px;text-align:left;padding:8px 12px;border:1px solid var(--line);
+          border-radius:9px;background:#fff;color:var(--ink);font-size:14px;line-height:1.3;max-width:100%}
+  .sugrow:active{background:#F6F5F2}
+  .sugrow b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .sugrow span{color:var(--ink2);font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sugrow.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .sugrow.on span{color:#fff;opacity:.75}
+  .sugmore{font-size:12px;color:var(--ink2);align-self:center}
   .crow{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px}
   .crow{transition:border-color .25s, box-shadow .25s}
   .crow.open{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
@@ -193,15 +203,122 @@
          padding:5px 10px;border-radius:999px;white-space:nowrap;flex:none}
   .kstat.in{background:#E4F0EA;color:#2E7D5B}
   .kstat.out{background:#F7E4E3;color:var(--rec)}
-  /* the bundle header reads top-down in the order you need it: number, name, address */
-  .bnum{font-size:40px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums}
-  .bname{font-size:19px;font-weight:650;letter-spacing:-.01em;margin-top:7px}
-  .baddr{font-size:14px;color:var(--ink2);margin-top:4px}
+  .kstat.unk{background:#EEE9DF;color:var(--ink2)}
+  .kwait{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#8A5E00}
+  .kwait::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--brand);flex:none}
+  /* the bundle header runs along one line - number, name, address - small and unstacked */
+  .bhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
+  .bnum{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+  .bname{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .baddr{font-size:13px;color:var(--ink2)}
+  .klsub{font-family:var(--mono);font-size:11px;color:var(--ink2)}
   .krow .knum{width:26px;height:26px;flex:none;border-radius:50%;background:var(--ink);color:#fff;
               font-family:var(--mono);font-size:12px;display:grid;place-items:center}
   .knums{display:flex;flex-wrap:wrap;gap:8px}
   .knum-chip{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;
              padding:8px 15px;font-family:var(--mono);font-size:14px;font-weight:600}
+
+  /* ---- the key screens: the design proposals (1, 3, 4) in the Beautiful Apartments palette ----
+     Yellow #FFD340, dark peach #E2987D, light peach #F9D7C5, dark emerald #16453E.
+     Nothing grey or black: text and marks are always emerald, muted text is emerald at
+     reduced opacity, and a hairline is emerald laid over the surface. The choice sits on
+     <html data-ktheme="1|3|4"> (menu, "Key design") and covers every key screen: the
+     Holdings card, the bundle sheet, the key card inside an inspection, the shared log and
+     the scanner's chrome. The rest of the app is untouched. */
+  :root{
+    --k-yel:#FFD340; --k-dpe:#E2987D; --k-lpe:#F9D7C5; --k-em:#16453E;
+    /* 1: light peach base, emerald text, yellow accents */
+    --k-bg:#F9D7C5; --k-card:#F9D7C5; --k-field:rgba(255,211,64,.22); --k-ink:#16453E; --k-ink2:rgba(22,69,62,.7);
+    --k-line:rgba(22,69,62,.22); --k-top:rgba(249,215,197,.93);
+    --k-pri:#FFD340; --k-pri-ink:#16453E; --k-chip:#16453E; --k-chip-ink:#F9D7C5; --k-acc:#FFD340; --k-mark:#FFD340;
+    --k-in:#FFD340; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#16453E; --k-pl-ink:#F9D7C5;
+    --k-sel:#16453E; --k-sel-ink:#F9D7C5; --k-head:#16453E; --k-logo:#16453E; --k-logo-ink:#FFD340; --k-kcard:#F9D7C5;
+  }
+  :root[data-ktheme="3"]{
+    /* 3: dark peach base, light peach fields, emerald details */
+    --k-bg:#E2987D; --k-card:#F9D7C5; --k-field:rgba(226,152,125,.16); --k-line:rgba(22,69,62,.24); --k-top:rgba(226,152,125,.93);
+    --k-pri:#16453E; --k-pri-ink:#F9D7C5; --k-chip:#16453E; --k-chip-ink:#F9D7C5; --k-acc:#FFD340; --k-mark:#FFD340;
+    --k-in:transparent; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#16453E; --k-pl-ink:#F9D7C5;
+    --k-sel:#16453E; --k-sel-ink:#F9D7C5; --k-kcard:#F9D7C5;
+  }
+  :root[data-ktheme="4"]{
+    /* 4: emerald base; peach for text, white for headings and numbers, yellow only on the things you press */
+    --k-bg:#16453E; --k-card:rgba(249,215,197,.07); --k-field:rgba(249,215,197,.12); --k-ink:#F9D7C5; --k-ink2:rgba(249,215,197,.72);
+    --k-line:rgba(249,215,197,.28); --k-top:rgba(22,69,62,.93);
+    --k-pri:#FFD340; --k-pri-ink:#16453E; --k-chip:#FFD340; --k-chip-ink:#16453E; --k-acc:#FFD340; --k-mark:#FFD340;
+    --k-in:#FFD340; --k-in-ink:#16453E; --k-out:#E2987D; --k-out-ink:#16453E; --k-pl:#F9D7C5; --k-pl-ink:#16453E;
+    --k-sel:#FFD340; --k-sel-ink:#16453E; --k-head:#FFFFFF; --k-logo:#FFD340; --k-logo-ink:#16453E; --k-kcard:#16453E;
+  }
+  .ksheet{background:var(--k-bg);color:var(--k-ink)}
+  .ksheet .top h1,.ksheet .csec,.ksheet .bnum,.ksheet .list-item b,.ksheet .hodone .big,.kcard .eyebrow,.kcard .kbrow b,.kcard .hoconf b{color:var(--k-head)}
+  .ksheet .top{background:var(--k-top);border-bottom-color:var(--k-line)}
+  .ksheet .top h1,.ksheet .back,.ksheet .csec{color:var(--k-ink)}
+  .ksheet .eyebrow,.kcard .eyebrow,.ksheet .hint,.kcard .hint,.ksheet .addc,.kcard .addc,
+  .ksheet .logline b,.ksheet .list-item .chev,.ksheet .klsub,.ksheet .baddr,.ksheet .krow .kt span,.ksheet .krow .kq{color:var(--k-ink2)}
+  .ksheet .top .logo rect{fill:var(--k-logo)} .ksheet .top .logo text{fill:var(--k-logo-ink)}
+  .ksheet .langsw{background:transparent;border-color:var(--k-line)}
+  .ksheet .langbtn{background:transparent;color:var(--k-ink2)} .ksheet .langbtn.on{background:var(--k-ink);color:var(--k-bg)}
+  .ksheet .langbtn+.langbtn{border-left-color:var(--k-line)}
+  .ksheet .card{background:var(--k-card);border-color:var(--k-line);color:var(--k-ink)}
+  /* the key card on its own, on the app's paper: a solid ground, whatever the design */
+  .kcard{background:var(--k-kcard);border-color:var(--k-line);color:var(--k-ink)}
+  .ksheet input{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
+  .ksheet input::placeholder{color:var(--k-ink2)}
+  .ksheet input:focus,.ksheet button:focus-visible,.kcard button:focus-visible{outline-color:var(--k-ink)}
+  .ksheet .btn,.kcard .btn{background:var(--k-pri);color:var(--k-pri-ink);border-color:transparent}
+  .ksheet .btn:active,.kcard .btn:active{filter:brightness(.92)}
+  .ksheet .btn.ghost,.kcard .btn.ghost{background:transparent;color:var(--k-ink);border-color:var(--k-ink)}
+  .ksheet .chip{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
+  .ksheet .chip.on{background:var(--k-ink);color:var(--k-bg);border-color:var(--k-ink)}
+  .ksheet .list-item,.ksheet .krow{background:var(--k-card);color:var(--k-ink);border-color:var(--k-line)}
+  .ksheet .logline{border-color:var(--k-line);display:block;font-size:12px;line-height:1.5}
+  .ksheet .logline b{display:inline;margin-right:8px}
+  .ksheet .list-item .dot{background:var(--k-line)} .ksheet .list-item .dot.filled{background:var(--k-mark)}
+  .ksheet .krow{padding:10px 12px}
+  .ksheet .krow .kt{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px}
+  .ksheet .krow .kt b{display:inline;font-size:14px}
+  .ksheet .krow .kt span{display:inline;margin:0;font-size:12px}
+  .ksheet .krow .knum{background:var(--k-ink);color:var(--k-bg)}
+  .kcard .knum-chip,.ksheet .knum-chip{background:var(--k-chip);color:var(--k-chip-ink);border-color:var(--k-chip)}
+  .ksheet .kstat,.kcard .kstat{border:1px solid var(--k-line)}
+  .kcard .kstat.out{background:var(--k-out);color:var(--k-out-ink)} .kcard .kstat.pl{background:var(--k-pl);color:var(--k-pl-ink);border-color:var(--k-pl)}
+  .ksheet .kstat.in{background:var(--k-in);color:var(--k-in-ink)}
+  .ksheet .kstat.out{background:var(--k-out);color:var(--k-out-ink)}
+  .ksheet .kstat.pl{background:var(--k-pl);color:var(--k-pl-ink);border-color:var(--k-pl)}
+  .ksheet .kstat.unk{background:transparent;color:var(--k-ink2)}
+  .ksheet .kwait,.kcard .kwait{color:var(--k-ink)} .ksheet .kwait::before,.kcard .kwait::before{background:var(--k-acc)}
+  .ksheet .sheetbar{background:linear-gradient(to top,var(--k-bg) 74%,transparent)}
+  .kbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .kbtns .btn{flex:1 1 auto;width:auto}
+  /* the key card inside an inspection: one line per bundle, status first */
+  .kcard .kbrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 0;border-top:1px solid var(--k-line);
+                font-size:13px;color:var(--k-ink);background:none;line-height:1.35}
+  .kcard .kbrow:first-child{border-top:0}
+  .kcard .kbrow b{font-family:var(--mono);font-size:14px;flex:none}
+  .kcard .kbrow span:last-child{color:var(--k-ink2);flex:1;min-width:0}
+  .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--mono);letter-spacing:.06em}
+  .kcard input{background:var(--k-field);border-color:var(--k-line);color:var(--k-ink)}
+  .kcard input::placeholder{color:var(--k-ink2)}
+  .kcard label.eyebrow{margin-bottom:6px}
+  /* the confirmation after a hand-over, on the card that made it */
+  .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--k-field);font-size:13px;line-height:1.4}
+  .hoconf b{display:block;font-size:14px}
+  .hocheck{width:54px;height:54px;border-radius:50%;background:var(--k-pri);color:var(--k-pri-ink);display:grid;place-items:center;font-size:26px;margin:0 auto 14px}
+  .hocheck.sm{width:28px;height:28px;font-size:15px;margin:0;flex:none}
+  /* the design switch in the menu */
+  .ksw{display:flex;gap:8px}
+  .kswb{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 7px;font-size:13px;font-weight:600;background:#fff}
+  .kswb i{width:18px;height:18px;border-radius:50%;display:block;border:1px solid rgba(22,69,62,.3)}
+  .kswb.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  /* the scanner's chrome in the same palette; the picture itself is the camera */
+  .cam.kscan{background:var(--k-em);color:var(--k-lpe)}
+  .cam.kscan .view{background:var(--k-em)}
+  .cam.kscan .scanbox i{border-color:var(--k-yel);box-shadow:0 0 0 100vmax rgba(22,69,62,.6)}
+  .cam.kscan .scanfoot .msg{color:var(--k-lpe)}
+  .cam.kscan .scanfoot .dest{font-size:13px;color:#fff;text-align:center;font-weight:600}
+  .cam.kscan .scanfoot .btn{background:transparent;color:var(--k-lpe);border-color:rgba(249,215,197,.5)}
+  .cam.kscan .scanfoot input{background:rgba(249,215,197,.12);border-color:rgba(249,215,197,.4);color:var(--k-lpe)}
+  .cam.kscan .scanfoot input::placeholder{color:rgba(249,215,197,.6)}
 
   /* hamburger */
   .burger{width:40px;height:40px;flex:none;display:grid;place-items:center;gap:4px;border-radius:10px}
@@ -346,6 +463,8 @@ const SV = {
   'Inspection type':'Besiktningstyp',
   'Address':'Adress',
   'Apartment number':'Lägenhetsnummer',
+  'apartment':'lägenhet',
+  'apartments':'lägenheter',
   'Inspector':'Besiktningsman',
   'Counterparty, name':'Motpart, namn',
   'Counterparty, company or role':'Motpart, företag eller roll',
@@ -481,6 +600,7 @@ const SV = {
   'Emailed to':'Mejlad till',
   'Daily email limit reached, opening share':'Dagens mejlgräns nådd, öppnar dela',
   'Too large for email, opening share':'För stor för mejl, öppnar dela',
+  'Uploading the report':'Laddar upp rapporten',
   'Reload the app — opening share':'Ladda om appen — öppnar dela',
   'The email did not go through, opening share':'Mejlet gick inte fram, öppnar dela',
   // --- finish without signature ---
@@ -665,11 +785,15 @@ const SV = {
   'Scan QR code':'Skanna QR-kod',
   'Shared log':'Gemensam logg',
   'Everyone sees the same log.':'Alla ser samma logg.',
-  'Saved here only — will sync when you are online.':'Sparad här — synkas när du är uppkopplad.',
-  'Syncing…':'Synkar…',
+  'Not synced yet':'Ej synkad',
+  'Waiting to sync':'Väntar på synkning',
   'waiting to sync':'väntar på synk',
+  'The log has not been fetched yet — the status may be out of date.':'Loggen har inte hämtats än — statusen kan vara fel.',
+  'Could not reach the log — showing it as of':'Kunde inte nå loggen — visar läget från',
   'Nothing has been checked out yet.':'Inget är utcheckat än.',
   'Out right now':'Utlånade just nu',
+  'out right now':'utlånade just nu',
+  'nothing out right now':'inget utlånat just nu',
   'Latest':'Senaste',
   'Keys':'Nycklar',
   'You have no keys checked out.':'Du har inga nycklar utcheckade.',
@@ -704,10 +828,59 @@ const SV = {
   'Back in the cabinet':'Tillbaka i skåpet',
   'Your name':'Ditt namn',
   'who is taking the keys':'vem som tar nycklarna',
-  'Goes on the line in the log. Saved for next time.':'Hamnar på raden i loggen. Sparas till nästa gång.',
-  'What for':'Vad gäller det',
+  'Saved on this phone for next time.':'Sparas på telefonen till nästa gång.',
+  'Logged as':'Loggas som',
+  'change':'ändra',
+  'Reason — optional':'Ärende — frivilligt',
+  'Updating…':'Uppdaterar…',
   'or write your own — can be left empty':'eller skriv eget — får lämnas tomt',
-  'The log needs a name.':'Loggen behöver ett namn.'
+  'The log needs a name.':'Loggen behöver ett namn.',
+  // --- leaving a bundle in an apartment or with a guest ---
+  'Holdings':'Innehav',
+  'Keys for the apartment':'Nycklar till lägenheten',
+  'no address yet':'ingen adress än',
+  'here':'här',
+  'with you':'hos dig',
+  'tap to leave it here':'tryck för att lämna den här',
+  'Nothing left here yet.':'Inget lämnat här än.',
+  'To — optional':'Till — frivilligt',
+  "guest's or tenant's name":'gästens eller hyresgästens namn',
+  'who is leaving the keys':'vem som lämnar nycklarna',
+  'Key number, e.g. 112:3':'Nyckelnummer, t.ex. 112:3',
+  'Scan':'Skanna',
+  'Leave in the apartment':'Lämna i lägenheten',
+  'left in the apartment':'lämnad i lägenheten',
+  'Write or scan the key number.':'Skriv eller skanna nyckelnumret.',
+  'Write the address or apartment number first.':'Skriv adress eller lägenhetsnummer först.',
+  'is already registered in':'är redan registrerad i',
+  'Scan the key to leave':'Skanna nyckeln som lämnas',
+  'Leave this key':'Lämna den här nyckeln',
+  'Destination':'Lämnas till',
+  'Leave anyway':'Lämna ändå',
+  'Scan another':'Skanna en annan',
+  'Left in':'Lämnad i',
+  'Left to':'Lämnad till',
+  'to':'till',
+  'by':'av',
+  'from':'från',
+  'left by':'lämnad av',
+  'In':'I',
+  'In apartment':'I lägenhet',
+  'In apartment / with guest':'I lägenhet / hos gäst',
+  'in apartment':'i lägenhet',
+  'Nothing is in an apartment right now.':'Inget ligger i någon lägenhet just nu.',
+  'Take it':'Ta med',
+  'is registered as in the cabinet.':'är registrerad i skåpet.',
+  'is registered with':'är registrerad hos',
+  'is registered in':'är registrerad i',
+  'belongs to':'hör till',
+  'not':'inte',
+  'Could not save — nothing was changed.':'Kunde inte spara — inget ändrades.',
+  'Key design':'Nyckeldesign',
+  // --- the property register behind the two fields on the Property step ---
+  'more':'fler',
+  'no apartments in the register':'inga lägenheter i registret',
+  'Apartments at':'Lägenheter på'
 };
 const T = s => (LANG==='sv' && SV[s]!=null) ? SV[s] : s;
 function setLang(l){ if(l!=='sv'&&l!=='en') return; LANG=l; try{ localStorage.setItem('beaps-lang',l) }catch(e){} render(); }
@@ -1065,8 +1238,12 @@ async function render(){
         <div class="field"><label class="eyebrow">${T('Inspection type')}</label>
           <div class="chips">${Object.keys(PREFIX).map(t=>
             `<button class="chip ${S.type===t?'on':''}" onclick="setType('${t}')">${TYPE_LABEL[t]||t}${PREFIX[t]?' · '+PREFIX[t]:''}</button>`).join('')}</div></div>
-        <div class="field"><label class="eyebrow">${T('Address')}</label><input id="f_address" value="${esc(S.address)}" autocomplete="off"></div>
-        <div class="field"><label class="eyebrow">${T('Apartment number')}</label><input id="f_apt" value="${esc(S.apt)}"></div>
+        <div class="field"><label class="eyebrow">${T('Address')}</label>
+          <input id="f_address" value="${esc(S.address)}" autocomplete="off" oninput="paintPropSug()">
+          <div class="sug" id="sugaddr"></div></div>
+        <div class="field"><label class="eyebrow">${T('Apartment number')}</label>
+          <input id="f_apt" value="${esc(S.apt)}" autocomplete="off" oninput="paintPropSug()">
+          <div class="sug" id="sugapt"></div></div>
       </div>
       <div class="card">
         <div class="field"><label class="eyebrow">${T('Inspector')}</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
@@ -1077,6 +1254,7 @@ async function render(){
     </div>`;
     bindRef('f_address','address'); bindRef('f_apt','apt');
     bindPath('f_iname','inspector','name'); bindPath('f_cname','counter','name'); bindPath('f_crole','counter','role');
+    propPrime();
     bar.innerHTML = `<button class="btn" onclick="go('rooms')">${isCheck()?T('To the checklist'):T('To the rooms')}</button>`;
     return;
   }
@@ -1090,6 +1268,7 @@ async function render(){
       ${checkList(list)}
     </div>`;
     bar.innerHTML = `<button class="btn" onclick="go('sign')">${T('Done')}</button>`;
+    inspKeyPrime();
     return;
   }
 
@@ -1101,7 +1280,7 @@ async function render(){
         <button class="btn" onclick="openCam(S.rooms[0]&&S.rooms[0].id)">${T('Camera')}</button>
         <div class="hint">${T('Drop photos on a room to add them. Drag the handle to move the room.')}</div>
       </div>
-      ${S.rooms.map(roomCard).join('')}
+      ${S.rooms.map(r => roomCard(r) + (r.fixed ? inspKeyCard() : '')).join('')}
       <div class="card">
         <div class="eyebrow" style="margin-bottom:9px">${T('Add room')}</div>
         <div class="addrow" style="margin-bottom:10px">
@@ -1129,6 +1308,7 @@ async function render(){
     </div>`;
     bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
       <button class="btn" onclick="go('sign')">${T('Sign')}</button>`;
+    inspKeyPrime();
     return;
   }
 
@@ -1220,7 +1400,7 @@ async function render(){
 // headings are inserted where the section changes, with how far that section has progressed
 function checkList(list){
   let out = '', sect = null;
-  list.forEach(c=>{
+  list.forEach((c,i)=>{
     if(c.section && c.section !== sect){
       sect = c.section;
       const rows = list.filter(x=>x.section===sect);
@@ -1228,6 +1408,9 @@ function checkList(list){
         <span class="ccount">${rows.filter(x=>x.val).length}/${rows.length}</span></div>`;
     }
     out += checkRow(c);
+    // The key card sits at the end of the door-and-keys section, where the keys are handled.
+    const nx = list[i+1];
+    if(c.section === 'Door & keys' && (!nx || nx.section !== c.section)) out += inspKeyCard();
   });
   return out;
 }
@@ -2076,21 +2259,38 @@ async function sendSignRequest(){
   if(S !== insp) return reset(T('You switched inspection, nothing was sent.'));
   if(!out) return reset(T('The PDF engine could not be loaded. Check the connection and try again.'));
   // the same cap the server uses, so it isn't built and uploaded unnecessarily
-  if(out.blob.size > 4*1048576)
+  if(out.blob.size > SIGN_MAX)
     return reset(T('The report is') + ' ' + mb(out.blob.size) + ' ' + T('and too large for the signing link. Remove a few photos and try again.'));
 
   btn.textContent = T('Sending…');
-  const b64 = await new Promise(res=>{ const fr=new FileReader();
-    fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(out.blob) });
+  const body = { filename:out.name, ref:ref(), type:S.type,
+    address:S.address, apt:S.apt, inspector:S.inspector.name,
+    to, cc, recipientName:name, recipientRole:role,
+    gallery: (S.gallery && S.gallery.token) || null,
+    // printed on the signature page so it and the report can be told to belong together.
+    // Done here because the server cannot afford to hash a 16 MB file.
+    sha256: await sha256Hex(out.blob) };
+
+  const up = await uploadSignPdf(out.blob, m => { if(S === insp) btn.textContent = m });
+  if(S !== insp) return reset(T('You switched inspection, nothing was sent.'));
+  if(up.ok) body.pdfId = up.id;
+  else if(up.legacy){
+    // A host without the upload endpoint takes the PDF inside the request, as it always did.
+    if(out.blob.size > 4*1048576) return reset(T('The report is too large for the signing link.'));
+    body.pdf = await new Promise(res=>{ const fr=new FileReader();
+      fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(out.blob) });
+  }
+  else if(up.reason==='size') return reset(T('The report is too large for the signing link.'));
+  else if(up.reason==='ladda om') return reset(T('The app needs updating — reload the page and try again.'));
+  else return reset(T('No contact with the server. Check the connection and try again.'));
+
+  btn.textContent = T('Sending…');
   const ac = new AbortController();
   let r;
   try{
     r = await withTimeout(fetch('/api/sign-request', {
       method:'POST', headers:{'Content-Type':'application/json', ...AUTH}, signal: ac.signal,
-      body: JSON.stringify({ pdf:b64, filename:out.name, ref:ref(), type:S.type,
-        address:S.address, apt:S.apt, inspector:S.inspector.name,
-        to, cc, recipientName:name, recipientRole:role,
-        gallery: (S.gallery && S.gallery.token) || null })
+      body: JSON.stringify(body)
     }), 45000);
   }catch(e){ try{ ac.abort() }catch(_){}  return reset(T('No contact with the server. Check the connection and try again.')) }
   if(!r.ok){
@@ -2384,7 +2584,7 @@ async function renderStart(){
     <button class="btn navy" onclick="openScan()">${T('Check key in/out')}</button>`;
   paintTicker();
   // Catch up with what everyone else has done, then repaint only if it changed something.
-  keySync().then(moved=>{ if(moved && view==='start' && !document.getElementById('keylog')) renderStart() });
+  keySync().then(refreshKeyViews);
 }
 let editList = false;
 function toggleEdit(){ editList = !editList; renderStart() }
@@ -2446,19 +2646,24 @@ function openLog(){
 }
 
 /* ---------- Key bundles ----------
-   A tag carries the bundle number and nothing else: "112:3". Scanning one opens the
-   ring, shows the keys that belong on it, and takes it out of or back into the cabinet.
-   The register lives in nycklar.js and is fetched the first time it is needed.
+   A tag carries the bundle number - "112:3" - either bare or as the link
+   https://beaps.se/#nyckel=112:3, and nothing else. Scanning one, or typing the
+   number, opens the ring, shows the keys that belong on it, and takes it out of or back
+   into the cabinet. The register lives in nycklar.js and is fetched the first time it is
+   needed.
 
-   The check-out log is on this phone only, so it cannot yet answer "who has 112:3"
-   across the team. That needs the shared database - see the plan. Everything else here
-   is the finished shape. */
-const KEYSTATE = 'bp:keys';       // { '112:3': {status, holder, reason, since} }, a projection
-const KEYNAME  = 'bp:keyname';    // the name that goes on every line of the log
-const KEYEV    = 'bp:keyev';      // the log as last seen from the server
-const KEYQ     = 'bp:keyq';       // events written here that have not reached the server yet
-let keyState = null, keyMe = '', keyEvents = null, keyQueue = null;
-let keySyncing = false, keySyncedAt = 0;
+   The log is shared. Every check-out and check-in goes to /api/keys-event and comes back
+   to every phone from /api/keys-log. Where a bundle is right now is never stored as such:
+   it is the last event for that bundle, whoever wrote it, worked out afresh on every sync.
+   What has not reached the server yet waits in a queue on this phone and is shown as
+   waiting wherever the bundle appears. */
+const KEYNAME = 'bp:keyname';   // the name that goes on every line of the log
+const KEYEV   = 'bp:keyev';     // the recent log as last seen from the server, plus ours
+const KEYBASE = 'bp:keybase';   // the server's last event per bundle - reaches further back than KEYEV
+const KEYQ    = 'bp:keyq';      // events written here that have not reached the server yet
+const KEYSEEN = 'bp:keyseen';   // when the log was last fetched successfully, 0 = never
+let keyState = null, keyMe = '', keyEvents = null, keyBase = null, keyQueue = null;
+let keySeenAt = 0, keyFailAt = 0, keySyncP = null;
 
 function loadScript(src, ready){
   if(ready()) return Promise.resolve(true);
@@ -2479,74 +2684,124 @@ const loadNycklar = () => loadScript('nycklar.js', ()=>Array.isArray(window.NYCK
 
 // Reads what is already on the phone. No network, no register - safe to call on every
 // start screen paint.
-async function keyLocal(){
-  if(!keyState)  keyState  = (await store.get(KEYSTATE)) || {};
-  if(!keyMe)     keyMe     = (await store.get(KEYNAME))  || '';
-  if(!keyEvents) keyEvents = (await store.get(KEYEV))    || [];
-  if(!keyQueue)  keyQueue  = (await store.get(KEYQ))     || [];
+let keyLocalP = null;
+function keyLocal(){
+  if(keyState) return Promise.resolve();
+  if(keyLocalP) return keyLocalP;    // two early callers share one read, so neither can
+  keyLocalP = (async()=>{            // overwrite the other's fresher state with a stale copy
+    await store.del('bp:keys');      // tidy: the old projection is not kept any more
+    keyMe     = (await store.get(KEYNAME))  || '';
+    keyEvents = (await store.get(KEYEV))    || [];
+    keyBase   = (await store.get(KEYBASE))  || [];
+    keyQueue  = (await store.get(KEYQ))     || [];
+    keySeenAt = (await store.get(KEYSEEN))  || 0;
+    applyEvents();
+  })();
+  return keyLocalP;
 }
 // The full thing: local state plus the register behind the tags.
 async function keyBoot(){ await keyLocal(); await loadNycklar() }
 
 const bundleOf = id => (window.NYCKLAR||[]).find(b=>b.id===id);
+// Read-only: a bundle with no event of its own is simply in the cabinet.
 function bstate(id){
-  if(!keyState[id]) keyState[id] = {status:'in', holder:null, reason:'', since:null};
-  return keyState[id];
+  return keyState[id] || {status:'in', holder:null, reason:'', since:null, ev:null};
 }
-const keySave = () => store.set(KEYSTATE, keyState);
 const eventsFor = id => (keyEvents||[]).filter(e=>e.bundle===id);
-const outNow = () => Object.keys(keyState||{}).filter(id=>keyState[id].status==='out');
+const outNow = () => Object.keys(keyState||{})
+  .filter(id=>keyState[id].status==='out')
+  .sort((a,b)=>(keyState[b].since||0) - (keyState[a].since||0));
+// Left in an apartment or with a guest - nobody is carrying these.
+const placedNow = () => Object.keys(keyState||{})
+  .filter(id=>keyState[id].status==='placed')
+  .sort((a,b)=>(keyState[b].since||0) - (keyState[a].since||0));
+const isQueued = ev => !!ev && (keyQueue||[]).some(q => q.id === ev.id);
 
 /* Where a bundle is, is not stored - it is worked out from the log. The last event for a
    bundle wins, whoever wrote it, so two phones that were both offline end up agreeing as
-   soon as they have both synced. */
+   soon as they have both synced. keyBase reaches further back than the 400-event tail
+   kept in keyEvents, so a bundle checked out long ago and never checked back in still
+   shows as out even once its own check-out has scrolled off that tail.
+
+   Two events in the same millisecond are settled by id, which is the order KV lists
+   them in - so every phone and the server land on the same answer instead of each
+   picking whichever it happened to read last. */
+const later = (a, b) => a.ts > b.ts || (a.ts === b.ts && String(a.id) > String(b.id));
+// A bundle number is 112:3 or 112:EXTRA - the server refuses anything else, and so does
+// this, because the number is written straight into the page as text and as an id.
+const okBundle = id => typeof id === 'string' && /^[A-Za-z0-9:_-]{1,32}$/.test(id);
 function applyEvents(){
   const last = {};
-  for(const e of keyEvents) if(!last[e.bundle] || e.ts > last[e.bundle].ts) last[e.bundle] = e;
+  for(const e of (keyBase||[]).concat(keyEvents||[])){
+    if(!e || !okBundle(e.bundle)) continue;
+    if(!last[e.bundle] || later(e, last[e.bundle])) last[e.bundle] = e;
+  }
+  const next = {};
   Object.keys(last).forEach(id=>{
-    const e = last[id], s = bstate(id);
-    const out = e.kind === 'out';
-    s.status = out? 'out' : 'in';
-    s.holder = out? e.who : null;
-    s.reason = out? (e.reason||'') : '';
-    s.since  = out? e.ts : null;
+    const e = last[id];
+    // out: someone is carrying it. placed: it was left in an apartment or with a guest and
+    // nobody is carrying it. Anything else - a check-in - is the cabinet. One status per
+    // bundle, read from one event, so it can never be in two places at once.
+    next[id] = e.kind === 'out'   ? { status:'out', holder:e.who, reason:e.reason||'', since:e.ts, ev:e }
+             : e.kind === 'place' ? { status:'placed', holder:null, reason:'', since:e.ts, place:e.place||'', guest:e.guest||'', apt:e.apt||'', by:e.who, ev:e }
+             :                      { status:'in', holder:null, reason:'', since:null, ev:e };
   });
+  keyState = next;
 }
 async function keyRemember(){
-  await store.set(KEYEV, (keyEvents||[]).slice(0, 400));
-  await store.set(KEYQ, keyQueue||[]);
-  await keySave();
+  const a = await store.set(KEYEV, (keyEvents||[]).slice(0, 400));
+  await store.set(KEYBASE, keyBase||[]);
+  const q = await store.set(KEYQ, keyQueue||[]);
+  await store.set(KEYSEEN, keySeenAt);
+  return a && q;     // the two that carry an event just written
 }
-// Send whatever has not reached the server. Anything that fails stays queued.
-async function keyFlush(){
-  if(!keyQueue || !keyQueue.length) return true;
-  try{
-    const r = await fetch('/api/keys-event', {
-      method:'POST',
-      headers:{...AUTH, 'Content-Type':'application/json'},
-      body: JSON.stringify({events: keyQueue.slice(0,50)})
-    });
-    if(!r.ok) return false;
-    const sent = new Set(keyQueue.slice(0,50).map(e=>e.id));
-    keyQueue = keyQueue.filter(e=>!sent.has(e.id));
-    await store.set(KEYQ, keyQueue);
-    return true;
-  }catch(e){ return false }
+// Send whatever has not reached the server. Anything that fails stays queued. A write and
+// the sync right behind it both ask for a flush; the second waits for the first and then
+// sends only what is still left, rather than posting the same event twice.
+let keyFlushP = null;
+function keyFlush(){
+  if(!keyQueue || !keyQueue.length) return Promise.resolve(true);
+  if(keyFlushP) return keyFlushP.then(()=>keyFlush());
+  keyFlushP = (async()=>{
+    try{
+      const batch = keyQueue.slice(0,50);
+      const r = await fetch('/api/keys-event', {
+        method:'POST',
+        headers:{...AUTH, 'Content-Type':'application/json'},
+        body: JSON.stringify({events: batch})
+      });
+      if(!r.ok) return false;
+      const sent = new Set(batch.map(e=>e.id));
+      keyQueue = keyQueue.filter(e=>!sent.has(e.id));
+      await store.set(KEYQ, keyQueue);
+      return true;
+    }catch(e){ return false }
+    finally{ keyFlushP = null }
+  })();
+  return keyFlushP;
 }
-// Pull everyone's events down and fold ours in. Returns true when the log actually moved.
-async function keySync(force){
-  if(keySyncing) return false;
-  if(!force && Date.now() - keySyncedAt < 20000) return false;
-  keySyncing = true;
-  let moved = false;
-  try{
-    await keyLocal();
-    await keyFlush();
-    const r = await fetch('/api/keys-log', {headers:AUTH});
-    if(r.ok){
+// What every screen paints from - anything not in here cannot possibly need a repaint.
+const keySig = () => JSON.stringify([
+  (keyEvents||[]).map(e=>e.id), (keyQueue||[]).map(e=>e.id), !!keySeenAt, keyFailAt >= keySeenAt,
+  Object.keys(keyState||{}).sort().map(id=>{ const s = keyState[id]; return [id, s.status, s.since] })
+]);
+// Pull everyone's events down and fold ours in. Returns true when something a screen
+// paints from actually changed - a fetch that failed counts, since the screens say so.
+// A caller that arrives mid-sync gets that same result instead of a bare `false` that
+// would look like nothing had moved.
+function keySync(force){
+  if(keySyncP) return keySyncP;
+  if(!force && Date.now() - keySeenAt < 20000) return Promise.resolve(false);
+  keySyncP = (async()=>{
+    let before = '';
+    try{
+      await keyLocal();
+      before = keySig();
+      await keyFlush();
+      const r = await fetch('/api/keys-log', {headers:AUTH});
+      if(!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if(Array.isArray(j.events)){
-        const before = JSON.stringify(keyEvents.map(e=>e.id));
         const seen = new Set(j.events.map(e=>e.id));
         const queued = new Set((keyQueue||[]).map(e=>e.id));
         // Keep what the server has not shown us yet: anything still unsent, and anything
@@ -2556,36 +2811,87 @@ async function keySync(force){
         const fresh = Date.now() - 120000;
         const ours = keyEvents.filter(e => !seen.has(e.id) && (queued.has(e.id) || e.ts > fresh));
         keyEvents = j.events.concat(ours).sort((a,b)=>b.ts-a.ts);
+        if(Array.isArray(j.state)) keyBase = j.state;
+        keySeenAt = Date.now();
         applyEvents();
         await keyRemember();
-        moved = before !== JSON.stringify(keyEvents.map(e=>e.id));
-        keySyncedAt = Date.now();
       }
-    }
-  }catch(e){}
-  keySyncing = false;
-  return moved;
+    }catch(e){ keyFailAt = Date.now() }
+    keySyncP = null;
+    return before !== keySig();
+  })();
+  return keySyncP;
 }
-// Write one event: visible here at once, on its way to everyone else.
+// Write one event: visible here at once, on its way to everyone else. The person just
+// acted, so the event must sort after the one that decides this bundle's status now -
+// even when that one came from a phone whose clock runs ahead, or this one's runs
+// behind - which is what the max() guarantees. Only this bundle's event is looked at,
+// so one bad clock cannot drag every later timestamp in the log along with it.
 async function keyWrite(bundle, kind, extra){
-  const b = bundleOf(bundle);
+  const b = bundleOf(bundle), cur = bstate(bundle).ev;
   const ev = Object.assign({
-    id: uid(), bundle, kind, ts: Date.now(),
+    id: uid(), bundle, kind, ts: Math.max(Date.now(), cur ? (cur.ts||0) + 1 : 0),
     who: keyMe, reason: '', name: b? (b.n || 'lgh ' + b.l) : ''
   }, extra || {});
   keyEvents.unshift(ev);
   keyQueue.push(ev);
   applyEvents();
-  await keyRemember();
-  keyFlush();                     // not awaited: the screen must not wait for the network
+  if(!await keyRemember()){
+    // The phone could not keep it. Take it back out, so no screen shows a move that
+    // exists nowhere, and tell the caller: nothing has changed.
+    keyEvents = keyEvents.filter(e=>e.id!==ev.id); keyQueue = keyQueue.filter(e=>e.id!==ev.id);
+    applyEvents(); await keyRemember();
+    return null;
+  }
+  // Not awaited: the screen must not wait for the network. Once it has gone, whatever
+  // screen says "waiting to sync" needs to stop saying so.
+  keyFlush().then(ok=>{ if(ok) refreshKeyViews(true) });
   return ev;
 }
 
 function evLine(e){
+  if(e.kind === 'place'){
+    const dest = e.place ? `${T('Left in')} ${e.place}${e.guest? ' · ' + T('to') + ' ' + e.guest : ''}`
+                         : `${T('Left to')} ${e.guest||''}`;
+    return `${dest} · ${T('by')} ${e.who}${e.from? ' · ' + T('from') + ' ' + e.from : ''}`;
+  }
   return e.kind === 'out'
-    ? `${T('Checked out by')} ${e.who}${e.reason? ' — ' + e.reason : ''}`
+    ? `${T('Checked out by')} ${e.who}${e.reason? ' — ' + e.reason : ''}${e.from? ' · ' + T('from') + ' ' + e.from : ''}`
     : `${T('Checked in by')} ${e.who}${e.from? ' — ' + T('was with') + ' ' + e.from : ''}`;
 }
+// Where a placed bundle is, in words: the apartment, the guest, or both.
+const placeLabel = s => s.place ? s.place + (s.guest? ' · ' + T('to') + ' ' + s.guest : '') : (T('to') + ' ' + (s.guest||''));
+// One line on where a bundle is right now, for a card that is not the bundle sheet.
+function whereLine(s){
+  if(!keySeenAt) return T('Not synced yet');
+  if(s.status === 'out') return `${T('With')} ${s.holder||''} ${T('since')} ${stamp(new Date(s.since))}`;
+  if(s.status === 'placed') return `${T('In')} ${placeLabel(s)} ${T('since')} ${stamp(new Date(s.since))}`;
+  return T('In the cabinet');
+}
+// A queued line has not reached anyone else's phone yet - flag it wherever it shows up.
+const queuedSuffix = ev => isQueued(ev)? ' · ' + T('waiting to sync') : '';
+// What to say about how fresh the shared state is - the same story wherever a bundle's
+// status is shown, so a stale read never looks as certain as a fresh one.
+function syncHint(){
+  if(!keySeenAt) return T('The log has not been fetched yet — the status may be out of date.');
+  if(keyFailAt >= keySeenAt) return T('Could not reach the log — showing it as of') + ' ' + stamp(new Date(keySeenAt));
+  return '';
+}
+// After a sync that changed something, repaint whichever key screen is showing.
+function refreshKeyViews(moved){
+  if(!moved) return;
+  if(document.getElementById('handover')) return paintHandover();
+  const bundleEl = document.getElementById('bundle');
+  if(bundleEl) return paintBundle(bundleEl.dataset.bundle);
+  const logEl = document.getElementById('keylog');
+  if(logEl) return logEl.innerHTML = keyLogHtml();
+  if(document.getElementById('inspkeys')) return paintInspKeyCard();   // in place: a comment mid-typing must survive
+  if(view==='start') renderStart();
+}
+// A queued event must not wait for the next visit to the start screen to be sent: catch
+// it the moment connectivity, or the tab itself, comes back.
+window.addEventListener('online', ()=>{ keySync(true).then(refreshKeyViews) });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') keySync().then(refreshKeyViews) });
 
 /* ----- menu ----- */
 function openMenu(){
@@ -2599,6 +2905,8 @@ function openMenu(){
     </div>
     <button class="mitem" onclick="closeMenu();openKeyLog()">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
+    <div class="mitem" style="flex-direction:column;align-items:stretch;gap:10px">
+      <span>${T('Key design')}</span>${kthemeToggle()}</div>
     <div class="mitem" style="border-bottom:0">
       <span>${T('Language')}</span>${langToggle()}</div>
   </div>`;
@@ -2612,48 +2920,93 @@ function closeMenu(){ const el = document.getElementById('menu'); if(el) el.remo
 // Only what this person is carrying, and only the numbers. Who has the rest is in the log.
 const myKeys = () => outNow().filter(id => (keyState[id].holder||'') === keyMe && keyMe);
 function keyCard(){
-  const mine = myKeys();
-  return `<div class="card">
-    <span class="eyebrow">${T('Keys')}</span>
+  const mine = myKeys(), out = outNow(), placed = placedNow(), waiting = (keyQueue||[]).length;
+  const tally = [out.length? out.length + ' ' + T('out right now') : '', placed.length? placed.length + ' ' + T('in apartment') : '']
+    .filter(Boolean).join(' · ') || T('nothing out right now');
+  return `<div class="card kcard">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+      <span class="eyebrow">${T('Holdings')}</span>
+      ${keyMe? `<span class="hint" style="margin:0">${esc(keyMe)}</span>` : ''}
+    </div>
     <div style="margin-top:8px">
       ${mine.length
         ? `<div class="knums">${mine.map(id=>
             `<button class="knum-chip" onclick="showBundle('${id}')">${esc(id)}</button>`).join('')}</div>`
         : `<span class="hint" style="margin:0">${T('You have no keys checked out.')}</span>`}
     </div>
+    ${waiting? `<div class="kwait" style="margin-top:10px">${waiting} ${T('waiting to sync')}</div>` : ''}
+    <button class="btn ghost small" style="margin-top:12px" onclick="openKeyLog()">${T('Shared log')} · ${tally}</button>
   </div>`;
 }
+/* The log has an address of its own: #nyckellogg. Opening the app with it lands here
+   straight away, and the hash follows the sheet - set while it is open, cleared when it
+   closes - so a reload comes back to the same place. It is a shortcut into the app, not
+   around it: the log is still fetched through the same guarded endpoint as everything
+   else, and any access check the app gets later runs at boot, before this is looked at. */
+const LOG_HASH = '#nyckellogg';
+const logLink = () => location.origin + location.pathname + LOG_HASH;
 async function openKeyLog(){
+  if(document.getElementById('keylog')) return;
   await keyBoot();
+  const done = keySync(true);        // started before the first paint, so it can say "updating"
   const el = document.createElement('div');
-  el.className = 'sheet'; el.id = 'keylog';
+  el.className = 'sheet ksheet'; el.id = 'keylog';
   el.innerHTML = keyLogHtml();
   document.body.appendChild(el);
   window.scrollTo(0,0);
-  if(await keySync(true)){ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() }
+  if(location.hash !== LOG_HASH) try{ history.replaceState(null, '', logLink()) }catch(e){}
+  // Repaint once the server has answered either way - the "updating" line must go, and
+  // a failed fetch changes the hint.
+  done.then(()=>{ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() });
 }
-function closeKeyLog(){ const el = document.getElementById('keylog'); if(el) el.remove(); renderStart() }
+function closeKeyLog(){
+  const el = document.getElementById('keylog'); if(el) el.remove();
+  if(location.hash === LOG_HASH) try{ history.replaceState(null, '', location.pathname + location.search) }catch(e){}
+  render();                        // back to whatever was underneath, normally the start screen
+}
+// Only from the start screen: an inspection in progress is never covered by the log.
+window.addEventListener('hashchange', ()=>{ if(location.hash === LOG_HASH && view==='start') openKeyLog() });
+async function copyLogLink(){
+  const url = logLink();
+  try{ await navigator.clipboard.writeText(url); toast(T('Link copied')) }
+  catch(e){ prompt(T('Copy the link:'), url) }   // same fallback as the other links
+}
 function keyLogHtml(){
-  const out = outNow(), q = (keyQueue||[]).length;
+  const out = outNow(), placed = placedNow(), q = (keyQueue||[]).length, hint = syncHint();
   return topbar(T('Shared log'), (keyEvents||[]).length + ' ' + T('entries'), null, "closeKeyLog()") + `
     <div class="wrap">
-      <div class="hint" style="margin:0 3px 12px">${T('Everyone sees the same log.')}${q? ' ' + q + ' ' + T('waiting to sync') + '.' : ''}</div>
+      <div class="hint" style="margin:0 3px 12px;display:flex;justify-content:space-between;gap:12px">
+        <span>${T('Everyone sees the same log.')}${q? ' ' + q + ' ' + T('waiting to sync') + '.' : ''}${keySyncP? ' ' + T('Updating…') : ''}</span>
+        <button class="addc" style="flex:none" onclick="copyLogLink()">${T('Copy link')}</button>
+      </div>
+      ${hint? `<div class="hint" style="margin:0 3px 12px">${hint}</div>` : ''}
       <div class="csec">${T('Out right now')}<span class="ccount">${out.length}</span></div>
       ${out.length? out.map(id=>{ const s = keyState[id]; return `
         <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
           <span class="dot filled"></span>
-          <span style="min-width:0"><b>${esc(id)}</b>
-            <div style="font-family:var(--mono);font-size:11px;color:var(--ink2)">
-              ${esc(s.holder||'')}${s.reason? ' · '+esc(s.reason):''} · ${stamp(new Date(s.since))}</div></span>
+          <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
+            <div class="klsub">
+              ${esc(s.holder||'')}${s.reason? ' · '+esc(s.reason):''} · ${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</div></span>
           <span class="chev">›</span>
         </button>`}).join('')
         : `<div class="card"><span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span></div>`}
+
+      <div class="csec">${T('In apartment / with guest')}<span class="ccount">${placed.length}</span></div>
+      ${placed.length? placed.map(id=>{ const s = keyState[id]; return `
+        <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
+          <span class="dot filled"></span>
+          <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
+            <div class="klsub">
+              ${esc(placeLabel(s))} · ${stamp(new Date(s.since))} · ${T('left by')} ${esc(s.by||'')}${queuedSuffix(s.ev)}</div></span>
+          <span class="chev">›</span>
+        </button>`}).join('')
+        : `<div class="card"><span class="hint" style="margin:0">${T('Nothing is in an apartment right now.')}</span></div>`}
 
       <div class="csec">${T('Latest')}</div>
       <div class="card">
         ${(keyEvents||[]).slice(0,60).map(e=>`<div class="logline">
           <b>${stamp(new Date(e.ts))}</b>
-          <span><b>${esc(e.bundle)}</b>${e.name? ' · '+esc(e.name):''} — ${esc(evLine(e))}</span>
+          <span><b>${esc(e.bundle)}</b>${e.name? ' · '+esc(e.name):''} — ${esc(evLine(e))}${queuedSuffix(e)}</span>
         </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing has been checked out yet.')}</span>`}
       </div>
     </div>`;
@@ -2664,14 +3017,20 @@ let scanRaf = 0, scanStream = null, scanOn = false;
 const scanCv = document.createElement('canvas');
 const scanCtx = scanCv.getContext('2d', {willReadFrequently:true});
 
-async function openScan(){
+// The same scanner and the same tag for both jobs: opened bare it shows the bundle behind
+// the tag; opened with 'hand' it reads the tag for a hand-over already set up (see ho).
+let scanMode = 'open';
+async function openScan(mode){
   await keyBoot();
+  keySync().then(refreshKeyViews);   // not awaited: the tag may be read before this lands
   closeScan();            // same again: one scanner at a time, camera released first
+  scanMode = mode === 'hand' && ho ? 'hand' : 'open';
+  const hand = scanMode === 'hand';
   const el = document.createElement('div');
-  el.className = 'cam'; el.id = 'scan';
+  el.className = 'cam kscan'; el.id = 'scan';
   el.innerHTML = `
     <div class="camtop">
-      <span style="font-weight:600">${T('Scan QR code')}</span>
+      <span style="font-weight:600">${hand? T('Scan the key to leave') : T('Scan QR code')}</span>
       <button onclick="closeScan()" style="font-size:15px">${T('Close')}</button>
     </div>
     <div class="view">
@@ -2679,10 +3038,11 @@ async function openScan(){
       <div class="scanbox" id="scanbox"><i></i></div>
     </div>
     <div class="scanfoot">
+      ${hand? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}
       <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
       <input id="scanman" placeholder="${T('or type the number, e.g. 112:3')}"
              autocapitalize="characters" autocomplete="off" spellcheck="false">
-      <button class="btn ghost" onclick="scanManual()">${T('Open the bundle')}</button>
+      <button class="btn ghost" onclick="scanManual()">${hand? T('Leave this key') : T('Open the bundle')}</button>
     </div>`;
   document.body.appendChild(el);
   document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
@@ -2799,9 +3159,25 @@ function scanManual(){
   const el = document.getElementById('scanman');
   if(el && el.value.trim()) gotCode(el.value.trim());
 }
-// A tag holds "112:3" or "112:EXTRA". Anything else is somebody else's QR code.
+/* A tag holds "112:3" or "112:EXTRA" - or, on newer tags, a link the phone's own camera
+   can open: https://beaps.se/#nyckel=112:3. Out in the world that link lands on the
+   website, which says nothing about keys; in here it is just another way of writing
+   the number. Only that exact shape counts - https, beaps.se, the number after
+   #nyckel= - and the link is never opened or followed, only read. Anything else is
+   somebody else's QR code. */
+function tagNumber(raw){
+  const s = String(raw).trim();
+  if(!/^https?:\/\//i.test(s)) return s;
+  try{
+    const u = new URL(s), host = u.hostname.toLowerCase();
+    if(u.protocol !== 'https:' || (host !== 'beaps.se' && host !== 'www.beaps.se')) return '';
+    if(u.pathname !== '/' && u.pathname !== '') return '';
+    const m = /^#nyckel=([^&]+)$/i.exec(u.hash);
+    return m ? decodeURIComponent(m[1]) : '';
+  }catch(e){ return '' }
+}
 function gotCode(raw){
-  const id = String(raw).trim().toUpperCase().replace(/\s+/g,'');
+  const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
   const b = bundleOf(id);
   if(!b){
     // It read something, so say what. A tag from the old test sheet, or a number that is
@@ -2815,39 +3191,92 @@ function gotCode(raw){
     return;
   }
   scanFeedback();
+  const hand = scanMode === 'hand';
   closeScan();
+  if(hand) return hoGot(id);
   showBundle(id);
 }
 function closeScan(){
-  scanOn = false; cancelAnimationFrame(scanRaf);
+  scanOn = false; scanMode = 'open'; cancelAnimationFrame(scanRaf);
   if(scanStream){ scanStream.getTracks().forEach(t=>{ try{ t.stop() }catch(e){} }); scanStream = null }
   const el = document.getElementById('scan'); if(el) el.remove();
 }
 
 /* ----- the bundle behind the tag ----- */
 function showBundle(id){
-  const b = bundleOf(id), s = bstate(id);
+  const b = bundleOf(id);
   if(!b) return;
   closeBundle();          // never stack two bundle sheets on top of each other
-  const out = s.status === 'out';
+  const el = document.createElement('div');
+  el.className = 'sheet hasbar ksheet'; el.id = 'bundle'; el.dataset.bundle = id;
+  document.body.appendChild(el);
+  paintBundle(id);
+  window.scrollTo(0,0);
+  // Ask the server what everyone else has done with this ring, then repaint either way -
+  // a failed fetch changes the hint too.
+  keySync(true).then(()=>{ const s = document.getElementById('bundle'); if(s && s.dataset.bundle===id) paintBundle(id) });
+}
+function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove(); koNameOpen = false }
+let histOpen = false;
+function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
+let koNameOpen = false;
+function koEditName(){ koNameOpen = true; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
+// After checking a bundle in or out, land on the start screen, where the Keys card now
+// shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
+async function backToStart(){ closeBundle(); closeScan(); if(view==='start') await renderStart() }
+
+// Renders the sheet in place, so a sync landing mid-visit (or a toggled chip, or the name
+// field opening) never has to tear the sheet down and rebuild it from nothing.
+function paintBundle(id){
+  const el = document.getElementById('bundle');
+  if(!el) return;
+  const b = bundleOf(id), s = bstate(id);
+  const out = s.status === 'out', placed = s.status === 'placed';
   const keys = b.k.map(k=>({t:k[0], m:k[1]||'', q:k[2]||1, note:k[3]||''}));
   const total = keys.reduce((n,k)=>n+k.q, 0);
 
-  const el = document.createElement('div');
-  el.className = 'sheet hasbar'; el.id = 'bundle'; el.dataset.bundle = id;
+  // A repaint can land mid-keystroke - the sheet syncs the moment it opens, and that
+  // sync can land while someone is already typing - so keep whatever is in the two
+  // fields rather than wiping it out from under them, and put the caret back where it was.
+  const nameEl = document.getElementById('koname'), reasonEl = document.getElementById('koreason');
+  const keepName = nameEl? nameEl.value : '', keepReason = reasonEl? reasonEl.value : '';
+  const focused = document.activeElement && document.activeElement.id;
+  const caret = focused ? document.activeElement.selectionStart : null;
+  const hint = syncHint();
+
   el.innerHTML = topbar(T('Key bundle'), '', null, "closeBundle()") + `
     <div class="wrap">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-          <div style="min-width:0">
-            <div class="bnum">${esc(b.id)}</div>
-            ${b.n? `<div class="bname">${esc(b.n)}</div>` : ''}
-            <div class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</div>
+          <div class="bhead">
+            <span class="bnum">${esc(b.id)}</span>
+            ${b.n? `<span class="bname">${esc(b.n)}</span>` : ''}
+            <span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span>
           </div>
-          <span class="kstat ${out?'out':'in'}" style="margin-top:6px">${out? T('Out') : T('In the cabinet')}</span>
+          <span class="kstat ${!keySeenAt? 'unk' : (out?'out': placed?'pl':'in')}" style="margin-top:2px">${!keySeenAt? T('Not synced yet') : (out? T('Out') : placed? T('In apartment') : T('In the cabinet'))}</span>
         </div>
         ${out? `<div class="hint" style="margin-top:10px">${T('With')} <b>${esc(s.holder||'')}</b>
           ${T('since')} ${stamp(new Date(s.since))}${s.reason? ' · '+esc(s.reason):''}.</div>` : ''}
+        ${placed? `<div class="hint" style="margin-top:10px">${T('In')} <b>${esc(s.place || (T('to') + ' ' + s.guest))}</b>${s.place && s.guest? ' · ' + T('to') + ' <b>' + esc(s.guest) + '</b>' : ''}
+          ${T('since')} ${stamp(new Date(s.since))} · ${T('left by')} ${esc(s.by||'')}.</div>` : ''}
+        ${isQueued(s.ev)? `<div class="kwait" style="margin-top:8px">${T('Waiting to sync')}</div>` : ''}
+        ${hint? `<div class="hint" style="margin-top:8px">${hint}</div>` : ''}
+        <div class="field" style="margin-top:14px">
+          ${(!keyMe || koNameOpen)? `
+            <label>${T('Your name')}</label>
+            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('who is taking the keys')}"
+                   autocomplete="name" enterkeyhint="done">
+            <div class="hint">${T('Saved on this phone for next time.')}</div>`
+            : `<div class="hint" style="margin:0">${T('Logged as')} <b>${esc(keyMe)}</b> · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
+        </div>
+        ${!out? `<div class="field">
+            <label>${T('Reason — optional')}</label>
+            <div class="chips" id="kochips">
+              ${REASONS.map(r=>`<button class="chip${keepReason===r?' on':''}" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
+            </div>
+            <input id="koreason" style="margin-top:10px" value="${esc(keepReason)}" placeholder="${T('or write your own — can be left empty')}"
+                   oninput="document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'))">
+          </div>` : ''}
       </div>
 
       <div class="csec">${T('Keys on this bundle')}<span class="ccount">${total}</span></div>
@@ -2867,89 +3296,342 @@ function showBundle(id){
         return `<button class="addc" style="margin:18px 3px 0" onclick="toggleHist()">
             ${histOpen? T('Hide history') : T('History') + ' (' + ev.length + ')'}</button>
           ${histOpen? `<div class="card" style="margin-top:8px">${ev.slice(0,20).map(e=>
-            `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}</span></div>`).join('')}</div>` : ''}`;
+            `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}${queuedSuffix(e)}</span></div>`).join('')}</div>` : ''}`;
       })()}
     </div>
     <div class="sheetbar">
       <button class="btn ghost" onclick="closeBundle()">${T('Close')}</button>
-      ${out? `<button class="btn" onclick="checkIn('${id}')">${T('Check in')}</button>`
-           : `<button class="btn" onclick="checkOut('${id}')">${T('Check out')}</button>`}
+      ${placed? `<button class="btn ghost" onclick="checkOut('${id}')">${T('Take it')}</button>
+                 <button class="btn" onclick="checkIn('${id}')">${T('Check in')}</button>`
+        : out? `<button class="btn" onclick="checkIn('${id}')">${T('Check in')}</button>`
+             : `<button class="btn" onclick="checkOut('${id}')">${T('Check out')}</button>`}
     </div>`;
-  document.body.appendChild(el);
-  window.scrollTo(0,0);
+  if(focused === 'koname' || focused === 'koreason'){
+    const f = document.getElementById(focused);
+    if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
+  }
 }
-function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove() }
-function reopenBundle(id){ closeBundle(); showBundle(id) }
-let histOpen = false;
-function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el){ const id = el.dataset.bundle; closeBundle(); showBundle(id) } }
-// After checking a bundle in or out, land on the start screen, where the Keys card now
-// shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
-async function backToStart(){ closeBundle(); closeOut(); closeScan(); if(view==='start') await renderStart() }
 
-/* Check out: your name, then what for. Only the name is needed - the log is worth
-   nothing without one. Everything else can be left as it stands. */
+/* Check out and check in are one tap on the bundle sheet itself - the name field and the
+   reason chips live there (see paintBundle). Only the name is needed; the log is worth
+   nothing without one, but everything else can be left as it stands. A second tap while
+   the first is still being written is ignored, so a nervous thumb cannot log twice. */
+let koBusy = false;
 const REASONS = ['Inflytt','Utflytt','Visning','Hantverkare','Städ','Besiktning'];
-function checkOut(id){
-  const b = bundleOf(id);
+function koPick(btn, reason){
+  const already = btn.classList.contains('on');
+  document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'));
+  const input = document.getElementById('koreason');
+  if(already){ input.value = ''; return }
+  btn.classList.add('on');
+  input.value = reason;
+}
+// The name is the one thing the log cannot do without. It is read from the field when one is
+// shown, otherwise it is the saved one; either way it is saved for next time.
+async function koName(){
+  const f = document.getElementById('koname');
+  const name = (f ? f.value : keyMe).trim();
+  if(!name){ toast(T('The log needs a name.')); try{ f && f.focus() }catch(e){} return '' }
+  if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
+  return name;
+}
+async function checkOut(id){
+  if(koBusy) return;
+  koBusy = true;
+  try{
+    const name = await koName(); if(!name) return;
+    const f = document.getElementById('koreason');
+    const reason = (f ? f.value : '').trim();
+    // Where it came from when that was not the cabinet: the apartment or guest it had been
+    // left with, or the colleague it is being taken over from.
+    const s = bstate(id);
+    const from = s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && s.holder !== name ? s.holder : '');
+    const ev = await keyWrite(id, 'out', {who:name, reason, from});
+    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    await backToStart();
+    toast(id + ' → ' + name);
+  }finally{ koBusy = false }
+}
+async function checkIn(id){
+  if(koBusy) return;
+  koBusy = true;
+  try{
+    const name = await koName(); if(!name) return;
+    const s = bstate(id);
+    const was = s.status === 'placed' ? placeLabel(s) : (s.holder || '');
+    const ev = await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
+    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    await backToStart();
+    toast(id + ' — ' + T('Back in the cabinet'));
+  }finally{ koBusy = false }
+}
+
+/* ----- leaving a bundle in the apartment, or with the guest -----
+   The third place a bundle can be, and it is only ever reached from inside an inspection:
+   a shortstay unlock, a move-in or a move-out. The apartment is the inspection's own, the
+   person it goes to is the counterparty (or a name typed on the card), and the bundle is
+   the one tag read - scanned, or typed - so the whole thing is one tap on the Keys card.
+   From the cabinet straight into the apartment, or via the inspector's own holdings: both
+   are written as one 'place' event, without questions. Only a bundle registered with
+   somebody else, or belonging to another apartment, is shown for a second look first.
+   Closing the scanner or the review writes nothing; a failed save leaves things as they
+   were and says so. */
+const HANDOVER_TYPES = ['Upplåsning','Inflytt','Utflytt'];
+const canHandover = () => !!S && HANDOVER_TYPES.includes(S.type);
+let ho = null;        // the hand-over in progress: {apt, place, guest, got, notes, step}
+let hoLast = null;    // the last one written from an inspection: {insp, ev}, shown on its card
+
+// The inspection's apartment as the register knows it, when it does: "lgh 1102 TÄRNA" and
+// the object number 112 - the half of a bundle number in front of the colon. An apartment
+// the register has not got yet is named by what the inspection says, address included,
+// since "lgh 1201" alone would not say which house.
+const squash = s => String(s||'').toLowerCase().replace(/[\s,.\-]/g,'');
+function inspApt(){
+  const addr = squash(S.address), apt = squash(S.apt);
+  const b = addr && apt ? (window.NYCKLAR||[]).find(b => squash(b.a) === addr && squash(b.l) === apt) : null;
+  if(b) return { apt: String(b.id).split(':')[0], place: 'lgh ' + b.l + (b.n ? ' ' + b.n : ''), known: true };
+  const place = [S.address, S.apt ? 'lgh ' + S.apt : ''].filter(Boolean).join(', ').trim();
+  return { apt: '', place, known: false };
+}
+// Who the keys go to: the counterparty, unless the card says otherwise.
+const inspTo = () => S.keyTo != null ? S.keyTo : ((S.counter && S.counter.name) || '');
+const hoDest = () => !ho ? '' : (ho.place || '') + (ho.guest ? (ho.place ? ' · ' : '') + T('to') + ' ' + ho.guest : '');
+
+// The card on the inspection's key section: what is here, what you carry for this
+// apartment, and the one field that does the hand-over. Painted from what is already on
+// the phone; the register and the shared log catch up a moment later (inspKeyPrime).
+function inspKeyCard(){
+  if(!canHandover()) return '';
+  const ctx = inspApt();
+  const here = placedNow().filter(id => { const s = keyState[id]; return ctx.apt ? s.apt === ctx.apt : (!!ctx.place && s.place === ctx.place) });
+  const carried = ctx.apt ? myKeys().filter(id => String(id).split(':')[0] === ctx.apt) : [];
+  const numEl = document.getElementById('kbnum'), nameEl = document.getElementById('koname');
+  const keepNum = numEl ? numEl.value : '', keepName = nameEl ? nameEl.value : '';
+  const last = hoLast && hoLast.insp === S.id ? hoLast.ev : null;
+  return `<div class="card kcard" id="inspkeys">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <span class="eyebrow">${T('Keys for the apartment')}</span>
+      <span class="hint" style="margin:0">${esc(ctx.place || T('no address yet'))}</span>
+    </div>
+    ${last ? `<div class="hoconf"><span class="hocheck sm">✓</span><div>
+        <b>${esc(last.bundle)}${last.name ? ' · ' + esc(last.name) : ''}</b>
+        <div>${esc(evLine(last))} · ${stamp(new Date(last.ts))}${queuedSuffix(last)}</div></div></div>` : ''}
+    <div style="margin-top:8px">
+      ${here.map(id => { const s = keyState[id]; return `<div class="kbrow"><span class="kstat pl">${T('here')}</span><b>${esc(id)}</b>
+          <span>${esc(evLine(s.ev))} · ${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</span></div>` }).join('')}
+      ${carried.map(id => `<button class="kbrow" onclick="inspPick('${id}')"><span class="kstat out">${T('with you')}</span><b>${esc(id)}</b>
+          <span>${T('tap to leave it here')}</span></button>`).join('')}
+      ${!here.length && !carried.length && !last ? `<span class="hint" style="margin:0">${T('Nothing left here yet.')}</span>` : ''}
+    </div>
+    <div class="field" style="margin-top:12px"><label class="eyebrow">${T('To — optional')}</label>
+      <input id="kbto" value="${esc(inspTo())}" placeholder="${T("guest's or tenant's name")}" autocomplete="off" oninput="S.keyTo=this.value;save()"></div>
+    <div class="field">
+      ${(!keyMe || koNameOpen) ? `<label class="eyebrow">${T('Your name')}</label>
+          <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('who is leaving the keys')}" autocomplete="name" enterkeyhint="done">`
+        : `<div class="hint" style="margin:0">${T('Logged as')} <b>${esc(keyMe)}</b> · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
+    </div>
+    <div class="addrow">
+      <input id="kbnum" value="${esc(keepNum)}" placeholder="${T('Key number, e.g. 112:3')}" autocapitalize="characters" autocomplete="off" spellcheck="false"
+             onkeydown="if(event.key==='Enter')inspLeave()">
+      <button class="btn ghost small" onclick="inspScan()">${T('Scan')}</button>
+    </div>
+    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T('Leave in the apartment')}</button>
+  </div>`;
+}
+// Repaint the card in place - never the whole view, which would wipe a comment mid-typing.
+function paintInspKeyCard(){
+  const el = document.getElementById('inspkeys'); if(!el || !S) return;
+  const focused = document.activeElement && document.activeElement.id;
+  const caret = focused ? document.activeElement.selectionStart : null;
+  el.outerHTML = inspKeyCard();
+  if(focused === 'kbnum' || focused === 'kbto' || focused === 'koname'){
+    const f = document.getElementById(focused);
+    if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
+  }
+}
+// Fetch the register and the shared state behind the card, then repaint it once.
+function inspKeyPrime(){
+  if(!canHandover()) return;
+  keyBoot().then(paintInspKeyCard);
+  keySync().then(refreshKeyViews);
+}
+function inspPick(id){ const f = document.getElementById('kbnum'); if(f){ f.value = id; try{ f.focus() }catch(e){} } }
+
+// Sets up the hand-over from the inspection: where, to whom, by whom. False when the
+// inspection cannot say where yet, or there is no name to log under.
+async function hoBegin(){
+  if(!canHandover()) return false;
+  await keyBoot();
+  const ctx = inspApt();
+  if(!ctx.place){ toast(T('Write the address or apartment number first.')); return false }
+  const name = await koName(); if(!name) return false;
+  koNameOpen = false;
+  const to = document.getElementById('kbto'); if(to) S.keyTo = to.value;
+  ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), got:null, notes:[], step:'scan' };
+  return true;
+}
+async function inspLeave(){
+  const f = document.getElementById('kbnum'), raw = f ? f.value.trim() : '';
+  if(!raw){ toast(T('Write or scan the key number.')); try{ f && f.focus() }catch(e){} return }
+  const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
+  if(!bundleOf(id)){ await keyBoot(); if(!bundleOf(id)){ toast(`${id} ${T('is not in the key register yet.')}`); return } }
+  if(!await hoBegin()) return;
+  hoGot(id);
+}
+async function inspScan(){ if(!await hoBegin()) return; openScan('hand') }
+
+// The tag has been read. Written straight away from the cabinet or from this person's own
+// holdings; shown for a second look when it is registered elsewhere.
+function hoGot(id){
+  if(!ho || !bundleOf(id)) return;
+  const s = bstate(id), b = bundleOf(id);
+  if(s.status === 'placed' && ho.apt && s.apt === ho.apt){ toast(`${id} ${T('is already registered in')} ${s.place}.`); ho = null; return }
+  ho.got = id; ho.notes = [];
+  if(!keySeenAt) ho.notes.push(T('The log has not been fetched yet — the status may be out of date.'));
+  else if(s.status === 'out' && s.holder && s.holder !== keyMe) ho.notes.push(`${id} ${T('is registered with')} ${s.holder} ${T('since')} ${stamp(new Date(s.since))}.`);
+  else if(s.status === 'placed') ho.notes.push(`${id} ${T('is registered in')} ${placeLabel(s)}.`);
+  if(ho.apt && String(id).split(':')[0] !== ho.apt) ho.notes.push(`${id} ${T('belongs to')} lgh ${b.l}${b.n ? ' ' + b.n : ''}, ${T('not')} ${ho.place}.`);
+  if(!ho.notes.length) return hoSave();
+  ho.step = 'review'; hoSheet(); paintHandover(); window.scrollTo(0,0);
+}
+let hoBusy = false;
+async function hoSave(){
+  if(!ho || !ho.got || hoBusy) return;
+  hoBusy = true;
+  try{
+    const name = await koName(); if(!name) return;
+    const id = ho.got, s = bstate(id);
+    const from = s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && s.holder !== name ? s.holder : '');
+    const ev = await keyWrite(id, 'place', { who:name, place:ho.place, guest:ho.guest, apt:ho.apt, from });
+    if(!ev){ toast(T('Could not save — nothing was changed.')); return }
+    hoLast = { insp: S ? S.id : null, ev }; ho = null;
+    closeHandover();
+    if(S) log(`Key ${id} left in the apartment${ev.guest ? ' to ' + ev.guest : ''}`);
+    toast(`${id} — ${T('left in the apartment')}`);
+    const f = document.getElementById('kbnum'); if(f) f.value = '';
+    paintInspKeyCard();
+  }finally{ hoBusy = false }
+}
+function hoSheet(){
+  if(document.getElementById('handover')) return;
   const el = document.createElement('div');
-  el.className = 'sheet hasbar'; el.id = 'kout';
-  el.innerHTML = topbar(T('Check out'), b.id, null, "closeOut()") + `
-    <div class="wrap">
+  el.className = 'sheet hasbar ksheet'; el.id = 'handover';
+  document.body.appendChild(el);
+}
+function closeHandover(){
+  const el = document.getElementById('handover'); if(el) el.remove();
+  ho = null; closeScan();
+}
+function hoRescan(){ if(!ho) return; ho.step = 'scan'; ho.got = null; ho.notes = []; const el = document.getElementById('handover'); if(el) el.remove(); openScan('hand') }
+// The second look: what the log says about this bundle, where it is about to go, and the
+// choice. Nothing has been written when this is on screen.
+function paintHandover(){
+  const el = document.getElementById('handover'); if(!el || !ho || ho.step !== 'review' || !ho.got) return;
+  const b = bundleOf(ho.got);
+  el.innerHTML = topbar(T('Leave in the apartment'), ho.got, null, 'closeHandover()') + `<div class="wrap">
       <div class="card">
-        <div class="field">
-          <label>${T('Your name')}</label>
-          <input id="koname" value="${esc(keyMe)}" placeholder="${T('who is taking the keys')}"
-                 autocomplete="name" enterkeyhint="done">
-          <div class="hint">${T('Goes on the line in the log. Saved for next time.')}</div>
-        </div>
-        <div class="field">
-          <label>${T('What for')}</label>
-          <div class="chips" id="kochips">
-            ${REASONS.map(r=>`<button class="chip" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
-          </div>
-          <input id="koreason" style="margin-top:10px" placeholder="${T('or write your own — can be left empty')}">
+        <div class="bhead"><span class="bnum">${esc(b.id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
+        ${ho.notes.map(n => `<div class="hint" style="margin-top:8px">${esc(n)}</div>`).join('')}
+        <div style="margin-top:12px;font-size:14px">${T('Destination')}: <b>${esc(hoDest())}</b></div>
+        <div class="kbtns">
+          <button class="btn" onclick="hoSave()">${T('Leave anyway')}</button>
+          <button class="btn ghost" onclick="hoRescan()">${T('Scan another')}</button>
         </div>
       </div>
     </div>
-    <div class="sheetbar">
-      <button class="btn ghost" onclick="closeOut()">${T('Cancel')}</button>
-      <button class="btn" onclick="doCheckOut('${id}')">${T('Check out')}</button>
-    </div>`;
-  document.body.appendChild(el);
-  const n = document.getElementById('koname');
-  if(!keyMe) setTimeout(()=>{ try{ n.focus() }catch(e){} }, 150);
+    <div class="sheetbar"><button class="btn ghost" onclick="closeHandover()">${T('Cancel')}</button></div>`;
 }
-function closeOut(){ const el = document.getElementById('kout'); if(el) el.remove() }
-function koPick(btn, reason){
-  [...document.querySelectorAll('#kochips .chip')].forEach(c=>c.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('koreason').value = reason;
+
+/* ----- the three design proposals -----
+   Same screens, same behaviour, three palettes (1, 3 and 4 - the yellow one, 2, was dropped);
+   see the :root[data-ktheme] blocks in the CSS. The choice is per phone, remembered in
+   localStorage; the green one is the default, and a phone that had 2 stored falls back to it. */
+const KTHEMES = { '1':['Ljus persika','#F9D7C5','#FFD340'], '3':['Mörk persika','#E2987D','#F9D7C5'], '4':['Grön','#16453E','#F9D7C5'] };
+let KTHEME = '4';
+try{ const t = localStorage.getItem('beaps-ktheme'); if(KTHEMES[t]) KTHEME = t }catch(e){}
+function applyKTheme(){ document.documentElement.dataset.ktheme = KTHEME }
+function setKTheme(t){
+  if(!KTHEMES[t]) return;
+  KTHEME = t; try{ localStorage.setItem('beaps-ktheme', t) }catch(e){}
+  applyKTheme();
+  if(document.getElementById('menu')){ closeMenu(); openMenu() }
 }
-async function doCheckOut(id){
-  const name = (document.getElementById('koname').value || '').trim();
-  if(!name){
-    toast(T('The log needs a name.'));
-    try{ document.getElementById('koname').focus() }catch(e){}
-    return;
+function kthemeToggle(){
+  return `<div class="ksw" role="group" aria-label="${T('Key design')}">${Object.keys(KTHEMES).map(t=>
+    `<button class="kswb${KTHEME===t?' on':''}" onclick="setKTheme('${t}')" aria-pressed="${KTHEME===t}" title="${esc(KTHEMES[t][0])}">
+       <i style="background:linear-gradient(135deg,${KTHEMES[t][1]} 50%,${KTHEMES[t][2]} 50%)"></i>${t}</button>`).join('')}</div>`;
+}
+applyKTheme();
+
+/* ----- the properties behind the two fields on the Property step -----
+   Addresses and apartments out of fastigheter.js, offered as you type. Nothing is forced:
+   both fields take whatever is written, and a property the register has not got is typed in
+   exactly as before - the suggestions only save the typing. Getting the address written the
+   same way every time is also what lets the key card further in find the apartment in the
+   key register, so it is worth a little help here. */
+const loadFastigheter = () => loadScript('fastigheter.js', ()=>Array.isArray(window.FASTIGHETER));
+// Matching is word by word: every word typed has to turn up somewhere in the address, in any
+// order, so "eriksg 53b" finds "Sankt Eriksgatan 53B" and "91b uppl" finds Upplandsgatan 91B.
+// "S:t" and "St" are folded to "Sankt" because the key list and the property list spell it
+// differently, and a comparison with the spaces taken out decides whether a field already
+// names one property exactly.
+const fold = s => String(s==null?'':s).toLowerCase()
+  .replace(/\bs:t\b/g,'sankt').replace(/[.,:;\-]/g,' ').replace(/\bst\b/g,'sankt')
+  .replace(/\s+/g,' ').trim();
+const tight = s => fold(s).replace(/\s/g,'');
+const words = q => fold(q).split(' ').filter(Boolean);
+const hitsAll = (text, ws) => { const t = fold(text); return ws.every(w => t.includes(w)) };
+const propOf = a => (window.FASTIGHETER||[]).find(f => tight(f.a) === tight(a));
+const SUG_MAX = 8;
+// Fetch the register when the Property step opens, then paint - never before, so a phone that
+// only ever opens the start screen pays nothing for it.
+function propPrime(){ loadFastigheter().then(()=>{ if(view==='object') paintPropSug() }) }
+function paintPropSug(){
+  const reg = window.FASTIGHETER || [];
+  const aEl = document.getElementById('f_address'), pEl = document.getElementById('f_apt');
+  const aBox = document.getElementById('sugaddr'), pBox = document.getElementById('sugapt');
+  if(!aBox || !pBox) return;
+  const aVal = aEl ? aEl.value : '', pVal = pEl ? pEl.value : '';
+  const hit = propOf(aVal);
+
+  // Addresses: only once something is typed, and not when it already names one exactly.
+  let rows = [];
+  if(reg.length && tight(aVal) && !hit){
+    const ws = words(aVal);
+    const m = reg.filter(f => hitsAll(f.a, ws));
+    rows = m.slice(0, SUG_MAX).map(f =>
+      `<button class="sugrow" onclick="pickAddr('${esc(f.a).replace(/'/g,"\\'")}')"><b>${esc(f.a)}</b>${f.l.length? `<span>${f.l.length} ${T(f.l.length===1?'apartment':'apartments')}</span>`:''}</button>`);
+    if(m.length > rows.length) rows.push(`<span class="sugmore">+${m.length - rows.length} ${T('more')}</span>`);
   }
-  const reason = (document.getElementById('koreason').value || '').trim();
-  keyMe = name; await store.set(KEYNAME, name);
-  await keyWrite(id, 'out', {who:name, reason});
-  await backToStart();
-  toast(id + ' → ' + name);
-}
-async function checkIn(id){
-  const s = bstate(id);
-  let name = keyMe;
-  if(!name){
-    name = (prompt(T('Your name')) || '').trim();
-    if(!name) return toast(T('The log needs a name.'));
-    keyMe = name; await store.set(KEYNAME, name);
+  aBox.innerHTML = rows.join('');
+
+  // Apartments: the ones at the address, as soon as it is known. Few enough to just show.
+  let arows = [];
+  if(hit && hit.l.length){
+    const q = tight(pVal), ws = words(pVal);
+    const m = q ? hit.l.filter(l => hitsAll(l[0] + ' ' + (l[1]||''), ws)) : hit.l;
+    const exact = hit.l.some(l => tight(l[0]) === q);
+    if(!(exact && m.length === 1)){
+      arows = m.slice(0, 12).map(l =>
+        `<button class="sugrow${tight(l[0])===q?' on':''}" onclick="pickApt('${esc(l[0]).replace(/'/g,"\\'")}')"><b>${esc(l[0])}</b>${l[1]? `<span>${esc(l[1])}</span>`:''}</button>`);
+      if(m.length > arows.length) arows.push(`<span class="sugmore">+${m.length - arows.length} ${T('more')}</span>`);
+    }
   }
-  const was = s.holder || '';
-  await keyWrite(id, 'in', {who:name, from: was && was !== name ? was : ''});
-  await backToStart();
-  toast(id + ' — ' + T('Back in the cabinet'));
+  pBox.innerHTML = arows.join('');
+}
+// Picking writes the same way typing does, so nothing else has to know where it came from.
+function pickAddr(a){
+  const el = document.getElementById('f_address'); if(!el) return;
+  el.value = a; unlockIfLocked(); S.address = a; save();
+  paintPropSug();
+  const p = document.getElementById('f_apt');
+  if(p && !p.value) try{ p.focus() }catch(e){}
+}
+function pickApt(l){
+  const el = document.getElementById('f_apt'); if(!el) return;
+  el.value = l; unlockIfLocked(); S.apt = l; save();
+  paintPropSug();
+  try{ el.blur() }catch(e){}
 }
 
 /* ---------- PDF ---------- */
@@ -3292,22 +3974,110 @@ async function doExport(){
   await sharePdf(out.blob, out.name);
 }
 const mailTarget = () => isCheck()? 'guestservice@beaps.se' : 'longstay@beaps.se';
+// Up to this size the PDF rides base64-encoded inside the request, as it always has. Above it
+// the report is parked in the gallery's storage first (report-put) and the mail carries a link
+// the mail service fetches itself, so the server never holds the bytes as text. That is what
+// lets a move-out with two hundred photos go out by mail like any other instead of stopping at
+// the share sheet.
+const MAIL_INLINE_MAX = 4*1048576;
+// beaps.se is Microsoft 365, which takes a message of about 25 MB once the attachment is base64-encoded.
+const MAIL_MAX = 16*1048576;
+// The signing link takes the same size; MAX_PDF on the server is the twin of this.
+const SIGN_MAX = 16*1048576;
+// The report's fingerprint, printed on the signature page so the two files that come out of a
+// signing can be told to belong together. Computed here because a worker on the free plan cannot
+// spare the CPU to hash a 16 MB file. Null when the browser won't do it - it must never block.
+async function sha256Hex(blob){
+  try{
+    const buf = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return null }
+}
+// Sends the report for a signing link up as raw bytes. Returns {ok,id}, or {legacy:true} when
+// the host has no such endpoint - an older Netlify deploy answers 404 and Cloudflare answers
+// the app's own HTML with 200 on an unknown /api path, so neither counts as an upload.
+async function uploadSignPdf(blob, say){
+  let shown = -1, sist = 'ingen kontakt';
+  for(let attempt=0; attempt<2; attempt++){
+    if(attempt) await new Promise(r=>setTimeout(r, 1500));
+    try{
+      const r = await putWithProgress('/api/sign-upload', blob, 'application/pdf', 120000,
+        pct => { if(pct !== shown){ shown = pct; say(`${T('Uploading the report')} ${pct} %`) } });
+      if(r.status===404 || r.status===405) return {ok:false, legacy:true};
+      if(r.status===401) return {ok:false, reason:'ladda om'};
+      if(r.status===413) return {ok:false, reason:'size'};
+      let j = null; try{ j = JSON.parse(r.text) }catch(e){}
+      if(r.status>=200 && r.status<300) return (j && j.ok && j.id)? {ok:true, id:j.id} : {ok:false, legacy:true};
+      sist = 'server ' + r.status;
+    }catch(e){ sist = String(e && e.message || e) }
+  }
+  return {ok:false, reason:sist};
+}
+// PUT with a progress figure, which fetch cannot give. Resolves with the status and body text.
+function putWithProgress(url, blob, type, ms, onPct){
+  return new Promise((res, rej)=>{
+    const x = new XMLHttpRequest();
+    x.open('PUT', url);
+    x.setRequestHeader('Content-Type', type);
+    Object.keys(AUTH).forEach(k=>x.setRequestHeader(k, AUTH[k]));
+    x.timeout = ms;
+    x.upload.onprogress = e => { if(e.lengthComputable && onPct) onPct(Math.round(e.loaded*100/e.total)) };
+    x.onload = ()=>res({status:x.status, text:x.responseText||''});
+    x.onerror = ()=>rej(new Error('ingen kontakt'));
+    x.ontimeout = ()=>rej(new Error('timeout'));
+    x.onabort = ()=>rej(new Error('abort'));
+    x.send(blob);
+  });
+}
+// Uploads the report to the gallery's storage. One retry, as with the photos: mobile networks
+// drop a request after idle now and then. The toast follows the upload so a long one is not
+// mistaken for a hang.
+async function parkReport(blob, token){
+  let shown = -1, sist = 'ingen kontakt';
+  for(let attempt=0; attempt<2; attempt++){
+    if(attempt) await new Promise(r=>setTimeout(r, 1500));
+    try{
+      const r = await putWithProgress('/api/report-put?t='+token, blob, 'application/pdf', 120000,
+        pct => { if(pct !== shown){ shown = pct; toast(`${T('Uploading the report')} ${pct} %`) } });
+      if(r.status===401) return {ok:false, reason:'ladda om'};
+      if(r.status===413) return {ok:false, reason:'size'};
+      let j = null; try{ j = JSON.parse(r.text) }catch(e){}
+      // The id is random per upload, so the report cannot be guessed at from the gallery link.
+      if(r.status>=200 && r.status<300 && j && j.ok && j.id) return {ok:true, id:j.id};
+      sist = 'server ' + r.status;
+    }catch(e){ sist = String(e && e.message || e) }
+  }
+  return {ok:false, reason:sist};
+}
 async function mailPdf(blob, name){
-  if(blob.size > 4.2*1048576) return {ok:false, reason:'size'};
-  const b64 = await new Promise(res=>{ const fr = new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(blob) });
+  if(blob.size > MAIL_MAX) return {ok:false, reason:'size'};
+  const body = {
+    filename: name,
+    kind: isCheck()? 'upplasning' : 'besiktning',
+    subject: (isCheck()? 'UpplåsningPDF ' : 'BesiktningPDF ') + ref(),
+    // lets the server file the report next to its own photos in Dropbox, and is where a big
+    // report is parked
+    gallery: (S.gallery && S.gallery.token) || null
+  };
+  if(blob.size <= MAIL_INLINE_MAX){
+    body.pdf = await new Promise(res=>{ const fr = new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(blob) });
+  } else {
+    // no gallery means nowhere to park it, so this one goes by the share sheet
+    if(!body.gallery) return {ok:false, reason:'size'};
+    const up = await parkReport(blob, body.gallery);
+    if(!up.ok) return up;
+    body.hosted = up.id;
+    toast(T('Sending'));
+  }
   const ac = new AbortController();
   try{
+    // A hosted report gets longer: inside this one call the server copies it to Dropbox and
+    // Resend fetches it, and a timeout here after the mail has gone would only produce a
+    // "did not go through" and a second copy by the share sheet.
     const r = await withTimeout(fetch('/api/send-pdf', {
       method:'POST', headers:{'Content-Type':'application/json', ...AUTH}, signal: ac.signal,
-      body: JSON.stringify({
-        filename: name,
-        kind: isCheck()? 'upplasning' : 'besiktning',
-        subject: (isCheck()? 'UpplåsningPDF ' : 'BesiktningPDF ') + ref(),
-        pdf: b64,
-        // lets the server file the report next to its own photos in Dropbox
-        gallery: (S.gallery && S.gallery.token) || null
-      })
-    }), 25000);
+      body: JSON.stringify(body)
+    }), body.hosted ? 60000 : 25000);
     if(r.status===429) return {ok:false, reason:'quota'};
     if(r.status===401) return {ok:false, reason:'ladda om'};
     if(!r.ok) return {ok:false, reason:'server '+r.status};
@@ -3413,5 +4183,6 @@ function legacyPrint(){
   setTimeout(()=>window.print(), 60);
 }
 
-renderStart();
+// Land on the start screen, then wherever the address points.
+renderStart().then(()=>{ if(location.hash === LOG_HASH) openKeyLog() });
 </script>

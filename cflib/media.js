@@ -7,6 +7,21 @@
 export const GALLERI_DAGAR = 365;
 export const MAX_FIL = 60 * 1024 * 1024;   // holds a long walkthrough video
 
+// The finished report is parked next to the photos (see report-put), so the mail can carry it as
+// a link Resend fetches instead of as base64 in a JSON body. It has no /up/ marker in KV, so the
+// gallery never lists it and media-sync never tidies it away.
+//
+// The id carries a random tail. The gallery token is printed in the report itself and may be
+// passed on to a tenant, and the report holds names and signatures the photos do not - so holding
+// the gallery link must not be enough to guess your way to the report. A new send gets a new id
+// and the previous one is deleted, so a gallery keeps exactly one.
+export const REPORT_PREFIX = 'report-';
+export const newReportId = () =>
+  REPORT_PREFIX + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join('');
+export const isReportId = s => /^report-[a-f0-9]{16}$/.test(s || '');
+// beaps.se runs on Microsoft 365, which stops at about 25 MB once the attachment is base64-encoded.
+export const MAX_REPORT = 16 * 1024 * 1024;
+
 export const NO_STORE = {
   'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
   'X-Robots-Tag': 'noindex, nofollow'

@@ -17,15 +17,24 @@
     --brand-dark:#E9AF12;
     --coral:#E8917D;
     --rec:#C2352F;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* The app reads in a serif. The system sans and the monospace micro-labels it used to be
+       set in are what every phone app looks like; a serif gives it a face of its own and
+       suits a document that ends up as a signed report. ui-serif is New York on an iPhone,
+       Apple's screen serif - Georgia elsewhere, Times where neither exists. */
+    --serif: ui-serif, Georgia, "Times New Roman", Times, serif;
+    /* Only where digits have to line up: bundle numbers, counters, the scanner's field. */
+    --num: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    /* Kept as names so the rules below did not all have to change at once. Both are the
+       reading face now; anything that genuinely needs tabular figures asks for --num. */
+    --mono: var(--serif);
+    --sans: var(--serif);
     --r:14px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.45;
        padding-bottom:calc(96px + env(safe-area-inset-bottom))}
-  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2)}
+  .eyebrow{font-family:var(--serif);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
   h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
   h1{font-size:18px} h2{font-size:15px}
   button{font-family:inherit;font-size:16px;cursor:pointer;border:0;background:none;color:inherit}
@@ -139,7 +148,12 @@
        background:var(--paper);display:flex;gap:10px;max-width:720px;margin:0 auto;
        border-top:1px solid #D4D0C8;box-shadow:0 -14px 26px -14px rgba(16,19,20,.30)}
   .bar.stack{flex-direction:column}
-  .logline{display:flex;gap:10px;font-family:var(--mono);font-size:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  /* A ledger: the timestamp and the bundle number keep their column, what happened is read
+     like the rest of the app. All of it in the tabular face made the log look like a
+     terminal dump rather than a record. */
+  .logline{display:flex;gap:10px;font-family:var(--num);font-size:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .logline > span{font-family:var(--serif);font-size:13.5px}
+  .logline > span b{font-family:var(--num);font-size:12px}
   .logline b{font-weight:500;flex:none;color:var(--ink2)}
 
   .sigpad{border:1px solid var(--line);border-radius:10px;background:#fff;touch-action:none;width:100%;height:180px;display:block}
@@ -173,7 +187,7 @@
   .bar.raised{bottom:calc(25vh + env(safe-area-inset-bottom));padding-bottom:16px;
               background:transparent;border-top:0;box-shadow:none}
   body.start{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
-  body.start.empty{padding-bottom:calc(25vh + 120px)}
+  body.start.noreports{padding-bottom:calc(25vh + 120px)}
   body.start .ticker{display:none}
   .hidden{display:none !important}
 
@@ -202,13 +216,13 @@
   .cam .scanfoot{padding:14px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
   .cam .scanfoot .msg{font-size:13.5px;color:#C9CDCE;text-align:center;line-height:1.45;min-height:20px}
   .cam .scanfoot .btn{background:transparent;color:#fff;border-color:#555}
-  .cam .scanfoot input{background:#1A1F22;border-color:#3A3D3E;color:#fff;font-family:var(--mono);text-align:center;letter-spacing:.08em}
+  .cam .scanfoot input{background:#1A1F22;border-color:#3A3D3E;color:#fff;font-family:var(--num);text-align:center;letter-spacing:.08em}
   .krow{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border:1px solid var(--line);
         border-radius:12px;margin-bottom:8px}
   .krow .kt{flex:1;min-width:0}
   .krow .kt b{display:block;font-size:16px;font-weight:600;line-height:1.25}
   .krow .kt span{display:block;font-family:var(--mono);font-size:12px;color:var(--ink2);margin-top:2px;word-break:break-word}
-  .krow .kq{font-family:var(--mono);font-size:14px;color:var(--ink2);flex:none}
+  .krow .kq{font-family:var(--num);font-size:14px;color:var(--ink2);flex:none}
   .kstat{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
          padding:5px 10px;border-radius:999px;white-space:nowrap;flex:none}
   .kstat.in{background:#E4F0EA;color:#2E7D5B}
@@ -221,12 +235,12 @@
   .bnum{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
   .bname{font-size:15px;font-weight:600;letter-spacing:-.01em}
   .baddr{font-size:13px;color:var(--ink2)}
-  .klsub{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+  .klsub{font-family:var(--num);font-size:11px;color:var(--ink2)}
   .krow .knum{width:26px;height:26px;flex:none;border-radius:50%;background:var(--ink);color:#fff;
-              font-family:var(--mono);font-size:12px;display:grid;place-items:center}
+              font-family:var(--num);font-size:12px;display:grid;place-items:center}
   .knums{display:flex;flex-wrap:wrap;gap:8px}
   .knum-chip{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:999px;
-             padding:8px 15px;font-family:var(--mono);font-size:14px;font-weight:600}
+             padding:8px 15px;font-family:var(--num);font-size:14px;font-weight:600}
 
   /* ---- the key screens ----
      They look like the rest of the app: white cards on the paper ground, navy text. The
@@ -248,9 +262,13 @@
   .kcard .kbrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 0;
                 border-top:1px solid var(--line);font-size:13px;color:var(--ink);background:none;line-height:1.35}
   .kcard .kbrow:first-child{border-top:0}
-  .kcard .kbrow b{font-family:var(--mono);font-size:14px;flex:none}
+  .kcard .kbrow b{font-family:var(--num);font-size:14px;flex:none}
   .kcard .kbrow span:last-child{color:var(--ink2);flex:1;min-width:0}
-  .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--mono);letter-spacing:.06em}
+  /* name and initials on one line: the name takes the room, the initials just three letters */
+  .namerow{display:flex;gap:8px}
+  .namerow input:first-child{flex:1;min-width:0}
+  .namerow input:last-child{width:84px;flex:none;font-family:var(--num);text-align:center;letter-spacing:.08em;text-transform:uppercase}
+  .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--num);letter-spacing:.06em}
   /* the confirmation after a hand-over, on the card that made it */
   .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;
           background:#F6F5F2;border:1px solid var(--line);font-size:13px;line-height:1.4}
@@ -259,7 +277,7 @@
            display:grid;place-items:center;font-size:15px;flex:none}
   /* initials stand in for a name wherever a line would otherwise run long */
   .kini{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;flex:none;
-        background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.02em}
+        background:var(--ink);color:#fff;font-family:var(--num);font-size:10px;font-weight:700;letter-spacing:.02em}
   .kwho{display:flex;align-items:center;gap:7px;min-width:0}
   /* where the keys are going, shown over the camera while scanning */
   .cam .scanfoot .dest{font-size:13px;color:#fff;text-align:center;font-weight:600}
@@ -279,7 +297,7 @@
   .recbtn{width:52px;height:52px;border-radius:50%;background:transparent;border:3px solid #6A6E6F;display:flex;align-items:center;justify-content:center;flex:none}
   .recbtn i{width:20px;height:20px;border-radius:50%;background:var(--rec);display:block}
   .recbtn.on i{border-radius:4px;width:18px;height:18px}
-  .camcount{font-family:var(--mono);font-size:13px;color:#C9CDCE;width:52px;text-align:center}
+  .camcount{font-family:var(--num);font-size:13px;color:#C9CDCE;width:52px;text-align:center}
 
   #print{display:none}
   @media print{
@@ -762,6 +780,7 @@ const SV = {
   'Back in the cabinet':'Tillbaka i skåpet',
   'Your name':'Ditt namn',
   'Name':'Namn',
+  'Initials':'Initialer',
   'change':'ändra',
   'Reason':'Ärende',
   'Something else':'Något annat',
@@ -2338,7 +2357,7 @@ async function cancelSignLink(){
 /* ---------- actions ---------- */
 function go(v){
   saveOpenComment(); saveCheckComments();
-  document.body.classList.remove('start', 'empty');
+  document.body.classList.remove('start', 'noreports');
   $('#bar').className = 'bar';
   view=v; render(); window.scrollTo(0,0);
 }
@@ -2470,8 +2489,7 @@ async function renderStart(){
     <div class="wrap" style="padding-top:0">
       ${isStandalone()? '' : homeScreenCard()}
       ${keyCard()}
-      ${idx.length? `<div class="listhead">
-          <span class="eyebrow">${idx.length} ${T('reports')}</span>
+      ${idx.length? `<div class="listhead" style="justify-content:flex-end">
           <button onclick="toggleEdit()">${editList?T('Done'):T('Edit')}</button>
         </div>` : ''}
       ${idx.length? idx.map(r=>`<div class="rowwrap">
@@ -2495,7 +2513,7 @@ async function renderStart(){
   // what you are carrying.
   // Lifted into thumb reach only while there is nothing to scroll; with reports on the screen
   // it belongs at the bottom, above them rather than among them.
-  document.body.classList.toggle('empty', !idx.length);
+  document.body.classList.toggle('noreports', !idx.length);
   $('#bar').className = idx.length ? 'bar' : 'bar raised';
   $('#bar').innerHTML = `<button class="btn" style="width:100%" onclick="newInsp()">${T('New inspection')}</button>`;
   paintTicker();
@@ -2578,7 +2596,8 @@ const KEYEV   = 'bp:keyev';     // the recent log as last seen from the server, 
 const KEYBASE = 'bp:keybase';   // the server's last event per bundle - reaches further back than KEYEV
 const KEYQ    = 'bp:keyq';      // events written here that have not reached the server yet
 const KEYSEEN = 'bp:keyseen';   // when the log was last fetched successfully, 0 = never
-let keyState = null, keyMe = '', keyEvents = null, keyBase = null, keyQueue = null;
+const KEYINI  = 'bp:keyini';    // your own initials, when the two letters from your name are wrong
+let keyState = null, keyMe = '', keyIni = '', keyEvents = null, keyBase = null, keyQueue = null;
 let keySeenAt = 0, keyFailAt = 0, keySyncP = null;
 
 function loadScript(src, ready){
@@ -2607,6 +2626,7 @@ function keyLocal(){
   keyLocalP = (async()=>{            // overwrite the other's fresher state with a stale copy
     await store.del('bp:keys');      // tidy: the old projection is not kept any more
     keyMe     = (await store.get(KEYNAME))  || '';
+    keyIni    = (await store.get(KEYINI))   || '';
     keyEvents = (await store.get(KEYEV))    || [];
     keyBase   = (await store.get(KEYBASE))  || [];
     keyQueue  = (await store.get(KEYQ))     || [];
@@ -2772,6 +2792,13 @@ function initials(name){
   if(!w.length) return '–';
   return (w.length > 1 ? w[0][0] + w[w.length-1][0] : w[0].slice(0,2)).toUpperCase();
 }
+// Two letters taken off a name are a guess, and it is wrong often enough - a double surname,
+// a middle name, a name the guess simply gets backwards. So your own are yours to set, saved
+// on this phone beside your name, and used wherever your own line shows up. Everyone else's
+// are still worked out from what they wrote, since this phone has nothing else to go on.
+const cleanIni = s => String(s||'').replace(/\s/g,'').slice(0,3).toUpperCase();
+const iniOf = name => (keyIni && name && name === keyMe) ? keyIni : initials(name);
+const myIni = () => keyIni || initials(keyMe);
 // What happened, in as few words as it takes. Who did it is shown as initials beside the
 // line, not spelled out inside it.
 function evLine(e){
@@ -2848,7 +2875,7 @@ function keyCard(){
   return `<div class="card kcard">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <span class="eyebrow">${T('Keys')}</span>
-      ${keyMe? `<span class="kini" title="${esc(keyMe)}">${esc(initials(keyMe))}</span>` : ''}
+      ${keyMe? `<span class="kini" title="${esc(keyMe)}">${esc(myIni())}</span>` : ''}
     </div>
     <div style="margin-top:10px">
       ${mine.length
@@ -2906,7 +2933,7 @@ function keyLogHtml(){
       ${q? `<div class="kwait" style="margin:0 3px 10px">${q} ${T('waiting')}</div>` : ''}
       ${rows.length? rows.map(id=>{ const s = keyState[id], who = whoOf(s); return `
         <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
-          <span class="kini" title="${esc(who)}">${esc(initials(who))}</span>
+          <span class="kini" title="${esc(who)}">${esc(iniOf(who))}</span>
           <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
             <div class="klsub">${s.status==='placed'? esc(placeLabel(s)) + ' · ' : ''}${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</div></span>
           <span class="chev">›</span>
@@ -2917,7 +2944,7 @@ function keyLogHtml(){
       <div class="card">
         ${(keyEvents||[]).slice(0,40).map(e=>`<div class="logline">
           <b>${stamp(new Date(e.ts))}</b>
-          <span><b>${esc(e.bundle)}</b> ${esc(evLine(e))} · <span title="${esc(e.who)}">${esc(initials(e.who))}</span>${queuedSuffix(e)}</span>
+          <span><b>${esc(e.bundle)}</b> ${esc(evLine(e))} · <span title="${esc(e.who)}">${esc(iniOf(e.who))}</span>${queuedSuffix(e)}</span>
         </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing here yet')}</span>`}
       </div>
     </div>`;
@@ -3150,7 +3177,9 @@ function paintBundle(id){
   // sync can land while someone is already typing - so keep whatever is in the two
   // fields rather than wiping it out from under them, and put the caret back where it was.
   const nameEl = document.getElementById('koname'), reasonEl = document.getElementById('koreason');
+  const iniEl = document.getElementById('koini');
   const keepName = nameEl? nameEl.value : '', keepReason = reasonEl? reasonEl.value : '';
+  const keepIni = iniEl? iniEl.value : '';
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   const hint = syncHint();
@@ -3175,9 +3204,13 @@ function paintBundle(id){
         <div class="field" style="margin-top:14px">
           ${(!keyMe || koNameOpen)? `
             <label>${T('Your name')}</label>
-            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}"
-                   autocomplete="name" enterkeyhint="done">`
-            : `<div class="hint" style="margin:0">${esc(keyMe)} · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
+            <div class="namerow">
+              <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}"
+                     autocomplete="name" enterkeyhint="done">
+              <input id="koini" value="${esc(keepIni || myIni())}" placeholder="${T('Initials')}"
+                     autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="3" aria-label="${T('Initials')}">
+            </div>`
+            : `<div class="hint" style="margin:0">${esc(keyMe)} · <b>${esc(myIni())}</b> · <button class="addc" onclick="koEditName()">${T('change')}</button></div>`}
         </div>
         ${!out? `<div class="field">
             <label>${T('Reason')}</label>
@@ -3216,7 +3249,7 @@ function paintBundle(id){
         : out? `<button class="btn" onclick="checkIn('${id}')">${T('Check in')}</button>`
              : `<button class="btn" onclick="checkOut('${id}')">${T('Check out')}</button>`}
     </div>`;
-  if(focused === 'koname' || focused === 'koreason'){
+  if(focused === 'koname' || focused === 'koreason' || focused === 'koini'){
     const f = document.getElementById(focused);
     if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
   }
@@ -3242,7 +3275,17 @@ async function koName(){
   const f = document.getElementById('koname');
   const name = (f ? f.value : keyMe).trim();
   if(!name){ toast(T('Write your name')); try{ f && f.focus() }catch(e){} return '' }
+  // The initials are read against the name as it was, so a field still holding the two
+  // letters the old name gave counts as untouched and follows the new name. Only something
+  // neither name would have produced is stored as your own.
+  const g = document.getElementById('koini');
+  const ini = g ? cleanIni(g.value) : null;
+  const rort = ini !== null && ini !== '' && ini !== initials(keyMe) && ini !== initials(name);
   if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
+  if(ini !== null){
+    const eget = rort ? ini : '';
+    if(eget !== keyIni){ keyIni = eget; await store.set(KEYINI, eget) }
+  }
   return name;
 }
 async function checkOut(id){
@@ -3320,7 +3363,8 @@ function inspKeyCard(){
   // filled in yet - everything you carry, so there is still something to tap.
   const carried = ctx.apt ? myKeys().filter(id => String(id).split(':')[0] === ctx.apt) : myKeys();
   const numEl = document.getElementById('kbnum'), nameEl = document.getElementById('koname');
-  const keepNum = numEl ? numEl.value : '', keepName = nameEl ? nameEl.value : '';
+  const iniEl = document.getElementById('koini');
+  const keepNum = numEl ? numEl.value : '', keepName = nameEl ? nameEl.value : '', keepIni = iniEl ? iniEl.value : '';
   const last = hoLast && hoLast.insp === S.id ? hoLast.ev : null;
   return `<div class="card kcard" id="inspkeys">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
@@ -3339,8 +3383,12 @@ function inspKeyCard(){
     </div>
     <div class="field" style="margin-top:12px">
       ${(!keyMe || koNameOpen) ? `<label class="eyebrow">${T('Your name')}</label>
-          <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}" autocomplete="name" enterkeyhint="done">`
-        : `<div class="hint" style="margin:0">${esc(keyMe)} · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
+          <div class="namerow">
+            <input id="koname" value="${esc(keepName || keyMe)}" placeholder="${T('Name')}" autocomplete="name" enterkeyhint="done">
+            <input id="koini" value="${esc(keepIni || myIni())}" placeholder="${T('Initials')}"
+                   autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="3" aria-label="${T('Initials')}">
+          </div>`
+        : `<div class="hint" style="margin:0">${esc(keyMe)} · <b>${esc(myIni())}</b> · <button class="addc" onclick="koNameOpen=true;paintInspKeyCard()">${T('change')}</button></div>`}
     </div>
     <div class="addrow">
       <input id="kbnum" value="${esc(keepNum)}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
@@ -3356,7 +3404,7 @@ function paintInspKeyCard(){
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   el.outerHTML = inspKeyCard();
-  if(focused === 'kbnum' || focused === 'koname'){
+  if(focused === 'kbnum' || focused === 'koname' || focused === 'koini'){
     const f = document.getElementById(focused);
     if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
   }

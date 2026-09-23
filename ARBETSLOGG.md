@@ -1044,6 +1044,49 @@ immediately on the screenshot after the first attempt, which put the band there 
 **Verified:** 86 key-flow checks, 236 function checks, the upgrade run, and both start states
 screenshotted (`cdp.cjs shots 4 list` builds five reports for the case that was broken).
 
+### 2026-09-23 — the app gets a serif, initials you can set, and one less number
+
+Erik: *"jag vill att du byter robott-formateringen, formatet som ser stilrent ut, men ALLA
+Claude kodade projekt har samma."*
+
+**A serif.** The system sans plus monospace micro-labels in wide-tracked uppercase is what
+every app built this way looks like, and he is right that it is a tell. `--serif` is now
+`ui-serif, Georgia, "Times New Roman", Times, serif` - **New York** on an iPhone, Apple's own
+screen serif, Georgia on Windows and Android, Times where neither exists. `--sans` and
+`--mono` are kept as names pointing at it, so the ~30 rules below did not all have to change
+at once, and a new `--num` carries the tabular face to the dozen places where digits have to
+line up: bundle numbers, the numbered circles beside each key, the initials badge, the
+scanner's field, the camera counter, timestamp columns. The eyebrow labels went up a point and
+a weight, since small caps in a serif need more than a monospace did.
+
+The log was all tabular, which made it read as a terminal dump rather than a record. Now the
+timestamp and the bundle number keep their column and **what happened** is read in the serif.
+
+**Initials are yours to set.** They were two letters taken off the name, and that guess is
+wrong often enough - Erik's own came out EW. A field sits beside the name field wherever the
+name is edited, saved in `bp:keyini` on this phone. It is stored **only when it is not what
+either the old or the new name would have given**, so leaving it alone lets the initials
+follow a changed name, and typing your own pins them. Everyone else's are still worked out
+from what they wrote, since this phone has nothing else to go on. The collapsed line now reads
+*Erik · ER · ändra*, so you can see what will be logged without opening anything.
+
+**And "15 rapporter" is gone** from above the list - the list is right there. The count stays
+on *Ta bort alla 15 rapporter*, where it is the whole point of the sentence.
+
+**Fixed on the way:** yesterday's `body.start.empty` collided with `.empty`, the dashed
+empty-state card - the whole page was picking up a dashed border, centred text and the wrong
+background. Renamed `noreports`. It was visible in the screenshot and not in any test, which
+is the argument for looking at the thing.
+
+**Verified:** 96 key-flow checks (10 new: the count is gone but the list is not, the initials
+field appears and starts from the name, an untouched field stores nothing, your own are kept
+and saved and used for you but not for others, and a stale pair follows a changed name), 236
+function checks, the upgrade run.
+
+**Not changed:** the PDF still sets its text in Helvetica. jsPDF has Times built in and the
+report is the one document a customer keeps, so it is worth doing - but every line width
+changes with the font, so it wants its own pass and its own look at the output.
+
 ---
 
 ## 6. Kvar att göra

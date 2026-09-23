@@ -1018,6 +1018,32 @@ translation `'Write the address first'` left behind when the address stopped bei
 scanner is in the menu and comes first, the log is beside it), 236 function checks, and the
 upgrade run.
 
+### 2026-09-23 — the start button stops floating in the middle of the report list
+
+Erik: *"gör den vita outlinen bakom ny besiktningsknappen lite tydligare, så att den inte
+smälter in bland alla rapporter."* Screenshotting the start screen with five reports on it
+showed the real trouble, which was worse than a weak backdrop: `.bar.raised` pins the bar
+**25vh up from the bottom**, so with a list on the screen it floated in the middle of it,
+slicing whichever report happened to be level with it in half and leaving more reports
+visible below the button. The bar's background was a gradient fading to transparent at the
+top, so white cards showed straight through behind the yellow button. It did not look like a
+button over a list; it looked like a row in one.
+
+Two changes. The bar is now a **shelf**: solid paper, a hairline (`#D4D0C8`, darker than the
+card border so it reads against the paper), and a soft upward shadow, so the list clearly
+slides underneath. And the lift is kept **only for an empty start screen**, where it puts the
+one button in thumb reach with nothing to scroll; as soon as there is a report the bar sits at
+the bottom, where a bottom bar belongs. `body.start` reserves the smaller bottom padding, and
+`body.start.empty` keeps the old generous one, set from `renderStart` and cleared in `go()`
+with the `start` class.
+
+The lifted bar drops the shelf again - transparent, no hairline, no shadow - because nothing
+scrolls under it and a line across an empty screen is just a stray line. That was visible
+immediately on the screenshot after the first attempt, which put the band there in both states.
+
+**Verified:** 86 key-flow checks, 236 function checks, the upgrade run, and both start states
+screenshotted (`cdp.cjs shots 4 list` builds five reports for the case that was broken).
+
 ---
 
 ## 6. Kvar att göra

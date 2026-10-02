@@ -2,7 +2,8 @@
 // stores it in Cloudflare KV behind a random token and emails the link to the recipient.
 //
 //   POST /api/sign-request -> { ok, token, url, expires }
-import { sendMail, isEmail, esc, stamp, appOk, typeLabel } from '../../cflib/mail.js';
+import { sendMail, isEmail, stamp, appOk, typeLabel } from '../../cflib/mail.js';
+import { renderSignRequest } from '../../cflib/mail-signing.js';
 import { GILTIGHET_DAGAR, newToken, store, writeMeta, b64Bytes, isPdfId, pdfKey } from '../../cflib/sign.js';
 import { r2 } from '../../cflib/media.js';
 
@@ -87,21 +88,12 @@ export async function onRequest(context) {
     `The link expires ${stamp(meta.expires)}.`
   ].filter(x => x !== '').join('\n');
 
-  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#16325C;line-height:1.5">
-    <p>Hi${meta.recipientName ? ' ' + esc(meta.recipientName) : ''},</p>
-    <p>${esc(meta.inspector || 'Beaps')} has completed an inspection that ${esc(vem)} is asked to sign.</p>
-    <table style="border-collapse:collapse;font-size:14px;margin:0 0 18px">
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Property</td><td style="padding:2px 0"><b>${esc(objekt)}</b></td></tr>
-      ${meta.type ? `<tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Type</td><td style="padding:2px 0">${esc(typeLabel(meta.type))}</td></tr>` : ''}
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Inspector</td><td style="padding:2px 0">${esc(meta.inspector || '-')}</td></tr>
-    </table>
-    <p>The link shows <b>the entire report</b> with photos and comments. At the bottom you sign directly in the browser.</p>
-    <p style="margin:22px 0">
-      <a href="${esc(url)}" style="display:inline-block;background:#FFC629;color:#16325C;text-decoration:none;font-weight:650;padding:13px 22px;border-radius:11px;border:1px solid #E9AF12">Open and sign</a>
-    </p>
-    <p style="font-size:13px;color:#6E7C94">If the button doesn't work, paste the address into your browser:<br>${esc(url)}</p>
-    <p style="font-size:13px;color:#6E7C94">The link expires ${esc(stamp(meta.expires))}.</p>
-  </div>`;
+  // The letter itself lives in cflib/mail-signing.js; only the facts go in here.
+  const html = renderSignRequest({
+    url, expires: stamp(meta.expires),
+    recipientName: meta.recipientName || 'Sir or Madam',
+    inspector: meta.inspector || 'Beaps', property: objekt, type: typeLabel(meta.type) || '-'
+  });
 
   const m = await sendMail(env, { to, cc: cc || undefined, subject: rubrik, text, html });
   if (!m.ok) {

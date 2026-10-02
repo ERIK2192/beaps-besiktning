@@ -102,6 +102,8 @@
   .sugrow.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .sugrow.on span{color:#fff;opacity:.75}
   .sugmore{font-size:12px;color:var(--ink2);align-self:center}
+  /* the apartment's name under the number, once the number is known: "C/O Miami" */
+  .aptname{margin-top:8px;font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
   .crow{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:8px}
   .crow{transition:border-color .25s, box-shadow .25s}
   .crow.open{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
@@ -1243,7 +1245,7 @@ async function render(){
         <div class="field"><label class="eyebrow">${T('Apartment number')}</label>
           <input id="f_apt" value="${esc(S.apt)}" autocomplete="off" oninput="paintPropSug()">
           <div class="sug" id="sugapt"></div>
-          <div class="hint" id="aptname" style="display:none"></div></div>
+          <div class="aptname" id="aptname" style="display:none"></div></div>
       </div>
       <div class="card">
         <div class="field"><label class="eyebrow">${T('Inspector')}</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>

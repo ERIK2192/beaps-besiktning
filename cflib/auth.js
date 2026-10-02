@@ -104,7 +104,7 @@ export const session = (env, request, now) => verify(env, cookieOf(request), now
 // favicon.ico, say) would hand the app to anyone who asked for it by that name.
 const PUBLIC = new Set([
   '/sign', '/sign.html', '/galleri', '/galleri.html',
-  '/logo.svg', '/logo.png',
+  '/logo.svg', '/logo.png', '/beaps-logo-white.png',   // the mail's wordmark; mail clients fetch it with no cookie
   '/api/login', '/api/logout', '/api/session',
   '/api/sign-load', '/api/sign-pdf', '/api/sign-complete',
   '/api/media-list', '/api/media-file',

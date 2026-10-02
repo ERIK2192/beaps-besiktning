@@ -49,6 +49,8 @@ Två lägen:
 | [functions/_middleware.js](functions/_middleware.js) | Inloggningsväggen: står framför allt på Cloudflare utom det gästerna och mejltjänsten behöver |
 | [functions/api/login.js](functions/api/login.js) | Tar emot teamets lösenord och sätter kakan · `/api/login` (logout.js och session.js bredvid) |
 | [cflib/auth.js](cflib/auth.js) | Kakan, lösenordskontrollen och listan över öppna sökvägar; [cflib/login-page.js](cflib/login-page.js) är inloggningssidan |
+| [cflib/mail-signing.js](cflib/mail-signing.js) | Signeringsmejlet som brev i Beaps-paletten, med ordmärket · används av `sign-request.js` |
+| [beaps-logo-white.png](beaps-logo-white.png) | Ordmärket i vitt för mejlet · hämtas av mejlklienter utan inloggning, publik i `cflib/auth.js` |
 | [cflib/](cflib/) | delad mejl- och signeringshjälp för Cloudflare |
 | [CLOUDFLARE.md](CLOUDFLARE.md) | steg för steg att sätta upp appen på Cloudflare Pages |
 | [LASMIG.txt](LASMIG.txt) | Deploy- och mejlinstruktioner till den som sätter upp Netlify |
@@ -1304,6 +1306,29 @@ wall on the live host (Cloudflare documents a root `_middleware.js` as running "
 static files", but step 5 in CLOUDFLARE.md is the proof), a real signing through Resend
 (still never done, as before), and the signature page's rendering by pdf-lib on the free
 plan's CPU budget.
+
+**Later the same day: the signing-link mail in the brand's own colours, and a bigger C/O line.**
+The mail that carries the signing link was a plain template whose yellow button turned into a
+dark box with orange text in Outlook's dark mode (Erik's screenshot). It is now a letter from
+Beautiful Apartments in the palette settled on 2026-09-22: the real one-line wordmark (the key
+tags' SVG, rendered white to `beaps-logo-white.png` at the app root and listed public in
+`cflib/auth.js`, because mail clients fetch it with no cookie) on the emerald of the green key
+tag, white headings and peach text on the same emerald, the particulars ruled, a yellow button
+with emerald text (the one place the brand puts its yellow), the full address, and what happens
+next in three short steps (trimmed at Erik's request: one line each). The colours are pinned
+for Outlook's dark mode, and as the design is already dark there is nothing for a dark-mode
+client to invert; where images are blocked the wordmark's name stands in white, free to wrap
+(the review found it clipped to "BEAUTIFUL" by a fixed image height). Outlook for Windows,
+which honours width:100% but not max-width, gets a ghost table that holds the letter at
+600 px. Template in `cflib/mail-signing.js` (one JSON string, every value escaped), used by
+`sign-request.js`; the plain-text part is unchanged. The reminder (`sign-remind.js`) still
+sends its own plain template. A variant with the letter on a white sheet, and the earlier navy
+version, sit on the Signeringsmejlet canvas as alternatives. The apartment's name under its
+number (the C/O line) is now 18 px bold in the ink colour (Erik, 2026-10-02). Tests: 315 (the
+letter: placeholders, escaping, the link twice, the brand colours, the Outlook pins and ghost
+table, the wordmark with its fallback, no navy left). Not verified: the rendering in real
+Outlook, Gmail and Apple Mail (the proof is a real send), and the wordmark's fetch from the
+live host, which needs the deploy.
 
 ---
 

@@ -29,6 +29,31 @@
   ],
 
   "vars": {
-    "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>"
+    "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>",
+    // Replies to any mail the app sends - the signing link, the reminder, the signed report -
+    // land here instead of bouncing off the send-only sender address.
+    "MAIL_REPLY_TO": "longstay@beaps.se"
+  },
+
+  // Preview deployments (any branch that is not main) get the same bindings and variables, so
+  // a branch can be tried at <branch>.beaps-besiktning.pages.dev with everything working. The
+  // secrets (RESEND_API_KEY, APP_PASSWORD) are set for Preview separately in the dashboard.
+  // Note that the KV namespace and the R2 bucket are the production ones: a test run on a
+  // preview writes real records, under tokens of its own.
+  "env": {
+    "preview": {
+      "kv_namespaces": [
+        { "binding": "SIGNSTORE", "id": "dfc4337f75f349bdb97b5c309cde472a" }
+      ],
+      "r2_buckets": [
+        { "binding": "MEDIA", "bucket_name": "beaps-media" }
+      ],
+      "vars": {
+        "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>",
+        "MAIL_REPLY_TO": "longstay@beaps.se",
+        // Keeps the preview's login-failure counter apart from production's in the shared KV.
+        "ENV": "preview"
+      }
+    }
   }
 }

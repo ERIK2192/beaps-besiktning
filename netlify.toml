@@ -4,29 +4,156 @@
 [functions]
   directory = "netlify/functions"
 
-# publish = "." serverar hela mappen, aven funktionernas kallkod och interna
-# anteckningar. Inga hemligheter ligger i koden - de ar miljovariabler - men det
-# finns ingen anledning att publicera dem. Funktionerna nas fortfarande pa /api/*.
+# The app has lived on Cloudflare (beaps-besiktning.pages.dev) since 2026-08-28, and behind a
+# login wall since 2026-10-02. This address is kept only so that links sent from it keep
+# working: the signing page and the functions it calls. The app itself, its registers and the
+# functions that send mail are closed here - the same index.html would otherwise stand open to
+# anyone who has this address. Before this goes live, make sure nobody has unsent work on this
+# address (see CLOUDFLARE.md, "Läget 2026-10-02").
+[[redirects]]
+  from = "/"
+  to = "https://beaps-besiktning.pages.dev/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/index.html"
+  to = "https://beaps-besiktning.pages.dev/"
+  status = 302
+  force = true
+
+# The gallery's data lives in Cloudflare only, so a gallery link always belongs there. Both
+# spellings: Netlify serves galleri.html at /galleri too.
+[[redirects]]
+  from = "/galleri.html"
+  to = "https://beaps-besiktning.pages.dev/galleri.html"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/galleri"
+  to = "https://beaps-besiktning.pages.dev/galleri.html"
+  status = 302
+  force = true
+
+# The app's own files: nothing to serve here. 404.html is a plain page with nothing of the app
+# in it; before 2026-10-02 these rules answered 404 with index.html itself as the body.
+[[redirects]]
+  from = "/nycklar.js"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/fastigheter.js"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/jsqr.js"
+  status = 404
+  to = "/404.html"
+  force = true
+
+# publish = "." serves the whole folder, the functions' source and the notes included. No
+# secrets are in the code - they are environment variables - but there is no reason to publish
+# them. The functions are still reached at /api/*.
 [[redirects]]
   from = "/netlify/*"
   status = 404
-  to = "/index.html"
+  to = "/404.html"
   force = true
 
 [[redirects]]
   from = "/cflib/*"
   status = 404
-  to = "/index.html"
+  to = "/404.html"
   force = true
 
 [[redirects]]
   from = "/functions/*"
   status = 404
-  to = "/index.html"
+  to = "/404.html"
   force = true
 
 [[redirects]]
   from = "/ARBETSLOGG.md"
   status = 404
-  to = "/index.html"
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/CLOUDFLARE.md"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/DROPBOX.md"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/LASMIG.txt"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/wrangler.jsonc"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/README.md"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/netlify.toml"
+  status = 404
+  to = "/404.html"
+  force = true
+
+# The functions that send mail or move data are closed on this host as well (each one also
+# refuses on its own, see RETIRED in netlify/functions/*.mjs). The signing functions stay for
+# links that were sent from here.
+[[redirects]]
+  from = "/api/send-pdf"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/api/sign-request"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/api/speed-ping"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/api/speed-down"
+  status = 404
+  to = "/404.html"
+  force = true
+
+[[redirects]]
+  from = "/api/speed-up"
+  status = 404
+  to = "/404.html"
   force = true

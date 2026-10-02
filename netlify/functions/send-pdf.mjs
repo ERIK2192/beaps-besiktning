@@ -12,7 +12,13 @@ const parseFrom = raw => {
 
 const APP_TOKEN = 'bges-a7f3c1e9b4d2e806';
 
+// Retired on this host (2026-10-02): the app lives on Cloudflare behind its login wall, and
+// this function would otherwise be an open mail relay for anyone who has this address. The
+// same path is also closed in netlify.toml. Set RETIRED = false to bring it back.
+const RETIRED = true;
+
 export default async (req) => {
+  if (RETIRED) return new Response('Not found', { status: 404 });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   if ((req.headers.get('x-beaps-app') || '') !== APP_TOKEN) return new Response('Reload the app', { status: 401 });
 

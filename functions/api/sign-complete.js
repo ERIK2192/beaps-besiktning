@@ -138,7 +138,7 @@ export async function onRequest(context) {
 
   const signedAt = Date.now();
   const signed = {
-    ...meta, status: 'signed', signedAt,
+    ...meta, status: 'signed', signedAt, permanent: true,   // written without an expiry, see metaTtl
     signedName: (b.name || meta.recipientName || '').trim().slice(0, 120),
     signedRole: (b.role || meta.recipientRole || '').trim().slice(0, 120)
   };
@@ -223,14 +223,15 @@ export async function onRequest(context) {
   });
   if (!m.ok) return new Response(m.error || 'The email could not be sent', { status: m.error === 'quota' ? 429 : 502 });
 
-  // One page, so KV is the right home for it. This is what sign-pdf serves as ?cert=1.
-  await store(env).put('cert/' + token, certB64, { expirationTtl: 90 * 86400 });
-  // Renew an old KV-stored report's TTL so sign-pdf can show it for as long as the meta lives.
-  // A report in R2 has no expiry to renew.
+  // One page, so KV is the right home for it. This is what sign-pdf serves as ?cert=1. Kept for
+  // ever, like the signed record itself (see metaTtl in cflib/sign.js).
+  await store(env).put('cert/' + token, certB64);
+  // Lift the expiry off an old KV-stored report so sign-pdf can show it for as long as the
+  // record lives. A report in R2 has no expiry to lift.
   if (!signed.pdfId) {
     try {
       const gammal = await store(env).get('pdf/' + token, 'text');
-      if (gammal) await store(env).put('pdf/' + token, gammal, { expirationTtl: 90 * 86400 });
+      if (gammal) await store(env).put('pdf/' + token, gammal);
     } catch (e) {}
   }
   await writeMeta(env, token, signed);

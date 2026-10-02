@@ -111,7 +111,13 @@ async function load(){
       r.status===404? 'The report no longer exists. Ask Beaps to send a new link.'
                     : 'Something went wrong ('+r.status+'). Ask Beaps to send a new link.');
   }
-  meta = await r.json();
+  // A 200 that is not JSON is the app's own page (Cloudflare answers it for an unknown /api
+  // path): the function is not running. Say so instead of staying on "Fetching" for ever.
+  try{ meta = await r.json() }catch(e){ meta = null }
+  if(!meta || typeof meta.status !== 'string'){
+    return screenMessage('bad','!','The link does not work',
+      'The signing service did not answer as expected. Try again in a moment, or ask Beaps to send a new link.');
+  }
   document.title = 'Sign – ' + objekt();
   $('#title').textContent = objekt();
 

@@ -36,8 +36,10 @@ export async function onRequest(context) {
     'inline; filename="' + String((post && post.name) || id).replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_') + '"');
 
   if (obj.range && obj.size != null) {
-    const start = obj.range.offset || 0;
-    const len = obj.range.length != null ? obj.range.length : obj.size - start;
+    // A suffix range ("the last N bytes") comes back from R2 as {suffix}, not {offset, length}.
+    const suffix = obj.range.suffix != null ? Math.min(Number(obj.range.suffix), obj.size) : null;
+    const start = suffix != null ? obj.size - suffix : (obj.range.offset || 0);
+    const len = suffix != null ? suffix : (obj.range.length != null ? obj.range.length : obj.size - start);
     h.set('Content-Range', `bytes ${start}-${start + len - 1}/${obj.size}`);
     return new Response(obj.body, { status: 206, headers: h });
   }

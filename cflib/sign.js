@@ -74,9 +74,18 @@ export const store = env => {
 
 export const readMeta = (env, token) => store(env).get('meta/' + token, 'json');
 
+// A link that is waiting lives its 30 days plus a week, so the app can still read "expired"
+// off it. A signed one is a record: the signing page shows the two files from it and the app
+// learns the signature from it, so it never expires - a signed report and its signature page
+// must not become unreachable because a bookkeeping entry ran out. Before 2026-10-02 every
+// write re-armed the 37 days, which made a signed record - and with it the certificate -
+// vanish five weeks after the signing.
+export const metaTtl = meta =>
+  (meta && meta.status === 'signed') ? null : (GILTIGHET_DAGAR + 7) * 86400;
+export const ttlOpts = ttl => ttl ? { expirationTtl: ttl } : undefined;
+
 export const writeMeta = (env, token, meta) =>
-  store(env).put('meta/' + token, JSON.stringify(meta),
-    { expirationTtl: GILTIGHET_DAGAR * 86400 + 7 * 86400 });
+  store(env).put('meta/' + token, JSON.stringify(meta), ttlOpts(metaTtl(meta)));
 
 // Reads the token out of the query string and fetches metadata. Returns { fel } or { token, meta, status }.
 export async function loadRequest(env, url) {

@@ -57,8 +57,12 @@ export async function onRequest(context) {
     if (obj) {
       const h = new Headers(head(safeName, { 'Accept-Ranges': 'bytes' }));
       if (obj.range && obj.size != null) {
-        const start = obj.range.offset || 0;
-        const len = obj.range.length != null ? obj.range.length : obj.size - start;
+        // A suffix range ("the last N bytes", which PDF viewers ask for to find the xref table)
+        // comes back from R2 as {suffix}, not {offset, length}; reading it as offset 0 used to
+        // label the tail of the file as its head.
+        const suffix = obj.range.suffix != null ? Math.min(Number(obj.range.suffix), obj.size) : null;
+        const start = suffix != null ? obj.size - suffix : (obj.range.offset || 0);
+        const len = suffix != null ? suffix : (obj.range.length != null ? obj.range.length : obj.size - start);
         h.set('Content-Range', `bytes ${start}-${start + len - 1}/${obj.size}`);
         return new Response(obj.body, { status: 206, headers: h });
       }

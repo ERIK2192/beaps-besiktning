@@ -45,6 +45,10 @@ Två lägen:
 | [functions/api/keys-log.js](functions/api/keys-log.js) | Läser den delade nyckelloggen · `/api/keys-log` |
 | [functions/api/report-put.js](functions/api/report-put.js) | Parkerar ett stort protokoll i R2 inför mejlet · `/api/report-put` |
 | [functions/api/sign-upload.js](functions/api/sign-upload.js) | Tar emot protokollet till en signeringslänk · `/api/sign-upload` |
+| [functions/api/sign-remind.js](functions/api/sign-remind.js) | Påminner om en signeringslänk som väntar, samma länk igen · `/api/sign-remind` |
+| [functions/_middleware.js](functions/_middleware.js) | Inloggningsväggen: står framför allt på Cloudflare utom det gästerna och mejltjänsten behöver |
+| [functions/api/login.js](functions/api/login.js) | Tar emot teamets lösenord och sätter kakan · `/api/login` (logout.js och session.js bredvid) |
+| [cflib/auth.js](cflib/auth.js) | Kakan, lösenordskontrollen och listan över öppna sökvägar; [cflib/login-page.js](cflib/login-page.js) är inloggningssidan |
 | [cflib/](cflib/) | delad mejl- och signeringshjälp för Cloudflare |
 | [CLOUDFLARE.md](CLOUDFLARE.md) | steg för steg att sätta upp appen på Cloudflare Pages |
 | [LASMIG.txt](LASMIG.txt) | Deploy- och mejlinstruktioner till den som sätter upp Netlify |
@@ -1140,6 +1144,166 @@ apartment, a hand-over written without asking for a name, the mismatch review an
 the bundle sheet asking for no identity, the short wifi hint with no speed-test wording, all
 seven label styles free of uppercase and tracking, and the property suggestions still working.
 Harness: `outputs/keyflow-test/` (drive3.js is the current one).
+
+### 2026-10-02 — a password on the door, a reminder for the guest, the apartment's name, and no empty lines
+
+Four things asked for in one go, with a review of the remote-signing flow underneath them.
+Nothing here is deployed yet: it waits for the go-ahead, and for `APP_PASSWORD` to be set in
+the Cloudflare dashboard first.
+
+**The login wall.** Anyone with the link used to get the app, the two registers and the
+notes. Now [functions/_middleware.js](functions/_middleware.js) stands in front of everything
+on the Cloudflare host. Without a valid session it answers a page asking for the team password
+(a 401 carrying [cflib/login-page.js](cflib/login-page.js)) or, for an API call, a plain 401
+with the header `X-Beaps-Login: required`. The password is the secret `APP_PASSWORD`; it never
+reaches the phone. Logging in ([functions/api/login.js](functions/api/login.js)) sets an
+HttpOnly cookie holding an HMAC-signed token with an expiry 180 days out, renewed on every
+page load older than a day, so a phone in use never asks again; wrong answers are counted per
+address in KV and paused after ten in fifteen minutes. Server-set cookies are the one kind of
+storage iOS does not wipe after a week, which is why it is a cookie and not localStorage. The
+key is derived from the password unless `APP_SESSION_SECRET` is set, so changing the password
+logs everyone out. What stays open is listed in [cflib/auth.js](cflib/auth.js): the guest's
+signing page and gallery, the endpoints those two call, `sign-pdf` and `media-file` that the
+mail service fetches, and the login endpoints. **Fails closed**: with no password set the app
+is not served and the page says what to set (503). Deploy order therefore: secret first, push
+second. In the app ([index.html](index.html)) a wrapper around `fetch` and the one XHR opens
+a login sheet in place when a 401 carries the header - no reload, nothing typed is lost, and
+the sheet can be closed - and the menu has **Log out**. The Netlify host has none of this and
+still serves the same app open; see CLOUDFLARE.md for the two ways to close that.
+
+**No empty signature lines.** A report finished without a signature used to print both lines
+anyway. `sigPlan()` now decides per party, for the PDF and the print fallback alike: a drawn
+signature is an image, a remote one is described, an open report or one with a signing link
+out keeps the empty line, and a report finished without that signature prints the name, the
+role and the word *No signature* - no line, no blank. The note under the heading says
+*Finished without signature* or *Awaiting signature via signing link*. The copy built for a
+signing link is built with `buildPdf({forSigning:true})` and always keeps both lines, since
+`closedAt` alone cannot tell "finished without" from "sent for signing". Two bugs found on the
+way and fixed: ink drawn on a pad but never approved survived **Finish without signature**
+and was committed as a signature by a later Share or Email (the pads are now dropped there,
+cleared when an inspection is opened, and ignored once their canvas is off the screen); and
+the print fallback showed `<img src="undefined">` for a remote signature.
+
+**Remind about signing.** While a link is waiting, the card offers **Remind about signing**
+in place of *Send again* (which stays for an expired link, since that needs a new link). The
+sheet shows the recipient and a short editable text - "Hi! Here is a friendly reminder to sign
+the inspection report for your apartment…" - and
+[functions/api/sign-remind.js](functions/api/sign-remind.js) sends the **same** link to the
+same address and copy. It refuses a signed (409), revoked or expired (410) link, writes only
+`remind/<token>` in KV and never touches the record, the report or the token, so there is no
+race with a guest signing at that moment. `sign-request` now keeps the link's URL on the
+record so a reminder is identical even if sent from another host.
+
+**The apartment's name.** Picking *1103 MIAMI* at Upplandsgatan 61 stored only *1103*. The
+name now lives in `S.aptName`, looked up in the property register whenever the address or the
+number changes (`syncAptName`), and `ref()` reads *Upplandsgatan 61, 1103 C/O Miami*
+everywhere ref goes: the headers, the PDF, the mail subjects, the signing page, the gallery.
+`S.apt` stays the bare number, because the key register, the Dropbox folder convention and
+the field itself compare against it; the file name reads *1103 Miami.pdf* since a slash would
+be stripped anyway. The register's placeholder names (*lgh 1501*) are not names. An
+inspection saved before this gets its name when it is next opened. No new field: the resolved
+name shows under the number on the Property step.
+
+**Found in the review of the signing flow, and fixed because they were small:** every write
+of a link's record re-armed a 37-day lifetime, so a *signed* record - and the certificate
+behind `sign-pdf?cert=1` - vanished five weeks after the signing, and an app that had not
+polled by then could never learn of it (`metaTtl` in cflib/sign.js: signed records first got
+a year, then, in the second round below, no expiry at all, and `sign-load` lifts the old
+expiry off records signed before this deploy the first time they are read); a suffix Range
+request ("the last N bytes", which PDF viewers use to find the xref) got a Content-Range
+labelling the tail as the head in `sign-pdf` and `media-file`; the guest
+page hung on *Fetching the report…* if `/api/sign-load` answered anything but JSON (it now
+says the service did not answer); and a link whose mail failed left its report in R2.
+
+**Found and not fixed, on record:** `sign-complete` mails first and writes KV second, so a KV
+failure after the mail leaves the server at *pending* and the guest with an error - a retry
+sends a second copy, which is the lesser harm; the app learns a remote signature only when
+the inspection is opened or *Check status* is pressed; iOS Safari shows only the first page
+of the report inside the signing page's frame (the *Open in new tab* link is the way to read
+it all); nothing records whether the guest opened the link; and `pickRestore` (restore from a
+backup file) has no caller since the start-screen button went.
+
+**The review before it went for approval** (four independent readers, two skeptics per
+finding) caught and fixed: `/favicon.ico` was on the open list without existing as a file, and
+Pages answers the whole app for a path that is neither a file nor a function - the one real
+hole; a `null` JSON body crashed `login` and `sign-remind` with a 500; `login` and `logout`
+took posts from pages on other sites (now refused by `Sec-Fetch-Site`/`Origin`, and `login`
+takes JSON only); the name backfill's repaint could wipe a half-drawn signature (now only on
+the rooms view); the C/O hint lagged a keystroke; an expired link read "Awaiting signature";
+the login copy promised a flat six months when use renews it; a logged-out phone got the
+sheet raised again, with the focus, after every photo (closed by hand it now stays away ten
+minutes, and never takes the focus); and *Log out* was offered on the Netlify host, which has
+no wall (the app now asks `/api/session` once and shows the item only where it is true). Left
+on record: the login counter is not atomic, so the WAF rule on `/api/login` in CLOUDFLARE.md
+is part of the deploy.
+
+**The second round, after Erik's review of the first report (same day).** No empty signature
+line anywhere any more: nobody draws on a PDF, so an empty line only ever meant a signature
+that was not given. `sigPlan()` now has five kinds - a drawn signature on its line, "Signed
+digitally via signing link" for one that came through the link, "Signs digitally via the
+signing link. The signature page accompanies this report." in the copy built for the link,
+"Awaiting signature via the signing link." or "The signing link expired unsigned." while a
+link is out, and "No signature" - and the print fallback uses the same table. The sheet text
+that promised "an empty signature line for the inspector" now says the report will read "No
+signature". Rendered examples in `outputs/auth-test/shots/pdf-*.png`. A signed record, its
+signature page and an old KV-stored report now have **no expiry at all** (`metaTtl` returns
+null for signed), so a signed report and its signature can never become unreachable because a
+bookkeeping entry ran out. The reminder got an attempt id: the sheet names each opening, the
+server answers a repeated name with what the first one did and mails nothing, a different
+attempt inside a minute is refused with "A reminder was sent less than a minute ago", and the
+button ignores a second tap. `MAIL_REPLY_TO = longstay@beaps.se` went into wrangler.jsonc so a
+guest can answer the reminder. A finished or signed report is **not** renamed by the apartment
+backfill (its title is part of the record); only drafts get the name, and an edit after an
+unlock resolves it again. The login got an in-isolate burst limiter (ten answers per address
+per ten seconds) in front of the KV counter, and CLOUDFLARE.md now has the rule the Free plan
+can actually hold (one rule, ten-second window, path only) and the Pages "fail closed" switch,
+without which a day's exhausted Functions allowance would serve the app open. The Netlify
+address is retired in netlify.toml - `/` and `/index.html` go to Cloudflare, registers and
+notes answer 404 from a plain `404.html`, and `send-pdf`, `sign-request` and `speed-*` refuse
+with `RETIRED` - while `sign.html` and the signing functions stay for links sent from there.
+A branch now gets a preview deployment with the same bindings (`env.preview`), which is where
+the live signing test (`outputs/live-sign-test/live-sign.cjs`) is meant to run with a test
+recipient before anything reaches `main`.
+
+A second adversarial review of this round added: a link past its date is now read as expired
+everywhere from its own date (`linkExpired`), and a record gone from the server settles the
+phone on "expired" too; `sign-load` lifts the old expiry off records signed before this
+deploy; the burst refusal says "try again in a few seconds" instead of "fifteen minutes"; the
+preview keeps its lockout counter apart from production (`ENV`); a name that cannot be checked
+against the register is dropped rather than kept on a changed number; the print fallback for
+a checklist says "Performed by" like the PDF; and on netlify.app `/galleri` and the remaining
+notes are closed, and a signed link's two files are the finished document.
+
+**Erik's clarification of the login requirement (same day):** nothing on the phone may be
+lost to the wall, the existing icon must open with one password and then as before, the login
+must survive a closed app and a restarted phone, and logging out or a run-out session must
+never touch saved work. That is how it is built (the wall serves a page in front of the
+storage and never touches it), and the browser suite now checks it in so many words: a draft
+with a photo, the menu name and the language are byte-for-byte the same after logout and
+login, and the draft opens as before. For the one case that does need a move - an icon still
+pointing at netlify.app - **Restore from backup** is back, in the menu: `restoreBackup()`
+takes the file Backup writes, photos and video included, and never writes over an
+inspection that is already on the phone. CLOUDFLARE.md 5a has the iPhone protocol (with an
+existing draft, on the preview first), the ten-second check of which address an icon uses,
+the move procedure, and the list of situations that ask for the password again.
+
+**Verified** with 299 function-level checks and 157 browser checks after the second round
+(the first round's figures were 224 and 117); the counts below are the first round's.
+**Verified** with 224 function-level checks (`outputs/auth-test/server-test.mjs`: the auth
+core, the middleware over every public and protected path, login/logout/session, the
+reminder, the lifetimes, the ranges) and 117 browser checks against the real middleware and
+functions in headless Edge (`outputs/auth-test/e2e.cjs`: login page, wrong password, lockout,
+right password, reload, browser closed and reopened, session running out mid-use with the
+in-app sheet, logout, the guest page and `sign-pdf` without any login, the no-password 503,
+the apartment name through pick / typing / address change / old inspection / index row / key
+card / Dropbox folder, the PDF with lines counted from the content streams in every signature
+state, the print fallback, the finish view, the dropped pad ink, the reminder end to end with
+a mock mail service and the signed/expired refusals). The upgrade test (41) and the key-flow
+suite (50) still pass, as do the three older function suites (90, 73, 50). Not verified: the
+wall on the live host (Cloudflare documents a root `_middleware.js` as running "in front of
+static files", but step 5 in CLOUDFLARE.md is the proof), a real signing through Resend
+(still never done, as before), and the signature page's rendering by pdf-lib on the free
+plan's CPU budget.
 
 ---
 

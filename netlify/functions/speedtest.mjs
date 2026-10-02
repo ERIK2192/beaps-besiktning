@@ -17,7 +17,13 @@ const NO_STORE = {
   'X-Robots-Tag': 'noindex, nofollow'
 };
 
+// Retired on this host (2026-10-02): the app lives on Cloudflare behind its login wall, and
+// this function would otherwise be an open bandwidth sink for anyone who has this address. The
+// same path is also closed in netlify.toml. Set RETIRED = false to bring it back.
+const RETIRED = true;
+
 export default async (req) => {
+  if (RETIRED) return new Response('Not found', { status: 404 });
   const url = new URL(req.url);
   const path = url.pathname;
 

@@ -37,8 +37,10 @@ export async function onRequest(context) {
 
   const token = newToken();
   const now = Date.now();
+  // The address the mail carries, kept on the record so a reminder sends the very same link.
+  const url = new URL(request.url).origin + '/sign.html?t=' + token;
   const meta = {
-    token, created: now, expires: now + GILTIGHET_DAGAR * 86400000, status: 'pending',
+    token, url, created: now, expires: now + GILTIGHET_DAGAR * 86400000, status: 'pending',
     ref: b.ref || '', type: b.type || '', address: b.address || '', apt: b.apt || '',
     inspector: b.inspector || '', filename: b.filename || 'Inspection report.pdf',
     to, cc, recipientName: b.recipientName || '', recipientRole: b.recipientRole || '',
@@ -64,7 +66,6 @@ export async function onRequest(context) {
     return new Response('Could not store the report: ' + String(e && e.message).slice(0, 200), { status: 502 });
   }
 
-  const url = new URL(request.url).origin + '/sign.html?t=' + token;
   const vem = meta.recipientName ? meta.recipientName : 'you';
   const rubrik = `Sign inspection report - ${meta.ref || meta.address || 'Beaps'}`;
   const objekt = meta.ref || [meta.address, meta.apt].filter(Boolean).join(', ');
@@ -106,6 +107,8 @@ export async function onRequest(context) {
   if (!m.ok) {
     await store(env).delete('pdf/' + token).catch(() => {});
     await store(env).delete('meta/' + token).catch(() => {});
+    // The report went up for this link alone; with no link it has no reason to stay in R2.
+    if (uppladdad) { try { await r2(env).delete(pdfKey(pdfId)) } catch (e) {} }
     return new Response(m.error || 'The email could not be sent', { status: m.error === 'quota' ? 429 : 502 });
   }
 

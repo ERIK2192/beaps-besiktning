@@ -397,6 +397,13 @@ const $ = s => document.querySelector(s);
 // in cflib/mail.js, cflib/media.js and netlify/lib/mail.mjs.
 const APP = 'bges-a7f3c1e9b4d2e806';
 const AUTH = { 'X-Beaps-App': APP };
+// The login wall (functions/_middleware.js). The session is a cookie the server set at login
+// and checks on every call; the browser sends it by itself, so no call here carries anything.
+// A 401 marked X-Beaps-Login means that cookie has run out or was cleared: open the login
+// sheet in place, rather than the "reload the app" message a stale APP key gets.
+const loginNeeded = r => !!(r && r.status===401 && r.headers && typeof r.headers.get==='function' && r.headers.get('X-Beaps-Login'));
+const _fetch = window.fetch.bind(window);
+window.fetch = async (...a) => { const r = await _fetch(...a); if(loginNeeded(r)) needLogin(); return r };
 // Collision-safe id: crypto when available, otherwise Math.random.
 const uid = () => {
   try{ return [...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,11) }
@@ -506,7 +513,7 @@ const SV = {
   'No signature.':'Ingen signatur.',
   'Counterparty':'Motpart',
   'Finish without signature':'Avsluta utan signatur',
-  'Locks the report with empty signature lines. Used for damage and annual inspections where the counterparty is not present.':'Låser rapporten med tomma signaturrader. Används för skade- och årsbesiktningar där motparten inte är närvarande.',
+  'Locks the report without signatures. Used for damage and annual inspections where the counterparty is not present.':'Låser rapporten utan signaturer. Används för skade- och årsbesiktningar där motparten inte är närvarande.',
   'Rooms':'Rum',
   'Share':'Dela',
   'Email PDF':'Mejla PDF',
@@ -639,7 +646,7 @@ const SV = {
   'If the signing is done digitally, the person you email sees':'Om signeringen görs digitalt ser personen du mejlar',
   'the whole PDF':'hela PDF:en',
   'all rooms, photos and comments — before the signature is given.\n        Only send it to someone who should have access to the whole report.':'alla rum, bilder och kommentarer — innan signaturen ges.\n        Skicka den bara till någon som ska ha åtkomst till hela rapporten.',
-  'You have not signed yourself yet. The report is sent as it is,\n        with an empty signature line for the inspector. If you want to sign first, close this,\n        sign on the finish page and open the form again.':'Du har inte signerat själv än. Rapporten skickas som den är,\n        med en tom signaturrad för besiktningsmannen. Om du vill signera först, stäng detta,\n        signera på avslutssidan och öppna formuläret igen.',
+  'You have not signed yourself yet. The report is sent as it is and will say "No signature" for the inspector. If you want to sign first, close this, sign on the finish page and open the form again.':'Du har inte signerat själv än. Rapporten skickas som den är och visar "Ingen signatur" för besiktningsmannen. Om du vill signera först, stäng detta, signera på avslutssidan och öppna formuläret igen.',
   'Cancel':'Avbryt',
   'If the report has many photos it can take a while to build. You can cancel at any time.':'Om rapporten har många bilder kan det ta en stund att bygga. Du kan avbryta när som helst.',
   'Enter a valid email address under Email to.':'Ange en giltig mejladress under Mejla till.',
@@ -666,11 +673,42 @@ const SV = {
   'Already signed':'Redan signerat',
   'The link is revoked':'Länken är återkallad',
   'Still awaiting signature':'Väntar fortfarande på signatur',
+  'Awaiting signature via the signing link.':'Väntar på signatur via signeringslänken.',
+  'The signing link has expired.':'Signeringslänken har gått ut.',
   'The signing link was revoked — the report opened for editing':'Signeringslänken återkallades — rapporten öppnades för redigering',
   'The report opened for editing':'Rapporten öppnades för redigering',
   'Revoke the signing link? The recipient can then no longer sign it.':'Återkalla signeringslänken? Mottagaren kan då inte längre signera den.',
   'Was signed first':'Signerades först',
   'Could not revoke the link':'Kunde inte återkalla länken',
+  // --- the reminder about a signing link that is still waiting ---
+  'Remind about signing':'Påminn om signering',
+  'Reminder sent':'Påminnelse skickad',
+  'To':'Till',
+  'The same signing link is sent again. Edit the message if you like; the link is added below it.':'Samma signeringslänk skickas igen. Ändra gärna texten; länken läggs till under den.',
+  'Send reminder':'Skicka påminnelse',
+  'The link is no longer valid':'Länken gäller inte längre',
+  'Reminders are not available on this server yet.':'Påminnelser finns inte på den här servern än.',
+  'The link was not found on the server. Check the status, or send a new link.':'Länken hittades inte på servern. Kontrollera status, eller skicka en ny länk.',
+  'A reminder was sent less than a minute ago.':'En påminnelse skickades för mindre än en minut sedan.',
+  // --- the login wall ---
+  'Log in':'Logga in',
+  'Log out':'Logga ut',
+  'The login has run out':'Inloggningen har gått ut',
+  'Enter the team password to continue. You stay logged in until six months pass without the app being opened.':'Skriv in teamets lösenord för att fortsätta. Du förblir inloggad tills det gått sex månader utan att appen öppnats.',
+  'Password':'Lösenord',
+  'Logging in…':'Loggar in…',
+  'Logged in':'Inloggad',
+  'Wrong password.':'Fel lösenord.',
+  'Too many attempts. Wait fifteen minutes and try again.':'För många försök. Vänta en kvart och försök igen.',
+  'Too many attempts. Try again in a few seconds.':'För många försök. Försök igen om några sekunder.',
+  'The signing link expired':'Signeringslänken gick ut',
+  'The signing link was revoked':'Signeringslänken återkallades',
+  'The app password is not set on the server yet.':'Appens lösenord är inte inlagt på servern än.',
+  'Could not log in':'Kunde inte logga in',
+  'Log out on this device? The reports stay on the phone; the password is needed to open the app again.':'Logga ut på den här enheten? Rapporterna ligger kvar på telefonen; lösenordet behövs för att öppna appen igen.',
+  'Log in and try again':'Logga in och försök igen',
+  'Log in and try again.':'Logga in och försök igen.',
+  'Log in and send again':'Logga in och skicka igen',
   // --- photos / media ---
   'Loading':'Laddar',
   'could not be read':'kunde inte läsas',
@@ -692,6 +730,7 @@ const SV = {
   'Delete all':'Radera alla',
   'reports on this phone?':'rapporter på den här telefonen?',
   'Restore from backup':'Återställ från säkerhetskopia',
+  'Already on this phone':'Finns redan på den här telefonen',
   'New inspection':'Ny besiktning',
   'Delete':'Radera',
   'Photos and video disappear and cannot be recovered.':'Bilder och video försvinner och kan inte återställas.',
@@ -952,14 +991,33 @@ const mkRoom = (name,fixed) => ({id:uid(), name, comment:'', photos:[], fixed:!!
 const keysRoom = () => S.rooms.find(r=>r.fixed);
 const keysOk = () => { const k = keysRoom(); return !!(k && k.photos.length) };
 
-function ref(){
+// The apartment as it reads: the number, and the name the register has for it, as
+// "1103 C/O Miami". S.apt itself stays the bare number - the key register, the Dropbox folder
+// and the field on the Property step all compare against it - and the name sits beside it in
+// S.aptName, looked up in fastigheter.js whenever the address or the number changes
+// (syncAptName), never typed. A register entry whose "name" is just "lgh 1501" is no name.
+// `plain` drops the C/O for a file name, where a slash would be stripped to a blank anyway.
+const realName = n => !!n && !/^lgh\b/i.test(String(n).trim());
+const niceName = n => { const s = String(n||'').trim(); return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() };
+function aptLabel(apt, name, plain){
+  const a = String(apt||'').trim();
+  if(!a) return '';
+  const n = realName(name) ? niceName(name) : '';
+  return n ? a + (plain ? ' ' : ' C/O ') + n : a;
+}
+function ref(plain){
   const p = PREFIX[S.type]||'';
-  return `${p?p+' ':''}${S.address||''}${S.apt? ', '+S.apt:''}`.trim() || 'New inspection';
+  const a = aptLabel(S.apt, S.aptName, plain);
+  return `${p?p+' ':''}${S.address||''}${a? ', '+a:''}`.trim() || 'New inspection';
 }
 function refOf(r){
   const p = PREFIX[r.type]||'';
-  return `${p?p+' ':''}${r.address||'No address'}${r.apt? ', '+r.apt:''}`.trim();
+  const a = aptLabel(r.apt, r.aptName);
+  return `${p?p+' ':''}${r.address||'No address'}${a? ', '+a:''}`.trim();
 }
+// The row the start screen is painted from, kept beside the inspection in the index.
+const indexRow = s => ({id:s.id, address:s.address, apt:s.apt, aptName:s.aptName||'', type:s.type, created:s.created,
+                        locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt});
 
 function log(txt){ if(!S) return; S.log.push({ts:Date.now(), txt}); paintTicker(); save() }
 function storeErr(){ toast(T('The phone refused a write. Make a backup.')) }
@@ -973,7 +1031,7 @@ async function flushSave(){
   let idx;
   try{ idx = (await store.getStrict(K.index)) || [] }
   catch(e){ return }   // the read failed transiently - do NOT write back a truncated list
-  const row = {id:s.id, address:s.address, apt:s.apt, type:s.type, created:s.created, locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt};
+  const row = indexRow(s);
   const i = idx.findIndex(x=>x.id===s.id);
   if(i>=0) idx[i]=row; else idx.unshift(row);
   if(!await store.set(K.index, idx)) storeErr();
@@ -1184,7 +1242,8 @@ async function render(){
           <div class="sug" id="sugaddr"></div></div>
         <div class="field"><label class="eyebrow">${T('Apartment number')}</label>
           <input id="f_apt" value="${esc(S.apt)}" autocomplete="off" oninput="paintPropSug()">
-          <div class="sug" id="sugapt"></div></div>
+          <div class="sug" id="sugapt"></div>
+          <div class="hint" id="aptname" style="display:none"></div></div>
       </div>
       <div class="card">
         <div class="field"><label class="eyebrow">${T('Inspector')}</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
@@ -1308,9 +1367,11 @@ async function render(){
       ${locked? `<div class="card">
         <span class="locknote">${
           S.signedAt? T('Signed and locked')+' '+stamp(new Date(S.signedAt))
-          : (S.signReq && S.signReq.status==='pending')? T('Locked awaiting signature')+' '+stamp(new Date(S.closedAt))
+          : linkPending(S.signReq)? T('Locked awaiting signature')+' '+stamp(new Date(S.closedAt))
+          : linkExpired(S.signReq)? T('The signing link expired')+(S.signReq.expires? ' '+stamp(new Date(S.signReq.expires)) : '')
+          : (S.signReq && S.signReq.status==='cancelled')? T('The signing link was revoked')
           : T('Finished without signature')+' '+stamp(new Date(S.closedAt))}</span>
-        <div class="hint">${(S.signReq && S.signReq.status==='pending')
+        <div class="hint">${linkPending(S.signReq)
           ? T('The report is locked so that what the counterparty signs is exactly what you sent. If something needs correcting you unlock it, and then the link is revoked.')
           : T('The report is locked for changes. Unlock it if something needs correcting, then any signatures are removed and it is noted in the log.')}</div>
         <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">${T('Unlock')}</button>
@@ -1324,12 +1385,16 @@ async function render(){
         <div class="eyebrow">${T('Counterparty')}</div>
         <h2 style="margin:4px 0 2px">${esc(S.counter.name||T('Name missing'))}</h2>
         <div style="font-size:13px;color:var(--ink2);margin-bottom:10px">${esc(S.counter.role||'')}</div>
-        <div id="sigbox_counter">${locked && !S.sig.counter? '<div class="hint">'+T('No signature.')+'</div>' : sigBlock('counter')}</div>
+        <div id="sigbox_counter">${locked && !S.sig.counter
+          ? '<div class="hint">'+(linkPending(S.signReq)? T('Awaiting signature via the signing link.')
+                                 : linkExpired(S.signReq)? T('The signing link has expired.')
+                                 : T('No signature.'))+'</div>'
+          : sigBlock('counter')}</div>
       </div>
       ${signReqCard()}
       ${locked? '' : `<div class="card">
         <button class="btn ghost" onclick="closeUnsigned()">${T('Finish without signature')}</button>
-        <div class="hint">${T('Locks the report with empty signature lines. Used for damage and annual inspections where the counterparty is not present.')}</div>
+        <div class="hint">${T('Locks the report without signatures. Used for damage and annual inspections where the counterparty is not present.')}</div>
       </div>`}
     </div>`;
     if(!locked) ['inspector','counter'].forEach(w=>{ if(!S.sig[w]) initPad(w) });
@@ -1672,6 +1737,7 @@ async function sendToCamilla(){
   toast(T('Sending'));
   const m = await mailPdf(out.blob, out.name);
   if(m.ok){ toast(T('Emailed to') + ' ' + mailTarget()); return }
+  if(m.reason==='login') return toast(T('Log in and send again'));
   if(m.reason==='quota') toast(T('Daily email limit reached, opening share'));
   else if(m.reason==='size') toast(T('Too large for email, opening share'));
   else if(m.reason==='ladda om') toast(T('Reload the app — opening share'));
@@ -1684,6 +1750,9 @@ function closeUnsigned(){
     ? `${T('Signature is normally required for')} ${TYPE_LABEL[S.type]||S.type}. ${T('Finish without a signature anyway?')}`
     : T('Finish the report without a signature?');
   if(!confirm(msg)) return;
+  // "Without a signature" answers for any ink on a pad that was never approved: it is dropped
+  // here, so a later Share or Email cannot turn it into a signature on a finished report.
+  delete pads.inspector; delete pads.counter;
   S.closedAt = Date.now();
   log('Finished without signature');
   log('Report locked');
@@ -1725,7 +1794,9 @@ function commitPendingPads(list){
   let n = 0;
   for(const w of (list || ['inspector','counter'])){
     const p = pads[w];
-    if(!p || p.isEmpty() || S.sig[w]) continue;
+    // A pad whose canvas is no longer on the screen belongs to a view that has been painted
+    // over, or to a report that was finished without it: its ink is not a signature.
+    if(!p || p.isEmpty() || S.sig[w] || !document.body.contains(p.c)) continue;
     S.sig[w] = {data:p.c.toDataURL('image/png'), ts:Date.now()};
     log(`Signed by ${w==='inspector'? (S.inspector.name||'inspector') : (S.counter.name||'counterparty')}`);
     delete pads[w]; n++;
@@ -1984,13 +2055,13 @@ async function uploadGallery(auto, tyst){
         try{
           r = await withTimeout(fetch('/api/media-init', {
             method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
-            body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:S.apt,
+            body: JSON.stringify({ ref:ref(), type:S.type, address:S.address, apt:aptLabel(S.apt, S.aptName),
               inspector:S.inspector.name, items, subfolder: dropboxSubfolder() })
           }), 30000);
           break;
         }catch(e){ if(attempt) throw new Error('No contact with the server'); await pause(1500) }
       }
-      if(r.status===401) throw new Error('Reload the app and try again');
+      if(r.status===401) throw new Error(loginNeeded(r)? 'Log in and try again' : 'Reload the app and try again');
       // Cloudflare responds with the app's own HTML on unknown /api paths, not with 404.
       // So don't trust the status code alone - try to parse the response and see if it carries a token.
       const svar = (await r.text().catch(()=>'')).trim();
@@ -2059,7 +2130,7 @@ async function uploadGallery(auto, tyst){
     säg(missade? `${T('Done, but')} ${missade} ${T('files failed')}` : T('The photos are uploaded'));
   }catch(e){
     const why = String(e && e.message || e).slice(0,120);
-    säg(why.slice(0,80));
+    säg(T(why).slice(0,80));   // the log keeps the English; the toast may be Swedish
     // Into the activity log as well, so the reason ends up in the report and not only in a toast
     // that vanished while the inspector was looking at the camera.
     if(S === insp && !tyst) log('Photo upload failed: ' + why);
@@ -2120,7 +2191,7 @@ function signReqCard(){
     <button class="btn ghost small" style="margin-top:12px" onclick="openSignRequest()">${T('Send a new link')}</button>
   </div>`;
 
-  const utgangen = q.status==='expired' || (q.expires && Date.now()>q.expires);
+  const utgangen = linkExpired(q);
   return `<div class="card">
     <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
     <h2 style="margin:0 0 6px">${utgangen? T('The link has expired') : T('Awaiting signature')}</h2>
@@ -2131,10 +2202,81 @@ function signReqCard(){
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn ghost small" onclick="checkSignStatus()">${T('Check status')}</button>
       <button class="btn ghost small" onclick="copySignLink()">${T('Copy link')}</button>
-      <button class="btn ghost small" onclick="openSignRequest()">${T('Send again')}</button>
+      ${utgangen? '<button class="btn ghost small" onclick="openSignRequest()">'+T('Send again')+'</button>'
+                : '<button class="btn ghost small" onclick="openRemind()">'+T('Remind about signing')+'</button>'}
       ${utgangen? '' : '<button class="btn ghost small" onclick="cancelSignLink()">'+T('Revoke')+'</button>'}
     </div>
+    ${q.remindedAt? `<div class="hint">${T('Reminder sent')} ${stamp(new Date(q.remindedAt))}</div>` : ''}
   </div>`;
+}
+
+/* ---------- a reminder about a link that is still waiting ---------- */
+// The same link, to the same address, with a short message the inspector can edit before it
+// goes. Nothing is made and nothing is revoked: the server refuses a link that is signed,
+// revoked or expired, and only notes on the record that a reminder went. An expired link gets
+// "Send again" instead, which makes a new one.
+const REMIND_TEXT = 'Hi!\n\nHere is a friendly reminder to sign the inspection report for your apartment. You open and sign via the link below. Please get in touch if you have any questions or need help.\n\nThank you!\nTeam Longstay Beautiful Apartments';
+// A link that is still waiting: pending on the record and not past its date.
+const canRemind = q => linkPending(q);
+// Each opening of the sheet is one attempt, named once. A retry after a lost answer sends the
+// same name, and the server answers it with what the first one did instead of mailing again.
+let rmAttempt = null;
+function openRemind(){
+  const q = S && S.signReq;
+  if(!canRemind(q) || document.getElementById('remind')) return;
+  rmAttempt = uid();
+  const el = document.createElement('div');
+  el.className = 'sheet hasbar'; el.id = 'remind';
+  el.innerHTML = topbar(T('Remind about signing'), ref(), null, 'closeRemind()') + `<div class="wrap">
+    <div class="card">
+      <div style="font-size:14px">${T('To')} <b>${esc(q.to)}</b>${q.cc? ', '+T('copy')+' '+esc(q.cc):''}</div>
+      <div class="hint">${T('The same signing link is sent again. Edit the message if you like; the link is added below it.')}</div>
+      <textarea id="rm_text" style="margin-top:12px;min-height:280px" maxlength="2000">${esc(REMIND_TEXT)}</textarea>
+    </div>
+    <div class="hint" id="rm_err" style="color:var(--rec);display:none"></div>
+  </div>
+  <div class="sheetbar">
+    <button class="btn ghost small" onclick="closeRemind()">${T('Cancel')}</button>
+    <button class="btn" id="rm_send" onclick="sendReminder()">${T('Send reminder')}</button>
+  </div>`;
+  document.body.appendChild(el);
+}
+function closeRemind(){ const el = document.getElementById('remind'); if(el) el.remove() }
+async function sendReminder(){
+  const q = S && S.signReq;
+  if(!canRemind(q)) return closeRemind();
+  const insp = S, btn = document.getElementById('rm_send'), err = document.getElementById('rm_err');
+  if(!btn || btn.disabled) return;   // a tap that landed twice
+  const text = (document.getElementById('rm_text')||{value:''}).value;
+  const reset = m => { if(!document.getElementById('remind')) return; btn.disabled=false; btn.textContent=T('Send reminder'); err.textContent=m; err.style.display='block' };
+  btn.disabled = true; btn.textContent = T('Sending…'); err.style.display='none';
+  let r;
+  try{
+    r = await withTimeout(fetch('/api/sign-remind', {method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
+      body: JSON.stringify({t:q.token, text, attempt:rmAttempt})}), 30000);
+  }catch(e){ return reset(T('No contact with the server. Check the connection and try again.')) }
+  // The server says the link is not waiting any more: show what it has become instead.
+  if(r.status===409){ closeRemind(); toast(T('Already signed')); return checkSignStatus(true) }
+  if(r.status===410){ closeRemind(); toast(T('The link is no longer valid')); return checkSignStatus(true) }
+  if(!r.ok){
+    const txt = (await r.text().catch(()=>'')).trim();
+    const kort = (txt && txt.length < 160 && txt.indexOf('<') < 0) ? txt : '';
+    // Two kinds of 404: the function saying the record is not there (a short plain text), and a
+    // host that has no such function at all (Netlify answers its own page).
+    return reset(r.status===429? (/less than a minute/.test(kort)? T('A reminder was sent less than a minute ago.') : T("Today's email limit is reached. Try again later."))
+               : r.status===401? (loginNeeded(r)? T('Log in and try again.') : T('The app needs updating — reload the page and try again.'))
+               : r.status===404? (kort? T('The link was not found on the server. Check the status, or send a new link.') : T('Reminders are not available on this server yet.'))
+               : (kort || T('Could not send') + ' (' + r.status + ').'));
+  }
+  // Cloudflare answers the app's own HTML with 200 on an unknown /api path - require a real ok.
+  let j = null; try{ j = await r.json() }catch(e){}
+  if(!j || j.ok !== true) return reset(T('The server responded unexpectedly. Try again.'));
+  if(S !== insp || !S.signReq || S.signReq.token !== q.token){ closeRemind(); return toast(T('Reminder sent')) }
+  S.signReq.remindedAt = j.remindedAt || Date.now();
+  S.signReq.reminders = j.reminders || ((q.reminders||0) + 1);
+  if(!j.repeated) log(`Reminder sent to ${q.to}${q.cc? ' (copy '+q.cc+')' : ''}`);   // the first answer was lost; nothing new went out
+  await flushSave();
+  closeRemind(); toast(T('Reminder sent')); render();
 }
 
 function closeSignSheet(){ const el = document.getElementById('signsheet'); if(el) el.remove() }
@@ -2164,7 +2306,7 @@ function openSignRequest(){
         <b>${T('the whole PDF')}</b> — ${T('all rooms, photos and comments — before the signature is given.\n        Only send it to someone who should have access to the whole report.')}</div>
     </div>
     ${S.sig.inspector? '' : `<div class="card">
-      <div style="font-size:14px">${T('You have not signed yourself yet. The report is sent as it is,\n        with an empty signature line for the inspector. If you want to sign first, close this,\n        sign on the finish page and open the form again.')}</div>
+      <div style="font-size:14px">${T('You have not signed yourself yet. The report is sent as it is and will say "No signature" for the inspector. If you want to sign first, close this, sign on the finish page and open the form again.')}</div>
     </div>`}
     <div class="hint" id="sr_err" style="color:var(--rec);display:none"></div>
     <div class="hint">${T('If the report has many photos it can take a while to build. You can cancel at any time.')}</div>
@@ -2195,7 +2337,8 @@ async function sendSignRequest(){
   btn.disabled = true; btn.textContent = T('Building PDF…');
   commitPendingPads(['inspector']);   // the counterparty isn't here, that is why a link is being sent
   await ensureGalleryUploaded();
-  const out = await buildPdf();
+  // Built for the link: the lines stay empty for the signing, whatever state the report was in.
+  const out = await buildPdf({forSigning:true});
   if(S !== insp) return reset(T('You switched inspection, nothing was sent.'));
   if(!out) return reset(T('The PDF engine could not be loaded. Check the connection and try again.'));
   // the same cap the server uses, so it isn't built and uploaded unnecessarily
@@ -2204,7 +2347,7 @@ async function sendSignRequest(){
 
   btn.textContent = T('Sending…');
   const body = { filename:out.name, ref:ref(), type:S.type,
-    address:S.address, apt:S.apt, inspector:S.inspector.name,
+    address:S.address, apt:aptLabel(S.apt, S.aptName), inspector:S.inspector.name,
     to, cc, recipientName:name, recipientRole:role,
     gallery: (S.gallery && S.gallery.token) || null,
     // printed on the signature page so it and the report can be told to belong together.
@@ -2221,6 +2364,7 @@ async function sendSignRequest(){
       fr.onload=()=>res(String(fr.result).split(',')[1]); fr.readAsDataURL(out.blob) });
   }
   else if(up.reason==='size') return reset(T('The report is too large for the signing link.'));
+  else if(up.reason==='login') return reset(T('Log in and try again.'));
   else if(up.reason==='ladda om') return reset(T('The app needs updating — reload the page and try again.'));
   else return reset(T('No contact with the server. Check the connection and try again.'));
 
@@ -2240,7 +2384,7 @@ async function sendSignRequest(){
     const kort = (txt && txt.length < 160 && txt.indexOf('<') < 0) ? txt : '';
     return reset(r.status===429? T("Today's email limit is reached. Try again later.")
                : r.status===413? T('The report is too large for the signing link.')
-               : r.status===401? T('The app needs updating — reload the page and try again.')
+               : r.status===401? (loginNeeded(r)? T('Log in and try again.') : T('The app needs updating — reload the page and try again.'))
                : r.status===404? T('The signing function is not running on the server yet.')
                : r.status===501? T('Email sending is not configured on the server.')
                : (kort || T('Could not send') + ' (' + r.status + ').'));
@@ -2269,7 +2413,17 @@ async function checkSignStatus(silent){
   let r;
   try{ r = await withTimeout(fetch('/api/sign-load?t='+insp.signReq.token), 15000) }
   catch(e){ if(!silent) toast(T('No contact with the server')); return }
-  if(!r.ok){ if(!silent) toast(T('Could not read status right now')); return }
+  if(!r.ok){
+    // The record is gone from the server (a waiting one lives 37 days). A link past its own
+    // date is expired, and the phone may as well say so instead of "awaiting" for ever.
+    if(r.status===404 && S === insp && S.signReq && S.signReq.status==='pending' && S.signReq.expires && Date.now() > S.signReq.expires){
+      S.signReq.status = 'expired';
+      saveOpenComment(); saveCheckComments(); await flushSave(); render();
+      if(!silent) toast(T('The link has expired'));
+      return;
+    }
+    if(!silent) toast(T('Could not read status right now')); return;
+  }
   const m = await r.json();
   if(S !== insp || !S.signReq) return;
   const before = S.signReq.status;
@@ -2411,7 +2565,7 @@ function bindPlain(id,key){ const el=document.getElementById(id); if(!el)return;
 function bindRef(id,key){
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener('input', ()=>{ S[key]=el.value });
-  el.addEventListener('change', ()=>{ unlockIfLocked(); save() });
+  el.addEventListener('change', ()=>{ unlockIfLocked(); syncAptName(); paintAptName(); save() });
 }
 function bindPath(id,a,b){ const el=document.getElementById(id); if(!el)return; el.addEventListener('change',()=>{ unlockIfLocked(); S[a][b]=el.value; save() }) }
 document.addEventListener('focusout', e=>{
@@ -2419,23 +2573,33 @@ document.addEventListener('focusout', e=>{
   if(e.target.id && e.target.id.startsWith('k_')){ if(saveCheckComments()) unlockIfLocked(); save() }
 });
 
+// A backup file back into this phone: the inspection, its photos and its video, exactly as
+// Backup wrote them. This is how work moves from one address or icon to another, since the
+// phone keeps every address's storage apart. An inspection that is already here is left
+// alone - a backup is never allowed to write over newer work - and the file is read as a
+// whole first, so a broken file changes nothing.
+async function restoreBackup(d){
+  const insp = d && d.inspection;
+  if(!insp || !insp.id || !Array.isArray(insp.rooms)) return {ok:false, reason:'bad'};
+  if(await store.get(K.insp(insp.id))) return {ok:false, reason:'exists', id:insp.id};
+  const barare = (insp.rooms||[]).concat(insp.checks||[]);
+  for(const rc of barare) for(const p of (rc.photos||[])){ const data = d.photos && d.photos[p.id]; if(data) await store.set(K.photo(insp.id,p.id), data) }
+  if(d.video && insp.video){ if(await store.set(K.video(insp.id), d.video)) insp.video.stored = true }
+  if(!await store.set(K.insp(insp.id), insp)) return {ok:false, reason:'write'};
+  const idx = (await store.get(K.index)) || [];
+  if(!idx.find(x=>x.id===insp.id)) idx.unshift(indexRow(insp));
+  await store.set(K.index, idx);
+  return {ok:true, id:insp.id};
+}
 async function pickRestore(){
   const inp = document.createElement('input');
   inp.type='file'; inp.accept='application/json,.json';
   inp.onchange = async e => {
     const f = e.target.files && e.target.files[0]; if(!f) return;
-    try{
-      const d = JSON.parse(await f.text());
-      const insp = d.inspection; if(!insp || !insp.id) throw 0;
-      const barare = (insp.rooms||[]).concat(insp.checks||[]);
-      for(const rc of barare) for(const p of (rc.photos||[])){ const data = d.photos && d.photos[p.id]; if(data) await store.set(K.photo(insp.id,p.id), data) }
-      if(d.video && insp.video){ if(await store.set(K.video(insp.id), d.video)) insp.video.stored = true }
-      await store.set(K.insp(insp.id), insp);
-      const idx = (await store.get(K.index)) || [];
-      if(!idx.find(x=>x.id===insp.id)) idx.unshift({id:insp.id, address:insp.address, apt:insp.apt, type:insp.type, created:insp.created, locked:!!(insp.signedAt||insp.closedAt), signed:!!insp.signedAt});
-      await store.set(K.index, idx);
-      toast(T('Restored')); renderStart();
-    }catch(err){ toast(T('Could not read the file')) }
+    let r;
+    try{ r = await restoreBackup(JSON.parse(await f.text())) }catch(err){ r = {ok:false, reason:'bad'} }
+    if(r.ok){ toast(T('Restored')); if(view==='start') renderStart(); return }
+    toast(r.reason==='exists'? T('Already on this phone') : r.reason==='write'? T('The phone refused a write. Make a backup.') : T('Could not read the file'));
   };
   inp.click();
 }
@@ -2456,7 +2620,7 @@ async function loadIndex(){
     if(!id || seen.has(id)) continue;
     const s = await store.get(k);
     if(!s || s.id !== id) continue;
-    idx.push({id:s.id, address:s.address, apt:s.apt, type:s.type, created:s.created, locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt});
+    idx.push(indexRow(s));
     seen.add(id); added++;
   }
   if(added){
@@ -2560,12 +2724,15 @@ async function delAll(){
 async function newInsp(){
   editList = false;
   // The inspector is the name set in the menu; it is the same person every time on this phone.
+  // aptName is left unset until the register has answered once (syncAptName), so an inspection
+  // typed in while the register could not load is looked up again when it is next opened.
   S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
         inspector:{name:keyMe||''}, counter:{name:'',role:''},
         rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
         video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null, gallery:null,
         signedAt:null, closedAt:null, log:[] };
   photoCache={}; videoURL=null; openRoom=null;
+  for(const k in pads) delete pads[k];   // ink drawn in another inspection must not follow along
   ensureChecks(); log('Inspection created'); save(); go('object');
 }
 async function openInsp(id){
@@ -2573,10 +2740,27 @@ async function openInsp(id){
   S = await store.get(K.insp(id));
   if(!S) return alert(T('Could not read the inspection.'));
   photoCache={}; videoURL=null; openRoom=null;
+  for(const k in pads) delete pads[k];
   if(!S.rooms.some(r=>r.fixed)) S.rooms.push(mkRoom(KEYS_ROOM,true));
   if(!S.comp) S.comp = {in:0,out:0};
+  if(!S.sig) S.sig = {};
   ensureChecks();
   await loadMedia(id); paintTicker(); go((S.signedAt||S.closedAt)?'sign':'rooms');
+  // A draft made before the apartment name was kept gets it now, from the register. Only a
+  // draft: a report already finished or signed keeps the title it was closed with. In the
+  // background and only once the inspection is on screen: a slow network must not hold it
+  // back, and a repaint must never land on the start screen the user just left.
+  if(S.apt && S.aptName === undefined && !(S.signedAt || S.closedAt)){
+    const insp = S;
+    loadFastigheter().then(()=>{
+      if(S !== insp || view === 'start') return;
+      // Repainted only on the rooms view, where nothing can be lost to it. On the finish view a
+      // signature may be half drawn on a pad, and a repaint would wipe it; the name is on the
+      // record and shows on the next paint, and the PDF reads ref() when it is built.
+      if(syncAptName()){ save(); if(view === 'rooms'){ saveOpenComment(); saveCheckComments(); render() } }
+      else if(S.aptName !== undefined) save();
+    });
+  }
   drainRevokes();   // send any revocations that didn't go through during an offline moment
   // check in the background whether the counterparty has signed via the link
   if(S.signReq && S.signReq.status==='pending') checkSignStatus(true);
@@ -2872,6 +3056,8 @@ async function openMenu(){
       <span>${T('Check key in/out')}</span><span class="chev">›</span></button>
     <button class="mitem" onclick="closeMenu();openKeyLog()">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
+    <button class="mitem" onclick="closeMenu();pickRestore()">
+      <span>${T('Restore from backup')}</span><span class="chev">›</span></button>
     <div class="mitem" style="flex-direction:column;align-items:stretch;gap:8px">
       <span>${T('Your name')}</span>
       <div class="namerow">
@@ -2883,10 +3069,92 @@ async function openMenu(){
       </div>
       <span class="hint" style="margin:0">${T('Saved on this phone. Used on every key line and on a new inspection.')}</span>
     </div>
-    <div class="mitem" style="border-bottom:0">
+    <div class="mitem"${hasWall? '' : ' style="border-bottom:0"'}>
       <span>${T('Language')}</span>${langToggle()}</div>
+    ${hasWall? `<button class="mitem" style="border-bottom:0" onclick="logout()">
+      <span>${T('Log out')}</span><span class="chev">›</span></button>` : ''}
   </div>`;
   document.body.appendChild(el);
+}
+// Whether this host has the login wall at all. The Netlify address serves the same app with
+// no wall and no /api/session, and a Log out there would promise something false. Asked once
+// at start, through the bare fetch, so the answer can never raise the login sheet.
+let hasWall = false;
+async function probeWall(){
+  try{
+    const r = await withTimeout(_fetch('/api/session', {cache:'no-store'}), 8000);
+    hasWall = (r.ok && /json/i.test(r.headers.get('content-type')||'')) || loginNeeded(r);
+  }catch(e){}
+}
+
+/* ----- the login wall, from inside the app ----- */
+// The server sets the session cookie at login and checks it on every call (see
+// functions/_middleware.js); the app never holds the password. It only ever notices the wall
+// as a 401 when the cookie has run out, and then asks for the password here, in place, so
+// nothing typed into an open inspection is lost to a reload. Closing the sheet is allowed -
+// the reports are on the phone - but no server call goes through until the login is done.
+// Closed by hand, the sheet stays away for ten minutes: photos keep being copied to the
+// server in the background, and every refused upload would otherwise raise it again over
+// whatever is being typed. Nothing takes the focus either, for the same reason.
+let loginDismissedAt = 0;
+function needLogin(force){
+  if(document.getElementById('login')) return;
+  if(!force && Date.now() - loginDismissedAt < 10*60000) return;
+  const el = document.createElement('div');
+  el.className = 'sheet hasbar'; el.id = 'login';
+  el.innerHTML = topbar(T('Log in'), T('The login has run out'), null, 'closeLogin(true)') + `<div class="wrap">
+    <div class="card">
+      <div class="hint" style="margin:0 0 12px">${T('Enter the team password to continue. You stay logged in until six months pass without the app being opened.')}</div>
+      <form id="loginform" onsubmit="return doLogin(event)">
+        <div class="field"><label class="eyebrow">${T('Password')}</label>
+          <input id="loginpw" type="password" autocomplete="current-password" autocapitalize="off"
+                 autocorrect="off" spellcheck="false" enterkeyhint="go"></div>
+      </form>
+      <div class="hint" id="loginerr" style="color:var(--rec);display:none"></div>
+    </div>
+  </div>
+  <div class="sheetbar">
+    <button class="btn ghost small" onclick="closeLogin(true)">${T('Close')}</button>
+    <button class="btn" id="loginbtn" onclick="doLogin()">${T('Log in')}</button>
+  </div>`;
+  document.body.appendChild(el);
+}
+function closeLogin(dismissed){
+  const el = document.getElementById('login'); if(!el) return;
+  el.remove();
+  if(dismissed) loginDismissedAt = Date.now();
+}
+async function doLogin(ev){
+  if(ev) ev.preventDefault();
+  const pw = document.getElementById('loginpw'), btn = document.getElementById('loginbtn'), err = document.getElementById('loginerr');
+  if(!pw || !btn || !pw.value) return false;
+  btn.disabled = true; btn.textContent = T('Logging in…'); err.style.display = 'none';
+  let r = null;
+  try{
+    r = await withTimeout(_fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({password: pw.value})}), 15000);
+  }catch(e){}
+  if(r && r.ok){ closeLogin(); toast(T('Logged in')); return false }
+  // Two kinds of 429: a burst (Retry-After a few seconds) and the fifteen-minute pause.
+  const wait = r && r.status===429 ? Number(r.headers.get('Retry-After')) || 900 : 0;
+  err.textContent = !r? T('No contact with the server')
+    : r.status===401? T('Wrong password.')
+    : r.status===429? (wait < 60 ? T('Too many attempts. Try again in a few seconds.') : T('Too many attempts. Wait fifteen minutes and try again.'))
+    : r.status===503? T('The app password is not set on the server yet.')
+    : T('Could not log in') + ' (' + r.status + ')';
+  err.style.display = 'block';
+  btn.disabled = false; btn.textContent = T('Log in');
+  if(r && r.status===401){ pw.value = ''; try{ pw.focus() }catch(e){} }
+  return false;
+}
+// Clears the cookie on the server and lands on the login page. The reports are untouched:
+// they live in the phone's database, which a login has nothing to do with.
+async function logout(){
+  if(!confirm(T('Log out on this device? The reports stay on the phone; the password is needed to open the app again.'))) return;
+  closeMenu();
+  await flushSave();
+  try{ await withTimeout(_fetch('/api/logout', {method:'POST', headers:AUTH}), 15000) }catch(e){}
+  location.replace(location.pathname);
 }
 // Initials follow the name unless you have written your own. The field is read against both
 // the old name and the new one: a field still holding the letters the previous name gave
@@ -3551,6 +3819,35 @@ const SUG_MAX = 8;
 // Fetch the register when the Property step opens, then paint - never before, so a phone that
 // only ever opens the start screen pays nothing for it.
 function propPrime(){ loadFastigheter().then(()=>{ if(view==='object') paintPropSug() }) }
+// The name the register has for the apartment on the inspection, kept in S.aptName. Looked
+// up on every change of address or number, and once for an inspection made before the name
+// was kept. Writes '' when the register has nothing for it, so the lookup is not repeated;
+// leaves the field alone when the register has not loaded, so it is tried again.
+function syncAptName(){
+  if(!S) return false;
+  // A finished or signed report is a record: its title stays as it was when it was closed.
+  // Editing it unlocks it first (unlockIfLocked), and the name follows from then on.
+  if(S.signedAt || S.closedAt) return false;
+  // Without the register a name cannot be checked against the number it now sits beside, so
+  // it is dropped rather than kept on a number it may not belong to; the next opening looks
+  // it up again (openInsp backfills when it is unset).
+  if(!Array.isArray(window.FASTIGHETER)){
+    if(S.aptName !== undefined){ S.aptName = undefined; return true }
+    return false;
+  }
+  const hit = propOf(S.address), q = tight(S.apt);
+  const row = (hit && q) ? hit.l.find(l => tight(l[0]) === q) : null;
+  const name = (row && realName(row[1])) ? row[1] : '';
+  const changed = (S.aptName||'') !== name;
+  S.aptName = name;
+  return changed;
+}
+// Under the number on the Property step: the name it resolves to, so the pick is visible.
+function paintAptName(){
+  const el = document.getElementById('aptname'); if(!el) return;
+  const n = (S && realName(S.aptName)) ? 'C/O ' + niceName(S.aptName) : '';
+  el.textContent = n; el.style.display = n ? '' : 'none';
+}
 function paintPropSug(){
   const reg = window.FASTIGHETER || [];
   const aEl = document.getElementById('f_address'), pEl = document.getElementById('f_apt');
@@ -3558,6 +3855,11 @@ function paintPropSug(){
   if(!aBox || !pBox) return;
   const aVal = aEl ? aEl.value : '', pVal = pEl ? pEl.value : '';
   const hit = propOf(aVal);
+  // This runs from the fields' own oninput, ahead of the listener that copies them into S:
+  // read them here, so the name under the number never lags a keystroke behind.
+  if(S && aEl) S.address = aVal;
+  if(S && pEl) S.apt = pVal;
+  syncAptName(); paintAptName();
 
   // Addresses: only once something is typed, and not when it already names one exactly.
   let rows = [];
@@ -3578,7 +3880,7 @@ function paintPropSug(){
     const exact = hit.l.some(l => tight(l[0]) === q);
     if(!(exact && m.length === 1)){
       arows = m.slice(0, 12).map(l =>
-        `<button class="sugrow${tight(l[0])===q?' on':''}" onclick="pickApt('${esc(l[0]).replace(/'/g,"\\'")}')"><b>${esc(l[0])}</b>${l[1]? `<span>${esc(l[1])}</span>`:''}</button>`);
+        `<button class="sugrow${tight(l[0])===q?' on':''}" onclick="pickApt('${esc(l[0]).replace(/'/g,"\\'")}')"><b>${esc(l[0])}</b>${realName(l[1])? `<span>${esc(niceName(l[1]))}</span>`:''}</button>`);
       if(m.length > arows.length) arows.push(`<span class="sugmore">+${m.length - arows.length} ${T('more')}</span>`);
     }
   }
@@ -3587,14 +3889,14 @@ function paintPropSug(){
 // Picking writes the same way typing does, so nothing else has to know where it came from.
 function pickAddr(a){
   const el = document.getElementById('f_address'); if(!el) return;
-  el.value = a; unlockIfLocked(); S.address = a; save();
+  el.value = a; unlockIfLocked(); S.address = a; syncAptName(); save();
   paintPropSug();
   const p = document.getElementById('f_apt');
   if(p && !p.value) try{ p.focus() }catch(e){}
 }
 function pickApt(l){
   const el = document.getElementById('f_apt'); if(!el) return;
-  el.value = l; unlockIfLocked(); S.apt = l; save();
+  el.value = l; unlockIfLocked(); S.apt = l; syncAptName(); save();
   paintPropSug();
   try{ el.blur() }catch(e){}
 }
@@ -3640,9 +3942,54 @@ function imgSize(data){
   });
 }
 function fileName(){
-  return (ref()||'Inspection').replace(/[\/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() + '.pdf';
+  return (ref(true)||'Inspection').replace(/[\/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim() + '.pdf';
 }
-async function buildPdf(){
+// What the Signatures block says for one party. Shared by the PDF and the print fallback, so
+// the two cannot disagree. There is no empty line anywhere: nobody draws on a PDF, so an empty
+// line only ever meant a signature that was not given, and the name, the role and a plain word
+// say that better than a blank.
+//   image     drawn and approved on the pad: the image, with the line it sits on
+//   remote    signed through the signing link; the image is on the signature page, not here
+//   link      built for the signing link: this party signs on the signature page that will
+//             accompany this very report
+//   awaiting  a signing link is out for this party and has not been signed
+//   expired   the signing link ran out unsigned
+//   none      no signature
+// A link's real state. The server says 'expired' only when it is asked, and a phone that
+// could not ask - or asked after the record was gone - would otherwise keep 'pending' for
+// ever; the date on the record settles it either way.
+const linkExpired = q => !!(q && (q.status==='expired' || (q.status==='pending' && q.expires && Date.now() > q.expires)));
+const linkPending = q => !!(q && q.status==='pending' && !linkExpired(q));
+function sigPlan(who, forSigning){
+  const sg = S.sig && S.sig[who];
+  if(sg && sg.data) return {kind:'image', sg};
+  if(sg && sg.remote) return {kind:'remote', sg};
+  const q = S.signReq;
+  if(who==='counter'){
+    if(forSigning) return {kind:'link', sg:null};
+    if(linkPending(q)) return {kind:'awaiting', sg:null};
+    if(linkExpired(q)) return {kind:'expired', sg:null};
+  }
+  return {kind:'none', sg:null};
+}
+const SIG_TEXT = {
+  remote:   ['Signed digitally via signing link.', 'The signature page is in the report that was sent.'],
+  link:     ['Signs digitally via the signing link.', 'The signature page accompanies this report.'],
+  awaiting: ['Awaiting signature via the signing link.'],
+  expired:  ['The signing link expired unsigned.'],
+  none:     ['No signature']
+};
+// The note under the Signatures heading when the report was finished without any signing.
+function sigNote(forSigning){
+  if(forSigning || !S.closedAt || S.signedAt) return '';
+  const q = S.signReq;
+  if(linkPending(q) || linkExpired(q)) return '';   // the counterparty's own text says it
+  if(q && q.status==='cancelled') return 'The signing link was revoked, not signed';
+  return 'Finished without signature ' + stamp(new Date(S.closedAt));
+}
+// opts.forSigning: the copy that goes behind a signing link.
+async function buildPdf(opts){
+  const forSigning = !!(opts && opts.forSigning);
   if(!await loadJsPDF()){ toast('Could not load the PDF engine, using print'); return null }
   const doc = new window.jspdf.jsPDF({unit:'pt', format:'a4', compress:true});
   // jsPDF's default font only draws Latin-1. Sanitise all text in one sweep so the user's
@@ -3921,27 +4268,39 @@ async function buildPdf(){
     }
     y += 10;
   } else {
-    need(150);
+    const plans = [['inspector', S.inspector.name, ''], ['counter', S.counter.name, S.counter.role||'']]
+      .map(v => { const p = sigPlan(v[0], forSigning); const rows = [v[1]||'', v[2]||''].filter(Boolean);
+        const lines = p.kind==='image' ? [] : SIG_TEXT[p.kind].concat(p.kind==='remote' && p.sg? [stamp(new Date(p.sg.ts))] : []);
+        return {who:v[0], rows, lines, ...p} });
+    const note = sigNote(forSigning);
+    // The block is as tall as its taller column: a drawn signature with the text under it, or
+    // a few lines of text. Nothing is reserved for a signature that is not there.
+    const half = (CW - 20)/2;
+    const colH = p => p.kind==='image' ? 100 : 14 + 11*(p.rows.length + p.lines.length);
+    const tall = Math.max(...plans.map(colH));
+    need(18 + (note? 10 : 0) + 10 + tall + 10);
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Signatures', M, y+10); y += 18;
-    if(S.closedAt && !S.signedAt){
+    if(note){
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text('Finished without signature '+stamp(new Date(S.closedAt)), M, y+8);
+      doc.text(note, M, y+8);
     }
     y += 10;
-    const half = (CW - 20)/2;
-    [['inspector', S.inspector.name, ''], ['counter', S.counter.name, S.counter.role||'']].forEach((v,i)=>{
-      const x = M + i*(half+20), sg = S.sig[v[0]];
-      if(sg && sg.data){ try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){} }
-      else if(sg && sg.remote){
-        doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(90);
-        doc.text(['Signed digitally via signing link.', 'The signature page is in the report that was sent.'], x, y+32);
-        doc.setTextColor(0); doc.setFont('helvetica','normal');
+    plans.forEach((p,i)=>{
+      const x = M + i*(half+20), sg = p.sg;
+      if(p.kind==='image'){
+        try{ doc.addImage(sg.data, 'PNG', x, y, Math.min(half,180), 54) }catch(e){}
+        doc.setDrawColor(60); doc.setLineWidth(.8); doc.line(x, y+58, x+half, y+58);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text(p.rows.concat([stamp(new Date(sg.ts))]), x, y+70);
+        return;
       }
-      doc.setDrawColor(60); doc.setLineWidth(.8); doc.line(x, y+58, x+half, y+58);
       doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.text([v[1]||'', v[2]||'', sg? stamp(new Date(sg.ts)) : ''], x, y+70);
+      if(p.rows.length) doc.text(p.rows, x, y+10);
+      doc.setFont('helvetica','italic'); doc.setTextColor(120);
+      doc.text(p.lines, x, y+10 + 11*p.rows.length);
+      doc.setTextColor(0); doc.setFont('helvetica','normal');
     });
-    y += 110;
+    y += tall + 10;
   }
 
   const logRows = isCheck()
@@ -4012,7 +4371,7 @@ async function uploadSignPdf(blob, say){
       const r = await putWithProgress('/api/sign-upload', blob, 'application/pdf', 120000,
         pct => { if(pct !== shown){ shown = pct; say(`${T('Uploading the report')} ${pct} %`) } });
       if(r.status===404 || r.status===405) return {ok:false, legacy:true};
-      if(r.status===401) return {ok:false, reason:'ladda om'};
+      if(r.status===401) return {ok:false, reason: r.login? 'login' : 'ladda om'};
       if(r.status===413) return {ok:false, reason:'size'};
       let j = null; try{ j = JSON.parse(r.text) }catch(e){}
       if(r.status>=200 && r.status<300) return (j && j.ok && j.id)? {ok:true, id:j.id} : {ok:false, legacy:true};
@@ -4030,7 +4389,12 @@ function putWithProgress(url, blob, type, ms, onPct){
     Object.keys(AUTH).forEach(k=>x.setRequestHeader(k, AUTH[k]));
     x.timeout = ms;
     x.upload.onprogress = e => { if(e.lengthComputable && onPct) onPct(Math.round(e.loaded*100/e.total)) };
-    x.onload = ()=>res({status:x.status, text:x.responseText||''});
+    x.onload = ()=>{
+      // XHR does not pass through the fetch wrapper, so the login wall is noticed here.
+      const login = x.status===401 && typeof x.getResponseHeader==='function' && !!x.getResponseHeader('X-Beaps-Login');
+      if(login) needLogin();
+      res({status:x.status, text:x.responseText||'', login});
+    };
     x.onerror = ()=>rej(new Error('ingen kontakt'));
     x.ontimeout = ()=>rej(new Error('timeout'));
     x.onabort = ()=>rej(new Error('abort'));
@@ -4047,7 +4411,7 @@ async function parkReport(blob, token){
     try{
       const r = await putWithProgress('/api/report-put?t='+token, blob, 'application/pdf', 120000,
         pct => { if(pct !== shown){ shown = pct; toast(`${T('Uploading the report')} ${pct} %`) } });
-      if(r.status===401) return {ok:false, reason:'ladda om'};
+      if(r.status===401) return {ok:false, reason: r.login? 'login' : 'ladda om'};
       if(r.status===413) return {ok:false, reason:'size'};
       let j = null; try{ j = JSON.parse(r.text) }catch(e){}
       // The id is random per upload, so the report cannot be guessed at from the gallery link.
@@ -4087,7 +4451,7 @@ async function mailPdf(blob, name){
       body: JSON.stringify(body)
     }), body.hosted ? 60000 : 25000);
     if(r.status===429) return {ok:false, reason:'quota'};
-    if(r.status===401) return {ok:false, reason:'ladda om'};
+    if(r.status===401) return {ok:false, reason: loginNeeded(r)? 'login' : 'ladda om'};
     if(!r.ok) return {ok:false, reason:'server '+r.status};
     // Cloudflare responds 200 with the app's HTML on an unknown /api path. Require a real JSON ok
     // so we never claim "Emailed" when the function never ran.
@@ -4105,6 +4469,9 @@ async function sendPdf(){
   toast(T('Sending'));
   const m = await mailPdf(out.blob, out.name);
   if(m.ok){ toast(T('Emailed to') + ' ' + mailTarget()); return }
+  // Not logged in: the login sheet is already up, and the report is still on the phone. A share
+  // sheet on top of it would only be in the way.
+  if(m.reason==='login') return toast(T('Log in and send again'));
   if(m.reason==='size') toast(T('Too large for email, opening share'));
   else if(m.reason==='quota') toast(T('Daily email limit reached, opening share'));
   else if(m.reason==='ladda om') toast(T('Reload the app — opening share'));
@@ -4112,7 +4479,9 @@ async function sendPdf(){
   await sharePdf(out.blob, out.name);
 }
 
-async function backup(){
+// The backup file: the inspection with its photos and video, as one JSON blob. Built apart
+// from the sharing so a test can read what Restore will be given.
+async function buildBackup(){
   // check-ins have the photos on the checklist rows, other types on the rooms.
   // Include both, plus the video, so a backup never becomes silently incomplete.
   const barare = (S.rooms||[]).concat(S.checks||[]);
@@ -4136,7 +4505,10 @@ async function backup(){
   parts.push('}}');
   const blob = new Blob(parts, {type:'application/json'});
   parts.length = 0;
-  const name = fileName().replace(/\.pdf$/,'') + '.json';
+  return {blob, name: fileName().replace(/\.pdf$/,'') + '.json'};
+}
+async function backup(){
+  const {blob, name} = await buildBackup();
   const file = new File([blob], name, {type:'application/json'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:name}); return }
@@ -4176,13 +4548,18 @@ function legacyPrint(){
         Counterparty: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}
       </p>
       ${rows}
+      ${isCheck()? `<p style="font-size:13px;margin-top:20px">Performed by: ${esc(S.inspector.name||'-')}${S.closedAt? '<br>Finished '+stamp(new Date(S.closedAt)) : ''}</p>` : `
       <h3 style="margin-top:20px">Signatures</h3>
+      ${sigNote()? `<p style="font-size:12px;color:#555;margin:0 0 8px">${esc(sigNote())}</p>` : ''}
       <div style="display:flex;gap:30px" class="p-sig">
-        <div>${S.sig.inspector?`<img src="${S.sig.inspector.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
-          <div style="font-size:12px">${esc(S.inspector.name)}<br>${S.sig.inspector?stamp(new Date(S.sig.inspector.ts)):''}</div></div>
-        <div>${S.sig.counter?`<img src="${S.sig.counter.data}">`:'<div style="height:60px;border-bottom:1px solid #333;width:260px"></div>'}
-          <div style="font-size:12px">${esc(S.counter.name)}<br>${esc(S.counter.role||'')}<br>${S.sig.counter?stamp(new Date(S.sig.counter.ts)):''}</div></div>
-      </div>
+        ${[['inspector', S.inspector.name, ''], ['counter', S.counter.name, S.counter.role||'']].map(v=>{
+          const p = sigPlan(v[0]);
+          if(p.kind==='image') return `<div><img src="${p.sg.data}"><div style="font-size:12px">${[esc(v[1]||''), v[2]? esc(v[2]) : '', stamp(new Date(p.sg.ts))].filter(Boolean).join('<br>')}</div></div>`;
+          const lines = SIG_TEXT[p.kind].concat(p.kind==='remote' && p.sg? [stamp(new Date(p.sg.ts))] : []);
+          return `<div style="width:260px"><div style="font-size:12px">${[esc(v[1]||''), v[2]? esc(v[2]) : ''].filter(Boolean).join('<br>')}</div>
+            <div style="font-size:12px;font-style:italic;color:#777">${lines.map(esc).join('<br>')}</div></div>`;
+        }).join('')}
+      </div>`}
       <h3 style="margin-top:20px">Activity log</h3>
       <table style="font:11px monospace;border-collapse:collapse;width:100%">
         ${S.log.map(l=>`<tr><td style="padding:2px 8px 2px 0;white-space:nowrap">${stamp(new Date(l.ts))}</td><td>${esc(l.txt)}</td></tr>`).join('')}
@@ -4193,4 +4570,5 @@ function legacyPrint(){
 
 // Land on the start screen, then wherever the address points.
 renderStart().then(()=>{ if(location.hash === LOG_HASH) openKeyLog() });
+probeWall();
 </script>

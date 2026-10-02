@@ -23,7 +23,12 @@ export default async (req) => {
     if (status !== 'pending' && status !== 'signed') {
       return new Response('The link is no longer valid', { status: 410 });
     }
-    const b64 = await store().get('pdf/' + token, { type: 'text' });
+    // Once signed, the finished document is the one to show: on this host sign-complete merges
+    // the signature page into it and files it under signed/, and the signing page's two links
+    // (the report, and ?cert=1 for the signature page) both mean that file here. Before
+    // 2026-10-02 both returned the unsigned original.
+    let b64 = status === 'signed' ? await store().get('signed/' + token, { type: 'text' }) : null;
+    if (!b64) b64 = await store().get('pdf/' + token, { type: 'text' });
     if (!b64) return new Response('The report could not be found', { status: 404 });
     const safeName = (meta.filename || 'report.pdf').replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
     return new Response(Buffer.from(b64, 'base64'), {

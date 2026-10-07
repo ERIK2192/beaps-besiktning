@@ -1380,6 +1380,25 @@ and from move-in/move-out. The key-photo row keeps Take photo and N/A and gets a
 free-text field for the number and type of keys. Move-in/move-out keep the Keys space (free text
 and camera). Check in/out from the menu is unchanged. Tests: key photo 42, key flow 36, e2e 157.
 
+**2026-10-07: the key log is read only when someone asks for it.** With about 500 bundles the old
+layout (one oldest-first list of every event, read whole by every phone on every start and every
+return to the foreground) would have hit Cloudflare's free limit of 1,000 list calls a day within
+months, and grown slower with every event. Now (`cflib/keys.js`):
+- `kst/<bundle>`: one entry per bundle, where it is now (metadata) and its last 30 events (value).
+  Where all 500 bundles are is one list call, however long the history.
+- `kevr/<reversed time>-<id>`: the log newest first, read one page of 50 at a time.
+- `kev/` (the old layout) is no longer written; it is copied once into the two above by the
+  first read after deploy, at most 250 events a call, and left in place.
+- Each event costs two KV writes and one read.
+The phones fetch nothing on the start screen, on returning to the foreground or on coming back
+online (waiting events are still sent). Opening the scanner or a bundle reads the state; opening a
+bundle's history reads that bundle's history; the key log page (menu, or #nyckellogg) reads the
+state and the newest 50, with *Show more* for the next 50. An app from before the change still gets
+the newest 200 and the state from the same endpoint. Tests: a new server suite of 26
+(`outputs/auth-test/keys-test.mjs`: the carry-over, paging, late and repeated events, 500 bundles
+over 4,000 events read in one list call each), key flow 43 (now counting every read the app makes),
+server 321, e2e 157, upgrade 48, key photo 42.
+
 ---
 
 ## 6. Kvar att göra

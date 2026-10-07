@@ -845,6 +845,7 @@ const SV = {
   'Fill the frame and hold still':'Fyll ramen och håll still',
   'Scanner unavailable — type the number':'Skannern gick inte att ladda — skriv numret',
   'not in the register':'finns inte i registret',
+  'Show more':'Visa fler',
   'Not a key tag':'Ingen nyckelbricka',
   // --- leaving a bundle in an apartment or with a guest ---
   'here':'här',
@@ -2717,8 +2718,9 @@ async function renderStart(){
   $('#bar').className = idx.length ? 'bar' : 'bar raised';
   $('#bar').innerHTML = `<button class="btn" style="width:100%" onclick="newInsp()">${T('New inspection')}</button>`;
   paintTicker();
-  // Catch up with what everyone else has done, then repaint only if it changed something.
-  keySync().then(refreshKeyViews);
+  // Nothing about keys is fetched here (Erik, 2026-10-07: the log loads only when asked for).
+  // The card shows what this phone knows; it is brought up to date whenever a bundle or the
+  // scanner is opened.
 }
 let editList = false;
 function toggleEdit(){ editList = !editList; renderStart() }
@@ -2864,7 +2866,18 @@ const bundleOf = id => (window.NYCKLAR||[]).find(b=>b.id===id);
 function bstate(id){
   return keyState[id] || {status:'in', holder:null, reason:'', since:null, ev:null};
 }
-const eventsFor = id => (keyEvents||[]).filter(e=>e.bundle===id);
+// A bundle's history: what this phone has written, plus what the server has, read only when
+// someone opens the history on the bundle sheet (histLoad).
+const histCache = {};
+const eventsFor = id => { const own = (keyEvents||[]).filter(e=>e.bundle===id), have = new Set(own.map(e=>e.id));
+  return own.concat((histCache[id]||[]).filter(e=>!have.has(e.id))).sort((a,b)=>b.ts-a.ts) };
+async function histLoad(id){
+  try{
+    const r = await fetch('/api/keys-log?view=hist&bundle=' + encodeURIComponent(id), {headers:AUTH});
+    if(r.ok){ const j = await r.json(); histCache[id] = (j.events||[]).filter(e=>e && e.bundle===id) }
+  }catch(e){}
+  const el = document.getElementById('bundle'); if(el && el.dataset.bundle===id) paintBundle(id);
+}
 const outNow = () => Object.keys(keyState||{})
   .filter(id=>keyState[id].status==='out')
   .sort((a,b)=>(keyState[b].since||0) - (keyState[a].since||0));
@@ -2955,20 +2968,19 @@ function keySync(force){
       await keyLocal();
       before = keySig();
       await keyFlush();
-      const r = await fetch('/api/keys-log', {headers:AUTH});
+      // Where every bundle is now: one entry per bundle, however long the history. The log
+      // itself is read only by the key log page (logMore).
+      const r = await fetch('/api/keys-log?view=state', {headers:AUTH});
       if(!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
-      if(Array.isArray(j.events)){
-        const seen = new Set(j.events.map(e=>e.id));
+      if(Array.isArray(j.state)){
+        const seen = new Set(j.state.map(e=>e.id));
         const queued = new Set((keyQueue||[]).map(e=>e.id));
-        // Keep what the server has not shown us yet: anything still unsent, and anything
-        // we sent in the last two minutes. KV takes a few seconds to list a fresh entry,
-        // and without this an event we had just written would vanish from our own screen
-        // until the next sync, taking the bundle's status with it.
+        // Keep only what the server may not show yet: anything still unsent, and anything
+        // sent in the last two minutes (KV takes a few seconds to list a fresh entry).
         const fresh = Date.now() - 120000;
-        const ours = keyEvents.filter(e => !seen.has(e.id) && (queued.has(e.id) || e.ts > fresh));
-        keyEvents = j.events.concat(ours).sort((a,b)=>b.ts-a.ts);
-        if(Array.isArray(j.state)) keyBase = j.state;
+        keyEvents = keyEvents.filter(e => !seen.has(e.id) && (queued.has(e.id) || e.ts > fresh)).sort((a,b)=>b.ts-a.ts);
+        keyBase = j.state;
         keySeenAt = Date.now();
         applyEvents();
         await keyRemember();
@@ -3062,8 +3074,9 @@ function refreshKeyViews(moved){
 }
 // A queued event must not wait for the next visit to the start screen to be sent: catch
 // it the moment connectivity, or the tab itself, comes back.
-window.addEventListener('online', ()=>{ keySync(true).then(refreshKeyViews) });
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') keySync().then(refreshKeyViews) });
+const keySendWaiting = () => { if(keyQueue && keyQueue.length) keyFlush().then(ok=>{ if(ok) refreshKeyViews(true) }) };
+window.addEventListener('online', keySendWaiting);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') keySendWaiting() });
 
 /* ----- menu ----- */
 /* Everything you set once and the phone remembers lives here: who you are, and which
@@ -3231,7 +3244,8 @@ const logLink = () => location.origin + location.pathname + LOG_HASH;
 async function openKeyLog(){
   if(document.getElementById('keylog')) return;
   await keyBoot();
-  const done = keySync(true);        // started before the first paint, so it can say "updating"
+  logEv = []; logCursor = null; logLoaded = false;
+  const done = Promise.all([keySync(true), logMore()]);   // started before the first paint, so it can say "updating"
   const el = document.createElement('div');
   el.className = 'sheet ksheet'; el.id = 'keylog';
   el.innerHTML = keyLogHtml();
@@ -3241,6 +3255,23 @@ async function openKeyLog(){
   // Repaint once the server has answered either way - the "updating" line must go, and
   // a failed fetch changes the hint.
   done.then(()=>{ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() });
+}
+// The log, newest first, one page at a time - read only while the key log page is open.
+let logEv = [], logCursor = null, logLoaded = false, logBusy = false;
+async function logMore(){
+  if(logBusy || (logLoaded && !logCursor)) return;
+  logBusy = true;
+  try{
+    const q = '/api/keys-log?view=events&limit=50' + (logCursor? '&cursor=' + encodeURIComponent(logCursor) : '');
+    const r = await fetch(q, {headers:AUTH});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const have = new Set(logEv.map(e=>e.id));
+    logEv = logEv.concat((j.events||[]).filter(e=>e && okBundle(e.bundle) && !have.has(e.id)));
+    logCursor = j.cursor || null; logLoaded = true;
+  }catch(e){ keyFailAt = Date.now() }
+  finally{ logBusy = false }
+  const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml();
 }
 function closeKeyLog(){
   const el = document.getElementById('keylog'); if(el) el.remove();
@@ -3276,12 +3307,18 @@ function keyLogHtml(){
 
       <div class="csec"><span>${T('Latest')}</span><button class="addc" onclick="copyLogLink()">${T('Copy link')}</button></div>
       <div class="card">
-        ${(keyEvents||[]).slice(0,40).map(e=>`<div class="logline">
+        ${logLines().map(e=>`<div class="logline">
           <b>${stamp(new Date(e.ts))}</b>
           <span><b>${esc(e.bundle)}</b> ${esc(evLine(e))} · <span title="${esc(e.who)}">${esc(iniOf(e.who))}</span>${queuedSuffix(e)}</span>
-        </div>`).join('') || `<span class="hint" style="margin:0">${T('Nothing here yet')}</span>`}
+        </div>`).join('') || `<span class="hint" style="margin:0">${logBusy? T('Updating…') : T('Nothing here yet')}</span>`}
       </div>
+      ${logCursor? `<button class="btn ghost" style="width:100%;margin-top:10px" onclick="logMore()">${logBusy? T('Updating…') : T('Show more')}</button>` : ''}
     </div>`;
+}
+// What this phone has written and not yet seen come back, on top of the pages read so far.
+function logLines(){
+  const have = new Set(logEv.map(e=>e.id));
+  return (keyEvents||[]).filter(e=>!have.has(e.id)).concat(logEv).sort((a,b)=>b.ts-a.ts);
 }
 
 /* ----- the scanner ----- */
@@ -3490,7 +3527,8 @@ function showBundle(id){
 }
 function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove() }
 let histOpen = false;
-function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
+function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(!el) return;
+  paintBundle(el.dataset.bundle); if(histOpen) histLoad(el.dataset.bundle) }
 
 // After checking a bundle in or out, land on the start screen, where the Keys card now
 // shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
@@ -3557,9 +3595,9 @@ function paintBundle(id){
         </div>`).join('')).join('');
       })()}
 
-      ${(()=>{ const ev = eventsFor(id); if(!ev.length) return '';
+      ${(()=>{ const ev = eventsFor(id);
         return `<button class="addc" style="margin:18px 3px 0" onclick="toggleHist()">
-            ${histOpen? T('Hide history') : T('History') + ' (' + ev.length + ')'}</button>
+            ${histOpen? T('Hide history') : T('History')}</button>
           ${histOpen? `<div class="card" style="margin-top:8px">${ev.slice(0,20).map(e=>
             `<div class="logline"><b>${stamp(new Date(e.ts))}</b><span>${esc(evLine(e))}${queuedSuffix(e)}</span></div>`).join('')}</div>` : ''}`;
       })()}

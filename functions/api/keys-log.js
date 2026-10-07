@@ -1,57 +1,70 @@
-// The shared key ledger.
-//   GET /api/keys-log  -> { ok, events:[{id, bundle, kind, who, reason, name, ts}], state:[...] }
+// The shared key ledger, read in the pieces a screen actually needs (2026-10-07).
 //
-// One list call reads every entry's metadata, so this is a single round trip however many
-// check-outs there have been. `events` is the recent tail, newest first - enough for the
-// "Latest" list. `state` is a different cut of the same read: the last event per bundle,
-// over everything the scan saw, so a bundle checked out long before the tail's cutoff and
-// never checked back in is never lost from the phones' idea of what is out.
+//   GET /api/keys-log?view=state                 -> { ok, state }   where every bundle is now
+//   GET /api/keys-log?view=events[&cursor=][&limit=]
+//                                                -> { ok, events, cursor }  the log, newest first,
+//                                                   one page; cursor is null on the last page
+//   GET /api/keys-log?view=hist&bundle=112:3     -> { ok, events }  one bundle's last 30 events
+//   GET /api/keys-log                            -> { ok, events, state }  what an app from before
+//                                                   this change asks for: the newest 200 + state
 //
-// Guarded by the same app key as the writing endpoints. That is a soft guard - the key
-// ships inside the client - and it is worth being honest about what it is for: it keeps
-// the endpoint from being trivially scraped, not from a determined reader. The log holds
-// bundle numbers, apartment names and staff names; an address appears only in a hand-over
-// to an apartment the register does not know yet. Real protection would be Cloudflare
-// Access in front of the app.
+// None of these reads more than it returns. "Where is everything" is one list over ~500
+// entries (cflib/keys.js keeps one per bundle); the log is read a page at a time from the top
+// and only by the key log page. The phones fetch nothing in the background: state when someone
+// opens the scanner or a bundle, the log when someone opens the log.
+//
+// Guarded by the login wall in front of the app, and by the app key as well.
 import { kv, appOk, NO_STORE } from '../../cflib/media.js';
+import { migrate } from '../../cflib/keys.js';
 
-const PREFIX = 'kev/';
-const PAGE = 1000;
-const MAX_RETURNED = 500;
-// KV lists this prefix oldest-first (the key is a zero-padded timestamp), so stopping
-// early would drop the newest events - which is what the old 5000-event guard did once
-// the log grew past it. Read everything; the page cap is only there to stop a runaway
-// loop, and at 1000 events a page it sits far beyond three years of check-outs.
-const MAX_PAGES = 200;
+const OK_BUNDLE = /^[A-Za-z0-9:_-]{1,32}$/;
+
+async function listAll(store, prefix, max) {
+  const out = [];
+  let cursor, pages = 0;
+  do {
+    const page = await store.list({ prefix, limit: 1000, cursor });
+    for (const k of page.keys) if (k.metadata) out.push(k.metadata);
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor && ++pages < max);
+  return out;
+}
+async function eventsPage(store, cursor, limit) {
+  const page = await store.list({ prefix: 'kevr/', limit, cursor: cursor || undefined });
+  return { events: page.keys.map(k => k.metadata).filter(Boolean), cursor: page.list_complete ? null : page.cursor };
+}
 
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
   if (!appOk(request)) return new Response('Reload the app', { status: 401 });
 
-  const events = [];
-  let cursor, pages = 0;
+  const u = new URL(request.url);
+  const view = u.searchParams.get('view') || '';
+  const store = kv(env);
   try {
-    do {
-      const page = await kv(env).list({ prefix: PREFIX, limit: PAGE, cursor });
-      for (const k of page.keys) if (k.metadata) events.push(k.metadata);
-      cursor = page.list_complete ? null : page.cursor;
-    } while (cursor && ++pages < MAX_PAGES);
+    // The old oldest-first log is copied into the new layout the first time anyone asks;
+    // after that this is one read of a marker.
+    await migrate(store);
+
+    if (view === 'state') {
+      return Response.json({ ok: true, state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
+    }
+    if (view === 'events') {
+      const limit = Math.max(1, Math.min(200, Number(u.searchParams.get('limit')) || 50));
+      const p = await eventsPage(store, u.searchParams.get('cursor'), limit);
+      return Response.json({ ok: true, events: p.events, cursor: p.cursor }, { headers: NO_STORE });
+    }
+    if (view === 'hist') {
+      const bundle = u.searchParams.get('bundle') || '';
+      if (!OK_BUNDLE.test(bundle)) return new Response('Bad bundle', { status: 400 });
+      const v = await store.get('kst/' + bundle, { type: 'json' });
+      return Response.json({ ok: true, events: (v && Array.isArray(v.hist)) ? v.hist : [] }, { headers: NO_STORE });
+    }
+    // An app from before this change: the newest 200 and the state, in two list calls.
+    const p = await eventsPage(store, null, 200);
+    return Response.json({ ok: true, events: p.events, state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
   } catch (e) {
-    return new Response('Could not read the log: ' + String(e.message).slice(0, 140), { status: 502 });
+    return new Response('Could not read the log: ' + String(e && e.message).slice(0, 140), { status: 502 });
   }
-
-  // The last event per bundle, whatever it is, is "where is 112:3 right now" - and it has
-  // to survive even for a bundle whose last event fell out of the 500-row tail below.
-  const last = {};
-  // The list is in key order - timestamp, then id - so on a tie the later id wins, which is
-  // the same rule the phones apply. >= makes that the case.
-  for (const e of events) if (!last[e.bundle] || (e.ts || 0) >= (last[e.bundle].ts || 0)) last[e.bundle] = e;
-
-  events.sort((a, b) => (b.ts || 0) - (a.ts || 0));
-  return Response.json({
-    ok: true,
-    events: events.slice(0, MAX_RETURNED),
-    state: Object.values(last)
-  }, { headers: NO_STORE });
 }

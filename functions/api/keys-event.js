@@ -20,12 +20,10 @@
 // exactly what happens when a flaky connection retries - writes the same key twice instead
 // of making a duplicate.
 import { kv, appOk, NO_STORE, clip } from '../../cflib/media.js';
+import { record } from '../../cflib/keys.js';
 
-export const PREFIX = 'kev/';
-const KEEP = 3 * 365 * 86400;          // three years; a key ledger is worth keeping
 const MAX_BATCH = 50;
 const KINDS = ['out', 'in', 'place'];
-const stampKey = ts => String(ts).padStart(13, '0');   // so listing comes back in time order
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -39,7 +37,7 @@ export async function onRequest(context) {
   if (!list.length) return new Response('No events', { status: 400 });
   if (list.length > MAX_BATCH) return new Response('Too many events at once', { status: 413 });
 
-  const saved = [];
+  const saved = [], events = [];
   for (const raw of list) {
     const bundle = clip(raw.bundle, 32).trim();
     const kind = KINDS.includes(raw.kind) ? raw.kind : null;
@@ -65,15 +63,15 @@ export async function onRequest(context) {
       guest: clip(raw.guest, 60)
     };
 
-    try {
-      await kv(env).put(PREFIX + stampKey(ts) + '-' + id, '1', {
-        metadata: event,
-        expirationTtl: KEEP
-      });
-      saved.push(id);
-    } catch (e) {
-      return new Response('Could not write to the log: ' + String(e.message).slice(0, 140), { status: 502 });
-    }
+    events.push(event);
+  }
+
+  // Its own newest-first entry, and its bundle's 'where is it now' (cflib/keys.js).
+  try {
+    await record(kv(env), events);
+    for (const e of events) saved.push(e.id);
+  } catch (e) {
+    return new Response('Could not write to the log: ' + String(e.message).slice(0, 140), { status: 502 });
   }
 
   return Response.json({ ok: true, saved }, { headers: NO_STORE });

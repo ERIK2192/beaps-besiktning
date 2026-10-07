@@ -1373,6 +1373,13 @@ that keeps the green in the dark theme (VML shapes plus Word's text gradient) is
 separate variant and NOT shipped; test files to open in classic Outlook are in
 `outputs/mail-test/` (0 = as before, A = shipped, B = experiment). Tests: 321 + 90.
 
+**2026-10-07: keys are free text and a photo, no scanning in an inspection.** Erik: scanning is not
+in use yet, not every key is in the register, and nothing may stop on a key it does not know.
+The hand-over card (type or scan a bundle number, Leave here) is gone from the shortstay list
+and from move-in/move-out. The key-photo row keeps Take photo and N/A and gets an always-open
+free-text field for the number and type of keys. Move-in/move-out keep the Keys space (free text
+and camera). Check in/out from the menu is unchanged. Tests: key photo 42, key flow 36, e2e 157.
+
 ---
 
 ## 6. Kvar att göra

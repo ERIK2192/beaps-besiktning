@@ -16,6 +16,7 @@
 //   POST /api/sign-complete  { t, sig(dataURL png), name, role }
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { sendMail, longstay, esc, stamp, typeLabel } from '../../cflib/mail.js';
+import { renderSignedMail } from '../../cflib/mail-signed.js';
 import { loadRequest, store, writeMeta, readMeta, b64ToBytes, bytesToB64, reportExists, reportStream } from '../../cflib/sign.js';
 import { readManifest } from '../../cflib/media.js';
 import { dbxOn, uploadFile, cleanPart } from '../../cflib/dropbox.js';
@@ -194,20 +195,11 @@ export async function onRequest(context) {
     'the counterparty saw is exactly what is filed.'
   ].filter(x => x !== '').join('\n');
 
-  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#16325C;line-height:1.5">
-    <p><b>${esc(signed.signedName || 'The counterparty')}</b> has signed the inspection report.</p>
-    <table style="border-collapse:collapse;font-size:14px;margin:0 0 18px">
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Property</td><td style="padding:2px 0"><b>${esc(objekt)}</b></td></tr>
-      ${meta.type ? `<tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Type</td><td style="padding:2px 0">${esc(typeLabel(meta.type))}</td></tr>` : ''}
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Inspector</td><td style="padding:2px 0">${esc(meta.inspector || '-')}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signed by</td><td style="padding:2px 0">${esc(signed.signedName || '-')}${signed.signedRole ? ' (' + esc(signed.signedRole) + ')' : ''}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Signed</td><td style="padding:2px 0">${esc(stamp(signedAt))}</td></tr>
-      <tr><td style="padding:2px 14px 2px 0;color:#6E7C94">Link sent to</td><td style="padding:2px 0">${esc(meta.to)}${meta.cc ? ' (copy ' + esc(meta.cc) + ')' : ''}</td></tr>
-    </table>
-    <p><b>Two files are attached:</b> the report as it was signed, and the signature page
-    belonging to it. The report was not rewritten in order to be signed, so what the
-    counterparty saw is exactly what is filed.</p>
-  </div>`;
+  // The letter itself lives in cflib/mail-signed.js; only the facts go in here.
+  const html = renderSignedMail({
+    name: signed.signedName, role: signed.signedRole, property: objekt, type: typeLabel(meta.type) || '',
+    inspector: meta.inspector, signed: stamp(signedAt), to: meta.to, cc: meta.cc
+  });
 
   const m = await sendMail(env, {
     to: longstay(env),

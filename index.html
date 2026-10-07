@@ -123,6 +123,8 @@
   .yn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .yn.on.no{background:var(--rec);border-color:var(--rec);color:#fff}
   .yn.on.na{background:var(--ink2);border-color:var(--ink2);color:#fff}
+  /* a row answered with a photo: one wide button where Yes and No would be, N/A beside it */
+  .yn.snap{flex:2 1 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .clinks{margin-left:auto;display:flex;align-items:center;gap:14px}
   .addc{margin:0;padding:0;background:none;border:0;line-height:1;font-family:var(--sans);font-size:13px;
         color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
@@ -762,6 +764,8 @@ const SV = {
   'Is there a laundry cylinder/fob + mailbox key?':'Finns tvättcylinder/blipp + postboxnyckel?',
   'Correct name on the door?':'Rätt namn på dörren?',
   'Test that all keys work':'Testa att alla nycklar funkar',
+  'Photograph all the keys':'Fota alla nycklar',
+  'Take more':'Ta fler',
   'Is the apartment comfortably warm?':'Är det lagom varmt i lägenheten?',
   'Is there a thermometer?':'Finns en termometer?',
   'Does the internet work?':'Funkar internet?',
@@ -885,6 +889,7 @@ const CHECKS = [
   {key:'tvattcylinder',       section:'Entrance & mail',     label:'Is there a laundry cylinder/fob + mailbox key?'},
   {key:'dorr_namn',           section:'Door & keys',         label:'Correct name on the door?'},
   {key:'nycklar',             section:'Door & keys',         label:'Test that all keys work'},
+  {key:'nycklar_foto',        section:'Door & keys',         label:'Photograph all the keys'},
   {key:'temperatur',          section:'Climate & tech',      label:'Is the apartment comfortably warm?'},
   {key:'termometer',          section:'Climate & tech',      label:'Is there a thermometer?'},
   {key:'internet',            section:'Climate & tech',      label:'Does the internet work?'},
@@ -915,7 +920,17 @@ const CHECKS = [
 const INVERT = new Set(['router','stolar']);
 // Neutral checks: neither answer is a deviation - nothing turns red or gets counted as one.
 const NEUTRAL = new Set(['eldstad','sakerhetsdorr']);
-const badAnswer = c => NEUTRAL.has(c.key) ? null : (INVERT.has(c.key) ? 'ja' : 'nej');
+// Rows answered with a photo rather than Yes/No (Erik, 2026-10-02: proof that the keys were
+// there). One wide Take photo button where Yes and No would be, N/A beside it. A photo is the
+// answer: it sets the row to 'ja' (printed as PHOTO), and removing the last photo clears it.
+// Never required - left without a photo it is only counted as unanswered, like any other row.
+const PHOTO_ROWS = new Set(['nycklar_foto']);
+const isPhotoRow = c => !!c && PHOTO_ROWS.has(c.key);
+const badAnswer = c => (NEUTRAL.has(c.key) || isPhotoRow(c)) ? null : (INVERT.has(c.key) ? 'ja' : 'nej');
+// The answer as the PDF and the print fallback write it.
+const answerText = (c, none) => !c.val ? none : c.val==='na' ? 'N/A'
+  : isPhotoRow(c) ? ((c.photos||[]).length > 1 ? c.photos.length+' PHOTOS' : 'PHOTO')
+  : c.val==='ja' ? 'YES' : 'NO';
 const isCheck = () => !!S && S.type==='Upplåsning';
 
 // Old inspections stored only the label. Labels that have been rewritten are mapped here,
@@ -963,7 +978,10 @@ function ensureChecks(){
   if(!isCheck()){ if(S && S.checks) S.checks.forEach(c=>{ if(!c.photos) c.photos = [] }); return }
   const old = (S.checks||[]), byKey = {}, used = new Set();
   old.forEach(c=>{ const k = c.key || keyForLabel(c.label); if(k && !byKey[k]) byKey[k] = c });
-  const next = CHECKS.map(def=>{
+  // A finished list keeps the rows it was finished with: a question added to the app later is
+  // not slipped into a list that was already sent. It appears once the list is opened again.
+  const finished = !!(S.signedAt || S.closedAt) && old.length > 0;
+  const next = CHECKS.filter(def => !finished || byKey[def.key]).map(def=>{
     const prev = byKey[def.key];
     if(prev) used.add(prev);
     return {
@@ -1105,6 +1123,7 @@ async function savePhoto(roomId, data){
   await store.set(K.thumb(S.id,pid), th);
   photoCache[pid] = th;
   room.photos.push({id:pid, ts:Date.now()});
+  if(isPhotoRow(room)) room.val = 'ja';   // on a photo row the photo is the answer
   await flushSave();
   schedulePush();      // copy it to the server in a few seconds, without holding up the camera
   return true;
@@ -1322,7 +1341,7 @@ async function render(){
 
     if(isCheck()){
       const list = visibleChecks();
-      const ja = list.filter(c=>c.val==='ja').length;
+      const ja = list.filter(c=>c.val==='ja' && !isPhotoRow(c)).length;   // a key photo is no "yes"; it shows in the photo count
       const nej = list.filter(c=>c.val==='nej').length;
       const na = list.filter(c=>c.val==='na').length;
       const tom = list.filter(c=>!c.val).length;
@@ -1438,19 +1457,25 @@ function checkRow(c){
   const show = (bad!=null && c.val===bad) || c.comment || c.open;
   const cls = v => c.val===v ? (v===bad ? ' on no' : v==='na' ? ' on na' : ' on') : '';
   const parent = c.showIf? checkByKey(c.showIf) : null;
+  const photoRow = isPhotoRow(c), n = (c.photos||[]).length;
+  // a photo row: the camera button takes the place of Yes and No
+  const answers = photoRow
+    ? `<button class="yn snap${c.val==='ja'?' on':''}" onclick="openCam('${c.id}')">${n? `${T('Take more')} (${n})` : T('Take photo')}</button>
+        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">${T('N/A')}</button>`
+    : `<button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">${T('Yes')}</button>
+        <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">${T('No')}</button>
+        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">${T('N/A')}</button>`;
   return `<div class="crow${show?' open':''}${c.showIf?' child':''}" id="crow_${c.id}">
     ${parent? `<div class="cwhen">${T('Follow-up')} · ${esc(T(parent.label))} = ${T('Yes')}</div>`:''}
     <div class="clabel">${esc(T(c.label))}</div>
     <div class="cbtns">
       <span class="ynrow">
-        <button class="yn${cls('ja')}" onclick="setCheck('${c.id}','ja')">${T('Yes')}</button>
-        <button class="yn${cls('nej')}" onclick="setCheck('${c.id}','nej')">${T('No')}</button>
-        <button class="yn${cls('na')}" onclick="setCheck('${c.id}','na')">${T('N/A')}</button>
+        ${answers}
       </span>
       <span class="clinks">
         ${c.key==='internet'? `<button class="wifibtn" onclick="measureWifi('${c.id}')">${T('Measure wifi')}</button>`:''}
         <button class="addc" onclick="openCheckComment('${c.id}')">${T('Comment')}</button>
-        <button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>
+        ${photoRow? '' : `<button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>`}
       </span>
     </div>
     ${c.key==='internet'? `<div class="hint">${T("Make sure the phone is on the apartment's wifi.")}</div>`:''}
@@ -1474,6 +1499,8 @@ function setCheck(id,v){
   saveCheckComments();
   const c = S.checks.find(x=>x.id===id);
   c.val = c.val===v? null : v;
+  // taking N/A back off a photo row that has photos: the photos are its answer again
+  if(!c.val && isPhotoRow(c) && (c.photos||[]).length) c.val = 'ja';
   unlockIfLocked();
   save(); render();
 }
@@ -2559,6 +2586,7 @@ function delPhoto(rid,pid,inCam){
   saveOpenComment(); saveCheckComments(); unlockIfLocked();
   const r=target(rid);
   r.photos = r.photos.filter(p=>p.id!==pid);
+  if(isPhotoRow(r) && !r.photos.length && r.val==='ja') r.val = null;   // the last proof gone: unanswered again
   store.del(K.photo(S.id,pid)); store.del(K.thumb(S.id,pid)); delete photoCache[pid];
   save();
   inCam? paintCam() : render();
@@ -4190,7 +4218,7 @@ async function buildPdf(opts){
       doc.setFont('helvetica','normal'); doc.setFontSize(10);
       doc.text(rows, x0, y+9);
       doc.setFont('helvetica','bold');
-      doc.text(c.val? (c.val==='ja'?'YES': c.val==='na'?'N/A':'NO') : '-', W-M, y+9, {align:'right'});
+      doc.text(answerText(c, '-'), W-M, y+9, {align:'right'});
       let h = rows.length*13;
       if(cmt){
         doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(70);
@@ -4527,7 +4555,7 @@ async function backup(){
 // used to take the app down, and the recipient has the gallery link for full resolution.
 function legacyPrint(){
   const rows = (isCheck()? visibleChecks().map(c=>`<div class="p-room">
-    <h3>${esc(c.label)} — ${c.val? (c.val==='ja'?'YES':c.val==='na'?'N/A':'NO'):'–'}</h3>
+    <h3>${esc(c.label)} — ${answerText(c, '–')}</h3>
     ${c.comment?`<p style="font-size:13px">${esc(c.comment)}</p>`:''}
     <div class="p-photos">${(c.photos||[]).map(p=>`<div><img src="${photoCache[p.id]||''}">
       <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>

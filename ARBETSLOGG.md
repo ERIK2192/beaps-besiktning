@@ -1330,6 +1330,49 @@ table, the wordmark with its fallback, no navy left). Not verified: the renderin
 Outlook, Gmail and Apple Mail (the proof is a real send), and the wordmark's fetch from the
 live host, which needs the deploy.
 
+**And a photo of the keys on the shortstay checklist.** Under "Test that all keys work" a new
+row, "Photograph all the keys" (`nycklar_foto`, Erik 2026-10-02: not required, but good as
+proof). Where Yes and No would be there is one wide *Take photo* button that opens the camera
+on that row, with N/A beside it. The photo is the answer: it sets the row to `ja`, the button
+then reads "Take more (2)" / "Ta fler (2)" (short enough for a 360 px phone; a longer label
+was cut off), the PDF and the print fallback write PHOTO / 2 PHOTOS, and removing the last
+photo makes it unanswered again. It is never a deviation, the finish view does not count it
+as a yes (its photos are in the photo count), and left without a photo it is only counted
+with the unanswered, like any other row. A list already finished
+keeps the rows it was finished with: `ensureChecks` no longer slips a new question into a
+finished or signed list; it appears when the list is opened for editing again. A list in
+progress gets the row, after "Test that all keys work", and loses nothing.
+Tests: a new suite of 40 (`outputs/keyphoto-test/kp.cjs`: the row's place, its buttons and
+width, no clipped label at 390/360 px in both languages, the camera on the right row, photo /
+N/A / back, the counts, the PDF, the print fallback, Swedish, finished and unfinished lists,
+move-in untouched). An independent review found the clipped label and the yes count; both
+fixed. The upgrade test is now
+48, and it found two faults in itself. Its "shortstay" had been saved as type `Upplasning`,
+without the ring, so the checklist path was never exercised; it now uses the real type and
+adds a list finished on the old app. And since the address copy in `paintPropSug` (502f47c),
+it set the address in code while the empty property step was on screen, which the register
+load then copied back. That is not a phone fault, since every way a phone changes the address
+writes the field first; the harness now leaves the property step first. 157 + 50 + 73 + 50 +
+27 + 90 + 315 still pass.
+
+**The signing mail in classic Outlook for Windows.** Erik opened the green letter in classic
+Outlook (Microsoft 365) with the dark Office theme: light teal ground, dark text, a brown
+button, no logo, and rows far too tall. Research with sources (Microsoft, Litmus, Can I Email,
+hteumeuleu/email-bugs #114, Nicole Merlin, matthieuSolente/email-darkmode) gave three causes:
+1. *Colours.* The Black theme flips the lightness of every colour in a mail, dark ones too.
+   No meta tag, media query or data-ogsc rule reaches classic Outlook. The reader can switch it
+   off: the sun button next to Reply, or File > Options > General > "Never change the message
+   background color". Not fixed in code.
+2. *Row heights.* A vertical margin on a `<table>` becomes bottom padding on every cell of it.
+   The measured surplus matched each margin exactly. Fixed: spacer rows instead of margins,
+   the button's line height on its cell, one padding per step row.
+3. *Logo.* Pictures from a new sender are blocked and styled alt text is never shown. Fixed:
+   classic Outlook gets "BEAUTIFUL APARTMENTS" as live text, other clients the picture.
+Rendering in every other client is pixel-identical to before (compared in Edge). An experiment
+that keeps the green in the dark theme (VML shapes plus Word's text gradient) is built as a
+separate variant and NOT shipped; test files to open in classic Outlook are in
+`outputs/mail-test/` (0 = as before, A = shipped, B = experiment). Tests: 321 + 90.
+
 ---
 
 ## 6. Kvar att göra

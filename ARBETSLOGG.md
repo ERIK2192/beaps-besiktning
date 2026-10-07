@@ -1406,6 +1406,11 @@ heading sorts by it, again to reverse; bundle numbers sort as numbers. Export to
 is on screen as CSV (semicolons, UTF-8 with BOM). The log tab holds the pages read so far;
 "Load older (50)" and "Load all" read further back, and only then. On a phone the year and the
 street line are hidden so five columns fit. Tests: key flow 53.
+**2026-10-07: the signing mail is plain.** Classic Outlook's dark theme turned the green letter
+mint, and the experiment that keeps the green there broke the layout. At Erik's request the mail
+now has no colour: white, black text, grey hairlines, a button that is only a black border, and
+the name as text instead of the wordmark picture. A dark theme turns it into an ordinary dark mail.
+The green versions stay in the generator on the canvas; production is `plain.html`. Tests: 320 + 90.
 
 ---
 

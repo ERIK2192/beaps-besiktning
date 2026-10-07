@@ -1398,6 +1398,14 @@ the newest 200 and the state from the same endpoint. Tests: a new server suite o
 (`outputs/auth-test/keys-test.mjs`: the carry-over, paging, late and repeated events, 500 bundles
 over 4,000 events read in one list call each), key flow 43 (now counting every read the app makes),
 server 321, e2e 157, upgrade 48, key photo 42.
+**2026-10-07: the key log as a searchable table.** The key log page (menu, or #nyckellogg) is
+now a spreadsheet-like table with one search box: every word has to match somewhere in the row
+(number, apartment, address, person, place, guest, reason). Two tabs: "Where now" (every bundle
+in the register and any the log knows, out first) and "Log" (events, newest first). A click on a
+heading sorts by it, again to reverse; bundle numbers sort as numbers. Export to Excel saves what
+is on screen as CSV (semicolons, UTF-8 with BOM). The log tab holds the pages read so far;
+"Load older (50)" and "Load all" read further back, and only then. On a phone the year and the
+street line are hidden so five columns fit. Tests: key flow 53.
 
 ---
 

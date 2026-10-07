@@ -259,6 +259,31 @@
   .kbtns .btn{flex:1 1 auto;width:auto}
   /* log lines wrap instead of holding the timestamp in a rigid column */
   .ksheet .logline{display:block;font-size:12px;line-height:1.5}
+  /* the key log table */
+  #keylog .klwrap{max-width:1100px}
+  .klsearch{margin:4px 0 10px}
+  .kltabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .kltabs .addc{margin-left:10px}
+  .kltab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600}
+  .kltab.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .klcount{font-size:12px;color:var(--ink2);margin:2px 3px 8px}
+  .kltable-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid var(--line);border-radius:12px}
+  .kltable{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+  .kltable th{position:sticky;top:0;background:#F6F5F2;text-align:left;font-weight:650;padding:9px 10px;
+              border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+  .kltable th.on{color:var(--ink)}
+  .klarrow{font-size:10px;margin-left:4px;color:var(--ink2)}
+  .kltable td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .kltable tbody tr:nth-child(even) td{background:#FBFAF8}
+  .kltable tbody tr{cursor:pointer}
+  .kltable tbody tr:hover td{background:#F2F4F8}
+  .kltable .kl-ts{white-space:nowrap;font-family:var(--num);font-size:12px}
+  .kltable .kl-id{white-space:nowrap}
+  .kltable .kstat{font-size:11px;padding:3px 8px}
+  .kladdr{font-size:11px;color:var(--ink2)}
+  .klnone{color:var(--ink2);text-align:center;padding:18px 10px}
+  /* a phone: no year, no street line, smaller type - the table is for finding a bundle, not reading */
+  @media (max-width:600px){ .klyr,.kladdr{display:none} .kltable{font-size:12px;min-width:0} .kltable td,.kltable th{padding:7px 6px} .kltable .kl-apt{min-width:90px} }
   .ksheet .logline b{display:inline;margin-right:8px}
   /* one physical key per row: type and marking on the same line */
   .ksheet .krow{padding:10px 12px}
@@ -846,6 +871,25 @@ const SV = {
   'Scanner unavailable — type the number':'Skannern gick inte att ladda — skriv numret',
   'not in the register':'finns inte i registret',
   'Show more':'Visa fler',
+  'Search: number, apartment, address, name':'Sök: nummer, lägenhet, adress, namn',
+  'Where now':'Var nu',
+  'Log':'Logg',
+  'Export to Excel':'Exportera till Excel',
+  'Bundle':'Knippa',
+  'Apartment':'Lägenhet',
+  'Status':'Status',
+  'Who':'Vem',
+  'Where':'Var',
+  'Since':'Sedan',
+  'Time':'Tid',
+  'What':'Vad',
+  'rows':'rader',
+  'older rows not loaded yet':'äldre rader inte hämtade än',
+  'No matches':'Inga träffar',
+  'Showing the first':'Visar de första',
+  'Search to narrow it down.':'Sök för att smalna av.',
+  'Load older (50)':'Hämta äldre (50)',
+  'Load all':'Hämta hela loggen',
   'Not a key tag':'Ingen nyckelbricka',
   // --- leaving a bundle in an apartment or with a guest ---
   'here':'här',
@@ -3068,7 +3112,7 @@ function refreshKeyViews(moved){
   const bundleEl = document.getElementById('bundle');
   if(bundleEl) return paintBundle(bundleEl.dataset.bundle);
   const logEl = document.getElementById('keylog');
-  if(logEl) return logEl.innerHTML = keyLogHtml();
+  if(logEl) return paintLogBody();
   if(document.getElementById('inspkeys')) return paintInspKeyCard();   // in place: a comment mid-typing must survive
   if(view==='start') renderStart();
 }
@@ -3254,15 +3298,15 @@ async function openKeyLog(){
   if(location.hash !== LOG_HASH) try{ history.replaceState(null, '', logLink()) }catch(e){}
   // Repaint once the server has answered either way - the "updating" line must go, and
   // a failed fetch changes the hint.
-  done.then(()=>{ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() });
+  done.then(()=>{ const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml() });   // the count in the top bar too
 }
 // The log, newest first, one page at a time - read only while the key log page is open.
 let logEv = [], logCursor = null, logLoaded = false, logBusy = false;
-async function logMore(){
+async function logMore(size){
   if(logBusy || (logLoaded && !logCursor)) return;
   logBusy = true;
   try{
-    const q = '/api/keys-log?view=events&limit=50' + (logCursor? '&cursor=' + encodeURIComponent(logCursor) : '');
+    const q = '/api/keys-log?view=events&limit=' + (size || 50) + (logCursor? '&cursor=' + encodeURIComponent(logCursor) : '');
     const r = await fetch(q, {headers:AUTH});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
@@ -3271,7 +3315,7 @@ async function logMore(){
     logCursor = j.cursor || null; logLoaded = true;
   }catch(e){ keyFailAt = Date.now() }
   finally{ logBusy = false }
-  const s = document.getElementById('keylog'); if(s) s.innerHTML = keyLogHtml();
+  paintLogBody();
 }
 function closeKeyLog(){
   const el = document.getElementById('keylog'); if(el) el.remove();
@@ -3285,35 +3329,132 @@ async function copyLogLink(){
   try{ await navigator.clipboard.writeText(url); toast(T('Link copied')) }
   catch(e){ prompt(T('Copy the link:'), url) }   // same fallback as the other links
 }
-/* One list: every bundle that is not in the cabinet, whoever has it and wherever it is.
-   The person is the circle of initials on the left - a full name on every row was the bulk
-   of the text on this screen, and the number is what anyone is actually looking for. The
-   name is still there on a press, and spelled out on the bundle itself. */
-function keyLogHtml(){
-  const rows = outNow().concat(placedNow()).sort((a,b)=>(keyState[b].since||0) - (keyState[a].since||0));
-  const q = (keyQueue||[]).length, hint = syncHint();
-  return topbar(T('Key log'), keySyncP? T('Updating…') : rows.length + ' ' + T('out'), null, "closeKeyLog()") + `
-    <div class="wrap">
-      ${hint? `<div class="hint" style="margin:0 3px 10px">${hint}</div>` : ''}
-      ${q? `<div class="kwait" style="margin:0 3px 10px">${q} ${T('waiting')}</div>` : ''}
-      ${rows.length? rows.map(id=>{ const s = keyState[id], who = whoOf(s); return `
-        <button class="list-item" onclick="closeKeyLog();showBundle('${id}')">
-          <span class="kini" title="${esc(who)}">${esc(iniOf(who))}</span>
-          <span style="min-width:0"><b>${esc(id)}${s.ev && s.ev.name? ' · '+esc(s.ev.name):''}</b>
-            <div class="klsub">${s.status==='placed'? esc(placeLabel(s)) + ' · ' : ''}${stamp(new Date(s.since))}${queuedSuffix(s.ev)}</div></span>
-          <span class="chev">›</span>
-        </button>`}).join('')
-        : `<div class="card"><span class="hint" style="margin:0">${T('All keys are in the cabinet')}</span></div>`}
+/* The key log as a table you can search and sort, like a spreadsheet (Erik, 2026-10-07).
+   Two tabs: "Where now" - every bundle in the register and any the log knows of, with where it
+   is - and "Log", every event newest first. One search box filters both as you type; every word
+   has to match somewhere in the row (number, apartment, address, person, place, guest, reason).
+   A click on a column heading sorts by it, a second click turns the order round. Export saves
+   what is on screen as a file Excel opens. The log is read 50 rows at a time; "Load all" reads
+   the rest when a search has to reach further back. Nothing here is fetched unless this page is
+   open. */
+let logTab = 'now', logQ = '', logSort = { now: ['status', 1], log: ['ts', -1] };
+const STATUS_ORDER = { out: 0, placed: 1, in: 2 };
+const qWords = q => String(q||'').toLowerCase().split(/\s+/).filter(Boolean);
+const rowHits = (hay, ws) => { const h = hay.toLowerCase(); return ws.every(w => h.indexOf(w) >= 0) };
+const aptOf = (id, ev) => { const b = bundleOf(id); return b ? ('lgh ' + b.l + (b.n ? ' ' + b.n : '')) : ((ev && ev.name) || '') };
+const addrOf = id => { const b = bundleOf(id); return b ? b.a : '' };
+const statusText = st => st === 'out' ? T('Out') : st === 'placed' ? T('In apartment') : T('In the cabinet');
 
-      <div class="csec"><span>${T('Latest')}</span><button class="addc" onclick="copyLogLink()">${T('Copy link')}</button></div>
-      <div class="card">
-        ${logLines().map(e=>`<div class="logline">
-          <b>${stamp(new Date(e.ts))}</b>
-          <span><b>${esc(e.bundle)}</b> ${esc(evLine(e))} · <span title="${esc(e.who)}">${esc(iniOf(e.who))}</span>${queuedSuffix(e)}</span>
-        </div>`).join('') || `<span class="hint" style="margin:0">${logBusy? T('Updating…') : T('Nothing here yet')}</span>`}
+function nowRows(){
+  const ids = new Set((window.NYCKLAR||[]).map(b=>b.id).concat(Object.keys(keyState||{})));
+  return [...ids].filter(okBundle).map(id=>{
+    const st = bstate(id), status = st.status || 'in';
+    return { id, apt: aptOf(id, st.ev), addr: addrOf(id), status,
+      who: status === 'out' ? (st.holder||'') : status === 'placed' ? (st.by||'') : '',
+      where: status === 'placed' ? placeLabel(st) : status === 'out' ? (st.reason||'') : '',
+      ts: status === 'in' ? (st.ev ? st.ev.ts : 0) : (st.since||0), ev: st.ev };
+  });
+}
+function logRows(){
+  return logLines().map(e=>({ id: e.bundle, apt: aptOf(e.bundle, e), addr: addrOf(e.bundle), what: evLine(e),
+    who: e.who||'', ts: e.ts||0, ev: e, key: e.id }));
+}
+const NOW_COLS = [['id','Bundle'], ['apt','Apartment'], ['status','Status'], ['who','Who'], ['where','Where'], ['ts','Since']];
+const LOG_COLS = [['ts','Time'], ['id','Bundle'], ['apt','Apartment'], ['what','What'], ['who','Who']];
+// Bundle numbers sort as numbers: 112:3 before 112:10, 99:1 before 112:1.
+const bundleKey = id => { const m = /^(\d+):?(\d+)?/.exec(id||''); return m ? [Number(m[1]), m[2] != null ? Number(m[2]) : 1e9, id] : [1e12, 0, id] };
+function cmpBy(col){
+  return (x, y) => {
+    if(col === 'id'){ const p = bundleKey(x.id), q = bundleKey(y.id); return p[0]-q[0] || p[1]-q[1] || String(p[2]).localeCompare(q[2]) }
+    if(col === 'ts') return (x.ts||0) - (y.ts||0);
+    if(col === 'status') return STATUS_ORDER[x.status] - STATUS_ORDER[y.status] || (y.ts||0) - (x.ts||0);
+    return String(x[col]||'').localeCompare(String(y[col]||''), 'sv');
+  };
+}
+function shownRows(){
+  const ws = qWords(logQ), rows = logTab === 'now' ? nowRows() : logRows();
+  const hay = r => [r.id, r.apt, r.addr, r.who, r.where||'', r.what||'', r.ev ? [r.ev.reason, r.ev.place, r.ev.guest, r.ev.from].join(' ') : '',
+    logTab === 'now' ? statusText(r.status) : ''].join(' ');
+  const [col, dir] = logSort[logTab];
+  return rows.filter(r => !ws.length || rowHits(hay(r), ws)).sort((x, y) => dir * cmpBy(col)(x, y));
+}
+function keyLogHtml(){
+  const out = Object.values(keyState||{}).filter(s=>s.status!=='in').length;
+  return topbar(T('Key log'), keySyncP? T('Updating…') : out + ' ' + T('out'), null, "closeKeyLog()") + `
+    <div class="wrap klwrap">
+      <input id="klq" class="klsearch" type="search" value="${esc(logQ)}" autocomplete="off" spellcheck="false"
+             placeholder="${T('Search: number, apartment, address, name')}" oninput="logQ=this.value;paintLogBody()">
+      <div class="kltabs">
+        <button class="kltab${logTab==='now'?' on':''}" onclick="logTab='now';paintLogBody()">${T('Where now')}</button>
+        <button class="kltab${logTab==='log'?' on':''}" onclick="logTab='log';paintLogBody()">${T('Log')}</button>
+        <span style="flex:1"></span>
+        <button class="addc" onclick="exportLog()">${T('Export to Excel')}</button>
+        <button class="addc" onclick="copyLogLink()">${T('Copy link')}</button>
       </div>
-      ${logCursor? `<button class="btn ghost" style="width:100%;margin-top:10px" onclick="logMore()">${logBusy? T('Updating…') : T('Show more')}</button>` : ''}
+      <div id="klbody">${logBodyHtml()}</div>
     </div>`;
+}
+function logBodyHtml(){
+  const hint = syncHint(), q = (keyQueue||[]).length;
+  const cols = logTab === 'now' ? NOW_COLS : LOG_COLS, [scol, sdir] = logSort[logTab];
+  const rows = shownRows(), total = logTab === 'now' ? nowRows().length : logLines().length;
+  const LIMIT = 400, list = rows.slice(0, LIMIT);
+  const cell = (r, c) => {
+    if(c === 'id') return `<b>${esc(r.id)}</b>`;
+    if(c === 'ts'){ if(!r.ts) return ''; const t = stamp(new Date(r.ts)); return '<span class="klyr">' + esc(t.slice(0,5)) + '</span>' + esc(t.slice(5)) }
+    if(c === 'status') return `<span class="kstat ${r.status==='out'?'out':r.status==='placed'?'pl':'in'}">${statusText(r.status)}</span>`;
+    if(c === 'apt') return esc(r.apt) + (r.addr ? `<div class="kladdr">${esc(r.addr)}</div>` : '');
+    if(c === 'who') return `<span title="${esc(r.who)}">${esc(r.who)}</span>`;
+    return esc(r[c]||'') + (c === 'what' ? queuedSuffix(r.ev) : '');
+  };
+  return `
+    ${hint? `<div class="hint" style="margin:6px 3px 8px">${hint}</div>` : ''}
+    ${q? `<div class="kwait" style="margin:6px 3px 8px">${q} ${T('waiting')}</div>` : ''}
+    <div class="klcount">${rows.length === total ? total + ' ' + T('rows') : rows.length + ' ' + T('of') + ' ' + total + ' ' + T('rows')}${
+      logTab==='log' && logCursor ? ' · ' + T('older rows not loaded yet') : ''}</div>
+    <div class="kltable-wrap"><table class="kltable">
+      <thead><tr>${cols.map(([c, label])=>`<th onclick="logSortBy('${c}')" class="${c===scol?'on':''}">${T(label)}<span class="klarrow">${c===scol ? (sdir>0?'▲':'▼') : ''}</span></th>`).join('')}</tr></thead>
+      <tbody>${list.map(r=>`<tr onclick="logOpen('${r.id}')">${cols.map(([c])=>`<td class="kl-${c}">${cell(r, c)}</td>`).join('')}</tr>`).join('')
+        || `<tr><td colspan="${cols.length}" class="klnone">${(logTab==='log' && logBusy) ? T('Updating…') : T('No matches')}</td></tr>`}</tbody>
+    </table></div>
+    ${rows.length > LIMIT ? `<div class="klcount" style="margin-top:8px">${T('Showing the first')} ${LIMIT}. ${T('Search to narrow it down.')}</div>` : ''}
+    ${logTab==='log' && logCursor ? `<div class="kbtns">
+        <button class="btn ghost" onclick="logMore()">${logBusy? T('Updating…') : T('Load older (50)')}</button>
+        <button class="btn ghost" onclick="logAll()">${T('Load all')}</button></div>` : ''}`;
+}
+// Repaint below the search box only, so the box keeps focus and the caret mid-typing.
+function paintLogBody(){
+  const sh = document.getElementById('keylog'); if(!sh) return;
+  const body = document.getElementById('klbody');
+  if(!body){ sh.innerHTML = keyLogHtml(); return }
+  body.innerHTML = logBodyHtml();
+  sh.querySelectorAll('.kltab').forEach((t, i) => t.classList.toggle('on', (i === 0) === (logTab === 'now')));
+}
+function logSortBy(col){
+  const cur = logSort[logTab];
+  logSort[logTab] = cur[0] === col ? [col, -cur[1]] : [col, col === 'ts' ? -1 : 1];
+  paintLogBody();
+}
+function logOpen(id){ if(!bundleOf(id)) return; closeKeyLog(); showBundle(id) }
+// The whole log, for a search that has to reach back further than the pages read so far.
+async function logAll(){
+  let guard = 0;
+  while(logCursor && guard++ < 200){ await logMore(200); if(!document.getElementById('keylog')) return }
+}
+// What is on screen, as a file Excel opens straight away: semicolons (Swedish Excel), and a
+// byte-order mark so å, ä and ö come through.
+function exportLog(){
+  const cols = logTab === 'now' ? NOW_COLS : LOG_COLS;
+  const val = (r, c) => c === 'ts' ? (r.ts ? stamp(new Date(r.ts)) : '') : c === 'status' ? statusText(r.status)
+    : c === 'apt' ? [r.apt, r.addr].filter(Boolean).join(', ') : String(r[c]||'');
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const lines = [cols.map(([, l]) => q(T(l))).join(';')].concat(shownRows().map(r => cols.map(([c]) => q(val(r, c))).join(';')));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (logTab === 'now' ? 'Nycklar-var-nu-' : 'Nyckellogg-') + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 // What this phone has written and not yet seen come back, on top of the pages read so far.
 function logLines(){

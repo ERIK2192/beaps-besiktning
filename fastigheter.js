@@ -85,7 +85,7 @@ window.FASTIGHETER = [
   { a:'Sveavägen 74A', l:[] },
   { a:'Sveavägen 76', l:[] },
   { a:'Sveavägen 76A', l:[] },
-  { a:'Swedenborgsgatan 13', l:[] },
+  { a:'Swedenborgsgatan 13', l:[["1101","FERRET"],["1102","EAGLE"],["1103","CROW"],["1104","FOX"],["1105","DEER"],["1201","WOLF"],["1202","BEAR"],["1203","BADGER"],["1204","TIGER"],["1205","HAWK"],["1301","BIRD"],["1302","OTTER"],["1501","LION"],["1502","GAZELLE"],["1503","OWL"]] },
   { a:'Thorildsvägen 3', l:[] },
   { a:'Torsten Alms gata 41', l:[['1102']] },
   { a:'Torsten Alms gata 43', l:[['1002','TAMARIND']] },

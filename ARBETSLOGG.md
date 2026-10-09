@@ -1683,3 +1683,8 @@ Granskningen hittade och rättade risker för oavsiktlig omorganisation och för
 - Teknikdokumentation kan fortfarande nås i gränssnittet efter byte till Shortstay. Kommentarer tas om hand före byte mellan rum, teknikkommentar och typ.
 
 Reproducerbara säkerhetstester finns i `tests/new-property-safety.mjs` och `tests/dropbox-filing.mjs`. Dropbox-testet har 56 godkända kontroller mot en lokal ersättning; nya objekt har även verifierats med 78 webbläsarkontroller. Ingen riktig Dropbox-data har lästs, flyttats eller raderats vid granskningen. Ingen push eller driftsättning ingår.
+### 2026-10-09 — Swedenborgsgatan 13, lokalt nyckelunderlag
+
+Användarens tabell med 229 nyckelrader har lagts till som 62 knippor i nycklar.js och 15 lägenheter i fastigheter.js. De 30 befintliga knipporna har jämförts före/efter och är oförändrade. Upprepade rader, tomma märkningar och de sju kommentarerna har bevarats exakt; inga slutsatser om aktuell utlåningsstatus har förts in i nyckelloggen.
+
+CSV och källtext finns i outputs/nyckellista/Swedenborgsgatan-13-nycklar.csv respektive swedenborg-kalla.txt. Gröna etiketter genereras från samma knippnummer; samtliga 62 QR-koder är avlästa tillbaka med appens QR-läsare. Underlaget anger 15 lägenheter men bekräftar inte att hela huset omfattas. Utlåningskommentarer, okända nycklar och återanvända brickmärkningar behöver stämmas av vid inventering.

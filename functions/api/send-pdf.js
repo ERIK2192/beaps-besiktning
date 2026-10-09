@@ -3,7 +3,7 @@
 //   POST /api/send-pdf  { filename, subject, kind, gallery, hosted:<report id> }   bigger: the app
 //                        has already parked the PDF in the gallery's storage with report-put, and
 //                        the mail carries a media-file link that Resend fetches itself
-import { sendMail, longstay, shortstay, appOk } from '../../cflib/mail.js';
+import { sendMail, longstay, shortstay, newProperty, appOk } from '../../cflib/mail.js';
 import { readManifest, cleanToken, r2, fileKey, isReportId } from '../../cflib/media.js';
 import { dbxOn, uploadFile, cleanPart } from '../../cflib/dropbox.js';
 import { b64ToBytes } from '../../cflib/sign.js';
@@ -55,8 +55,8 @@ export async function onRequest(context) {
     } catch (e) {}
   }
 
-  // shortstay check-ins to guestservice, everything else to longstay
-  const to = kind === 'upplasning' ? shortstay(env) : longstay(env);
+  // shortstay check-ins to guestservice, a new property to Mike, everything else to longstay
+  const to = kind === 'upplasning' ? shortstay(env) : kind === 'nyttobjekt' ? newProperty(env) : longstay(env);
 
   const m = await sendMail(env, {
     to,

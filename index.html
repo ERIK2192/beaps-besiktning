@@ -554,6 +554,9 @@ const SV = {
   'Dishwasher: model and serial number':'Diskmaskin: modell och serienummer',
   'Washing machine/tumble dryer: model and serial number':'Tvättmaskin/torktumlare: modell och serienummer',
   'Stove/oven: model and serial number':'Spis/ugn: modell och serienummer',
+  'Microwave: model and serial number':'Mikro: modell och serienummer',
+  'Kitchen fan: natural draught or mechanical':'Köksfläkt: självdrag eller mekanisk',
+  'Storage room':'Förråd',
   'Main water shut-off and where it is':'Huvudavstängning för vatten och var den sitter',
   'Electricity meter: meter number and reading':'Elmätare: mätarnummer och mätarställning',
   'Router/fibre box and where the sockets are':'Router/fiberbox och uttagens placering',
@@ -595,7 +598,7 @@ const SV = {
   // --- signature ---
   'The counterparty':'Motparten',
   'signed digitally via signing link':'signerade digitalt via signeringslänk',
-  'Already emailed to michal@beaps.se.':'Redan mejlad till michal@beaps.se.',
+  'Already emailed to longstay@beaps.se.':'Redan mejlad till longstay@beaps.se.',
   'Signed':'Signerat',
   'Signature saved':'Signaturen sparades',
   'Save the app to the home screen':'Spara appen på hemskärmen',
@@ -658,7 +661,7 @@ const SV = {
   'Emails a link where the counterparty sees the whole report and signs in the browser.':'Mejlar en länk där motparten ser hela rapporten och signerar i webbläsaren.',
   'Remote signing':'Signering på distans',
   'signed via the link that was sent to':'signerade via länken som skickades till',
-  'The report has been emailed to michal@beaps.se with a copy to the recipient.':'Rapporten har mejlats till michal@beaps.se med en kopia till mottagaren.',
+  'The report has been emailed to longstay@beaps.se with a copy to the recipient.':'Rapporten har mejlats till longstay@beaps.se med en kopia till mottagaren.',
   'The link to':'Länken till',
   'is revoked.':'är återkallad.',
   'Send a new link':'Skicka en ny länk',
@@ -667,7 +670,7 @@ const SV = {
   'Sent to':'Skickad till',
   'copy':'kopia',
   'valid until':'giltig till',
-  'Emailed to michal@beaps.se as soon as it is signed.':'Mejlas till michal@beaps.se så snart den är signerad.',
+  'Emailed to longstay@beaps.se as soon as it is signed.':'Mejlas till longstay@beaps.se så snart den är signerad.',
   'Check status':'Kontrollera status',
   'Revoke':'Återkalla',
   // --- send signing link sheet ---
@@ -951,6 +954,8 @@ const TECH = [
   {key:'diskmaskin',   label:'Dishwasher: model and serial number',                   file:'Dishwasher'},
   {key:'tvatt',        label:'Washing machine/tumble dryer: model and serial number', file:'Washing machine'},
   {key:'spis',         label:'Stove/oven: model and serial number',                   file:'Stove oven'},
+  {key:'mikro',        label:'Microwave: model and serial number',                    file:'Microwave'},
+  {key:'koksflakt',    label:'Kitchen fan: natural draught or mechanical',            file:'Kitchen fan'},
   {key:'vatten',       label:'Main water shut-off and where it is',                   file:'Water shut-off'},
   {key:'elmatare',     label:'Electricity meter: meter number and reading',           file:'Electricity meter'},
   {key:'router',       label:'Router/fibre box and where the sockets are',            file:'Router'},
@@ -958,6 +963,7 @@ const TECH = [
   {key:'golvvarme',    label:'Underfloor heating',                                    file:'Underfloor heating'},
   {key:'sakerhetsdorr',label:'Security door',                                         file:'Security door'},
   {key:'forberett',    label:'Prepared for dishwasher/washing machine',               file:'Machine connections'},
+  {key:'forrad',       label:'Storage room',                                          file:'Storage room'},
   {key:'ovrigt',       label:'Anything else worth documenting',                       file:'Other'}
 ];
 // section: heading in the list and in the PDF. The order follows the walkthrough of the
@@ -1923,7 +1929,7 @@ function sigBlock(who){
       <div style="font-size:14px"><b>${esc(s.name||T('The counterparty'))}</b> ${T('signed digitally via signing link')}</div>
       <div class="hint" style="font-family:var(--mono);font-size:11px;margin-top:4px">${stamp(new Date(s.ts))}</div>
     </div>
-    <div class="hint">${T('Already emailed to michal@beaps.se.')}</div>`;
+    <div class="hint">${T('Already emailed to longstay@beaps.se.')}</div>`;
   if(s) return `<div class="sigdone"><img src="${s.data}" alt="signature"></div>
     <div class="hint" style="font-family:var(--mono);font-size:11px">${T('Signed')} ${stamp(new Date(s.ts))}</div>`;
   return `<canvas class="sigpad" id="pad_${who}"></canvas>
@@ -2317,7 +2323,7 @@ function signReqCard(){
     <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
     <span class="locknote">${T('Signed')} ${stamp(new Date(q.signedAt||Date.now()))}</span>
     <div class="hint">${esc(q.signedName||q.name||T('The counterparty'))} ${T('signed via the link that was sent to')}
-      ${esc(q.to)}. ${T('The report has been emailed to michal@beaps.se with a copy to the recipient.')}</div>
+      ${esc(q.to)}. ${T('The report has been emailed to longstay@beaps.se with a copy to the recipient.')}</div>
   </div>`;
 
   if(q.status==='cancelled') return `<div class="card">
@@ -2333,7 +2339,7 @@ function signReqCard(){
     <div style="font-size:14px;color:var(--ink2)">
       ${T('Sent to')} ${esc(q.to)}${q.cc? ', '+T('copy')+' '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · '+T('valid until')+' '+stamp(new Date(q.expires)):''}
     </div>
-    <div class="hint">${T('Emailed to michal@beaps.se as soon as it is signed.')}</div>
+    <div class="hint">${T('Emailed to longstay@beaps.se as soon as it is signed.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn ghost small" onclick="checkSignStatus()">${T('Check status')}</button>
       <button class="btn ghost small" onclick="copySignLink()">${T('Copy link')}</button>
@@ -4621,7 +4627,7 @@ async function doExport(){
   if(!out) return legacyPrint();
   await sharePdf(out.blob, out.name);
 }
-const mailTarget = () => 'michal@beaps.se';
+const mailTarget = () => isCheck()? 'guestservice@beaps.se' : isNewProp()? 'michal@beaps.se' : 'longstay@beaps.se';
 // Up to this size the PDF rides base64-encoded inside the request, as it always has. Above it
 // the report is parked in the gallery's storage first (report-put) and the mail carries a link
 // the mail service fetches itself, so the server never holds the bytes as text. That is what
@@ -4706,7 +4712,7 @@ async function mailPdf(blob, name){
   if(blob.size > MAIL_MAX) return {ok:false, reason:'size'};
   const body = {
     filename: name,
-    kind: isCheck()? 'upplasning' : 'besiktning',
+    kind: isCheck()? 'upplasning' : isNewProp()? 'nyttobjekt' : 'besiktning',
     subject: (isCheck()? 'UpplåsningPDF ' : 'BesiktningPDF ') + ref(),
     // lets the server file the report next to its own photos in Dropbox, and is where a big
     // report is parked

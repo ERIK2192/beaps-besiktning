@@ -148,7 +148,7 @@ Variabler läses in vid bygget, så de gäller inte förrän en ny deploy körts
 1. `https://beaps-besiktning.pages.dev/api/speed-ping` — ska visa bokstaven `p`.
    Gör den inte det byggdes inte funktionerna. Läs byggloggen.
 2. `https://beaps-besiktning.pages.dev/` — appen ska starta.
-3. Gör en testbesiktning och mejla PDF:en. Den ska komma till michal@beaps.se.
+3. Gör en testbesiktning och mejla PDF:en: en inflytt ska komma till longstay@beaps.se, ett nytt objekt till michal@beaps.se.
 4. Gör en utflytt och skicka en **signeringslänk till dig själv**. Öppna den, signera,
    och se att **två** filer kommer i mejlen: protokollet och signatursidan.
 5. Öppna `https://beaps-besiktning.pages.dev/` i ett **privat fönster** — du ska mötas av

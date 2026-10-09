@@ -30,9 +30,6 @@
 
   "vars": {
     "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>",
-    // Every report the app mails to Beaps (move-in/out, new property, shortstay, signed copies)
-    // goes to Mike (Erik, 2026-10-09). Remove this line to go back to longstay@ and guestservice@.
-    "MAIL_TO": "michal@beaps.se",
     // Replies to any mail the app sends - the signing link, the reminder, the signed report -
     // land here instead of bouncing off the send-only sender address.
     "MAIL_REPLY_TO": "longstay@beaps.se"
@@ -53,7 +50,6 @@
       ],
       "vars": {
         "MAIL_FROM": "Beaps Besiktning <besiktning@bedoma.se>",
-        "MAIL_TO": "michal@beaps.se",
         "MAIL_REPLY_TO": "longstay@beaps.se",
         // Keeps the preview's login-failure counter apart from production's in the shared KV.
         "ENV": "preview"

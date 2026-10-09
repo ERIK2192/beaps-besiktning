@@ -24,6 +24,8 @@ export const appOk = request => (request.headers.get('x-beaps-app') || '') === A
 
 export const longstay = env => env.MAIL_TO || env.MAIL_TO_LONGSTAY || 'longstay@beaps.se';
 export const shortstay = env => env.MAIL_TO || env.MAIL_TO_SHORTSTAY || 'guestservice@beaps.se';
+// A new property goes to Mike (Erik, 2026-10-09); every other report keeps its own inbox.
+export const newProperty = env => env.MAIL_TO || env.MAIL_TO_NEWPROP || 'michal@beaps.se';
 
 export const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s || '').trim());
 

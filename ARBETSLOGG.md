@@ -1440,8 +1440,8 @@ locked report. The PDF is headed `NYTT OBJEKT`, type `New property`, file
 Signatures block. Move-in, move-out and shortstay are unchanged.
 
 **Installations and equipment** (`S.tech`, `TECH` in index.html). After the rooms, video and
-internet: 13 suggestions (fridge/freezer, electrical panel, dishwasher, washing machine,
-stove/oven, water shut-off, electricity meter, router, ventilation, underfloor heating, security
+internet: 13 suggestions, 16 from the same day (fridge/freezer, electrical panel, dishwasher,
+washing machine, stove/oven, microwave, kitchen fan, water shut-off, electricity meter, router, ventilation, underfloor heating, security
 door, prepared for machines, other), each with several photos and an optional comment, plus
 *Add your own item*. Nothing is required or warned about; the heading only counts. The camera
 steps on from the rooms into the items. The photos go through the same storage, gallery, Dropbox,
@@ -1465,7 +1465,7 @@ Tests: new property in the browser 78 (`outputs/newprop-test/np.cjs`), Dropbox s
 51 against a stubbed Dropbox (`dbx-test.mjs`), inventory script 10; server 320, keys 26, e2e 157
 (one assertion updated for the new folder name), upgrade 48, key photo 42, key flow 53.
 
-### 2026-10-09 — wifi measurement removed, Beaps mail to Mike
+### 2026-10-09 — wifi measurement removed, new property mail to Mike, three more items
 
 **Wifi is gone.** Erik: take the wifi part out entirely. The Internet card on the rooms, the
 *Measure wifi* button and hint on the checklist's *Does the internet work?* row (the question
@@ -1475,13 +1475,17 @@ CLOUDFLARE.md. A measurement already saved on an old inspection (`S.wifi`, or th
 row's comment) stays in the data and the activity log; it is just not shown or printed. The old
 Netlify host still has its `speedtest.mjs`, untouched like the rest of that host.
 
-**Every report mail to Beaps goes to michal@beaps.se** (`MAIL_TO` in wrangler.jsonc, production
-and preview): move-in/out, new property and shortstay reports from *Email PDF*, and the signed
-report. Mail to the counterparty (signing link, reminder, their copy of the signed report) still
-goes to the counterparty. Replies still go to longstay@beaps.se (`MAIL_REPLY_TO`). The app's
-texts say michal@beaps.se. Remove `MAIL_TO` to go back to longstay@/guestservice@.
+**A new property is mailed to michal@beaps.se** (Erik: only new property, everything else as
+before). The app sends it as `kind:'nyttobjekt'` and `send-pdf` routes that to `newProperty()`
+in `cflib/mail.js` (`MAIL_TO_NEWPROP`, default michal@beaps.se). Move-in/out and the signed
+report still go to longstay@, shortstay to guestservice@. A first attempt that sent every report
+to Mike via `MAIL_TO` (65e38c5) was live for a short while and is reverted. A phone still on the
+app from 08e4190 sends a new property as `besiktning`, so it goes to longstay@ until reloaded.
 
-Tests: new property 83, Dropbox and mail routing 54, server 318 (two function files fewer), keys
+**Three more equipment suggestions:** microwave (model and serial number), kitchen fan (natural
+draught or mechanical) after the stove, and storage room before "other" - 16 in all.
+
+Tests: new property 84, Dropbox and mail routing 54, server 318 (two function files fewer), keys
 26, e2e 157, upgrade 48, key photo 42, key flow 53 (the wifi-hint check now checks it is gone).
 
 ---

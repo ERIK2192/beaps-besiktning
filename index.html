@@ -1495,7 +1495,8 @@ function nextUnanswered(){
 
 function checkRow(c){
   const bad = badAnswer(c);
-  const show = (bad!=null && c.val===bad) || c.comment || c.open || isPhotoRow(c);
+  // The key-photo row has no text field at all (Erik, 2026-10-09: too much information) - only the button.
+  const show = !isPhotoRow(c) && ((bad!=null && c.val===bad) || c.comment || c.open);
   const cls = v => c.val===v ? (v===bad ? ' on no' : v==='na' ? ' on na' : ' on') : '';
   const parent = c.showIf? checkByKey(c.showIf) : null;
   const photoRow = isPhotoRow(c), n = (c.photos||[]).length;
@@ -1520,7 +1521,7 @@ function checkRow(c){
       </span>
     </div>
     ${c.key==='internet'? `<div class="hint">${T("Make sure the phone is on the apartment's wifi.")}</div>`:''}
-    ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${isPhotoRow(c)? T('Number and type of keys, fobs, door code') : T('Comment')}">`:''}
+    ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${T('Comment')}">`:''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
           <div class="x" onclick="delPhoto('${c.id}','${ph.id}')">×</div></div>`).join('')}

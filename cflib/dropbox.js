@@ -35,6 +35,20 @@ export function dbxPath(env, subfolder, file) {
   return dbxRoot(env) + '/' + parts.join('/') + (namn ? '/' + namn : '');
 }
 
+// The three branches an inspection is filed in, each with the code its folder names start with.
+// An inspection folder is always exactly "<branch>/<code> - ...", so a move-in, a move-out and a
+// new property can never be filed in each other's branch, nor nested a level deeper by a slash in
+// an address. Anything else the phone asks for is not filed at all; the gallery is made either way.
+export const DBX_BRANCH = { 'MOVE IN': 'MIN', 'MOVE OUT': 'MOU', 'NYA OBJEKT': 'NYTT' };
+
+export function filingPath(env, subfolder) {
+  const parts = String(subfolder || '').split('/').map(cleanPart).filter(Boolean);
+  if (parts.length !== 2) return null;
+  const code = DBX_BRANCH[parts[0]];
+  if (!code || parts[1].indexOf(code + ' - ') !== 0) return null;
+  return dbxRoot(env) + '/' + parts.join('/');
+}
+
 // Dropbox-API-Arg is an HTTP header, so it has to be plain ASCII. Swedish street names would
 // otherwise break every upload on the first a-ring or umlaut.
 const asciiJson = o => JSON.stringify(o).replace(/[\u007F-\uFFFF]/g,
@@ -95,7 +109,7 @@ async function heads(env, extra) {
 
 const short = async r => (await r.text().catch(() => '')).slice(0, 200);
 
-export async function ensureFolder(env, path) {
+export async function ensureFolder(env, path, nested) {
   const r = await fetch(API + '/files/create_folder_v2', {
     method: 'POST',
     headers: await heads(env, { 'Content-Type': 'application/json' }),
@@ -103,8 +117,16 @@ export async function ensureFolder(env, path) {
   });
   if (r.ok) return true;
   const txt = await short(r);
+  // A branch that does not exist yet (NYA OBJEKT, the first time) is made first, should Dropbox
+  // not make it on its own. Never the root itself: a root that is missing is a setting that is
+  // wrong, and filing into a folder made up on the spot would hide that.
+  const parent = path.slice(0, path.lastIndexOf('/'));
+  if (!nested && txt.indexOf('not_found') >= 0 && parent && parent !== dbxRoot(env)) {
+    await ensureFolder(env, parent, true);
+    return ensureFolder(env, path, true);
+  }
   // Already there is exactly what we wanted.
-  if (r.status === 409 || txt.indexOf('conflict') >= 0) return true;
+  if (txt.indexOf('conflict/folder') >= 0) return true;
   throw new Error('Dropbox folder: ' + txt);
 }
 
@@ -159,7 +181,7 @@ export async function moveFolder(env, from, to) {
   const r = await fetch(API + '/files/move_v2', {
     method: 'POST',
     headers: await heads(env, { 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ from_path: from, to_path: to, autorename: true })
+    body: JSON.stringify({ from_path: from, to_path: to, autorename: false })
   });
   if (r.ok) return true;
   const txt = await short(r);

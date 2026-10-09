@@ -82,7 +82,7 @@ const token = (new URLSearchParams(location.search).get('t')||'').replace(/[^a-f
 
 let meta = null, pad = null, sending = false;
 
-const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Nytt objekt':'New property','Årlig':'Annual','Skada':'Damage'};
 const typeLabel = t => TYPE_LABEL[t] || t;
 
 function card(inner){ return `<div class="card">${inner}</div>` }

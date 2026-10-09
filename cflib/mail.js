@@ -12,7 +12,7 @@ export const mailFrom = env => parseFrom(env.MAIL_FROM);
 
 // Inspection-type display map: the .type field stores the Swedish value (compared with ===);
 // map through this only for showing it to a reader. Email-template files import typeLabel.
-export const TYPE_EN = { 'Upplåsning': 'Shortstay upplåsning', 'Inflytt': 'Move-in', 'Utflytt': 'Move-out', 'Årlig': 'Annual', 'Skada': 'Damage' };
+export const TYPE_EN = { 'Upplåsning': 'Shortstay upplåsning', 'Inflytt': 'Move-in', 'Utflytt': 'Move-out', 'Nytt objekt': 'New property', 'Årlig': 'Annual', 'Skada': 'Damage' };
 export const typeLabel = t => TYPE_EN[t] || t || '';
 
 // Simple app guard: the client sends a fixed key in X-Beaps-App. Nothing truly secret

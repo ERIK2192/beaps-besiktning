@@ -2,7 +2,7 @@
 //   POST /api/media-init  { ref, type, address, apt, inspector, items:[{id, name, kind}] }
 //   -> { ok, token, url }
 import { GALLERI_DAGAR, newToken, writeManifest, cleanId, NO_STORE, appOk, clip } from '../../cflib/media.js';
-import { dbxOn, dbxPath, ensureFolder, sharedLink } from '../../cflib/dropbox.js';
+import { dbxOn, filingPath, ensureFolder, sharedLink } from '../../cflib/dropbox.js';
 
 const MAX_POSTER = 600;
 
@@ -36,7 +36,9 @@ export async function onRequest(context) {
   // File the inspection in Dropbox as well, when it is set up. Best effort throughout: the
   // gallery is the app's own safety net and must be created even if Dropbox is having a bad day.
   if (dbxOn(env) && b.subfolder) {
-    const path = dbxPath(env, b.subfolder);
+    // MOVE IN, MOVE OUT or NYA OBJEKT, and nothing else. The branch folder is made along with the
+    // inspection's own the first time one is filed there.
+    const path = filingPath(env, b.subfolder);
     if (path) {
       try {
         await ensureFolder(env, path);

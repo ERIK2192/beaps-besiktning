@@ -84,7 +84,7 @@ const stamp = ms => ms? new Intl.DateTimeFormat('sv-SE',{year:'numeric',month:'2
 const token = (new URLSearchParams(location.search).get('t')||'').replace(/[^a-f0-9]/g,'');
 const filUrl = id => '/api/media-file?t='+token+'&id='+encodeURIComponent(id);
 
-const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Nytt objekt':'New property','Årlig':'Annual','Skada':'Damage'};
 
 let data = null, bilder = [], visar = -1;
 

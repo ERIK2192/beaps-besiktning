@@ -19,8 +19,9 @@ Två lägen:
 | **Shortstay upplåsning** | — | Checklista med ja/nej/E-T per punkt |
 | Inflytt | MIN | Rum + bilder + signaturer |
 | Utflytt | MOU | Rum + bilder + signaturer |
-| Årlig | — | Rum + bilder, kan avslutas utan signatur |
-| Skada | — | Rum + bilder, kan avslutas utan signatur |
+| Nytt objekt | Nytt objekt | Rum + frivillig teknikdokumentation, avslutas utan signatur |
+| Årlig (endast befintliga) | — | Rum + bilder, kan avslutas utan signatur |
+| Skada (endast befintliga) | — | Rum + bilder, kan avslutas utan signatur |
 
 ## 2. Filer
 
@@ -106,11 +107,22 @@ En besiktning (`S` i koden):
 {
   id, created, address, apt, type,
   inspector:{name}, counter:{name, role},
-  rooms:  [{id, name, comment, photos:[{id, ts}], fixed}],  // inflytt/utflytt/årlig/skada
+  rooms:  [{id, name, comment, photos:[{id, ts}], fixed}],  // inflytt/utflytt/nytt objekt/årlig/skada
   checks: [{id, key, label, section, showIf, val, comment, open, photos:[]}],  // upplåsning
-  video, comp:{in,out}, sig:{}, signReq, signedAt, closedAt, log:[]
+  tech:   [{id, key, label, name, comment, open, photos:[]}],  // nytt objekt: teknik och utrustning
+  video, comp:{in,out}, sig:{}, signReq, signedAt, closedAt, log:[],
+  gallery:{token, url, done:[], ...}, dropbox:{url, path, subfolder}
 }
 ```
+
+`type` är `Upplåsning`, `Inflytt`, `Utflytt` eller `Nytt objekt` för nya besiktningar. `Årlig`
+och `Skada` går inte längre att välja (2026-10-09) men gamla besiktningar av de typerna öppnas
+och fungerar som förut.
+
+`tech` finns bara på nytt objekt (och på en besiktning som bytt typ efter att något lagts in
+där). `key` pekar på förslaget i `TECH` och ändras aldrig, precis som på checklistan; en punkt
+som besiktningspersonen lagt till har `key:null` och ett eget `name`. Bilderna ligger under
+samma `bp:ph:`/`bp:th:`-nycklar som rummens.
 
 `sig.inspector` och `sig.counter` är `{data, ts}` för en signatur ritad i appen, eller
 `{remote:true, ts, name}` när motparten signerat via länk — då finns bilden bara i det
@@ -1412,6 +1424,47 @@ now has no colour: white, black text, grey hairlines, a button that is only a bl
 the name as text instead of the wordmark picture. A dark theme turns it into an ordinary dark mail.
 The green versions stay in the generator on the canvas; production is `plain.html`. Tests: 320 + 90.
 
+### 2026-10-09 — New property, installations and equipment, three Dropbox branches
+
+**Types.** Annual and damage can no longer be chosen for a new inspection. Old ones keep their
+type, open, sign and print as before, and show their own chip while open so they can be switched
+away and back. A new type, **Nytt objekt / New property** (stored as `'Nytt objekt'`), is the
+first documentation when a new address or apartment comes in. The Property step explains it in
+one line and says the address may already be in the register; nothing is blocked.
+
+**No signing.** A new property is the room inspection without a counterparty: no counterparty
+fields, no signature pads, no signing link, no reminders. The finish page has *Finish and lock*
+(no dialog, nothing has to be filled in), *Share* and *Email PDF*; *Unlock* asks once, as for any
+locked report. The PDF is headed `NYTT OBJEKT`, type `New property`, file
+`Nytt objekt <address>, <apt>.pdf`, and ends with *Performed by* and *Finished* instead of a
+Signatures block. Move-in, move-out and shortstay are unchanged.
+
+**Installations and equipment** (`S.tech`, `TECH` in index.html). After the rooms, video and
+internet: 13 suggestions (fridge/freezer, electrical panel, dishwasher, washing machine,
+stove/oven, water shut-off, electricity meter, router, ventilation, underfloor heating, security
+door, prepared for machines, other), each with several photos and an optional comment, plus
+*Add your own item*. Nothing is required or warned about; the heading only counts. The camera
+steps on from the rooms into the items. The photos go through the same storage, gallery, Dropbox,
+backup and restore as the rooms'. The PDF and print fallback show only items with a photo or a
+comment, under their own heading; with none filled there is no heading.
+
+**Dropbox.** Folders are now `<code> - <address> <apt> <created date> <inspection id>` in `MOVE
+IN` (MIN), `MOVE OUT` (MOU) and the new `NYA OBJEKT` (NYTT), which the server makes when first
+needed. Reviewing the old flow found three ways inspections could share or lose a folder: photos
+taken before the address was typed all went to `MIN -`; the same apartment and tenant twice
+shared a folder and the second PDF replaced the first; a slash in an address nested a folder.
+The id fixes the first two, and slashes become dashes. The server (`filingPath` in
+`cflib/dropbox.js`) now accepts only `<branch>/<matching code> - ...` one level deep. A gallery
+made while the type had no branch is filed at the next send (`media-sync` answers `attached`, the
+phone sends the photos once more in the background). An inspection already filed under the old
+name keeps it. Old folders are not touched; DROPBOX.md lists what could be wrong in them, what a
+manual move does to links and stored paths, and a read-only inventory script (not in git).
+Nothing was verified against the real Dropbox: there was no access to it.
+
+Tests: new property in the browser 78 (`outputs/newprop-test/np.cjs`), Dropbox server functions
+51 against a stubbed Dropbox (`dbx-test.mjs`), inventory script 10; server 320, keys 26, e2e 157
+(one assertion updated for the new folder name), upgrade 48, key photo 42, key flow 53.
+
 ---
 
 ## 6. Kvar att göra
@@ -1596,3 +1649,16 @@ till att gamla besiktningar behåller sina svar när frågetexten skrivs om.
 - Bilder och video ligger **bara** på telefonen tills PDF:en skickas. Töms webbläsarens
   data försvinner de. Knappen *Säkerhetskopia* på avslutssidan finns för det.
 - Det finns inget `</body>`/`</html>` i index.html; filen slutar med `renderStart()`.
+
+### 2026-10-09 — Säkerhetsgranskning före lokal commit
+
+Granskningen hittade och rättade risker för oavsiktlig omorganisation och förlorad galleriåtkomst:
+
+- Gamla Dropbox-mappar behåller exakt sin sparade sökväg även vid ändrad adress, motpart eller typ. Servern tillåter bara automatisk flytt av nya datum/ID-mappar med samma inspektions-ID.
+- Långa adressfält kortas före datum/ID, så serverns gräns på 120 tecken inte kapar bort identiteten och blandar två rapporter.
+- Namnkonflikt vid mappflytt avbryter flytten. Ingen automatisk alternativ mappsökväg eller sammanslagning används.
+- Fel vid mappskapande räknas inte längre generellt som att mappen redan finns; bara en faktisk mappkonflikt godtas.
+- Galleriuppstädning behåller bildreferenser från rum, checklista och teknik samt befintlig video oavsett aktuell typ eller tillfälligt saknade miniatyrer. Användarens uttryckliga bildradering fungerar fortsatt; Dropbox-filer raderas inte av detta flöde.
+- Teknikdokumentation kan fortfarande nås i gränssnittet efter byte till Shortstay. Kommentarer tas om hand före byte mellan rum, teknikkommentar och typ.
+
+Reproducerbara säkerhetstester finns i `tests/new-property-safety.mjs` och `tests/dropbox-filing.mjs`. Dropbox-testet har 56 godkända kontroller mot en lokal ersättning; nya objekt har även verifierats med 78 webbläsarkontroller. Ingen riktig Dropbox-data har lästs, flyttats eller raderats vid granskningen. Ingen push eller driftsättning ingår.

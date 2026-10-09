@@ -1,11 +1,11 @@
 // Tidies the gallery to the photos the inspector actually kept.
-//   POST /api/media-sync  { t, ids:[...] }
+//   POST /api/media-sync  { t, ids:[...], subfolder }  -> { ok, removed, kept, dropbox, attached }
 //
 // Photos are copied to the server while the inspection is still running, so a photo that was
 // taken and then deleted may already be up here. Without this it would show up in the
 // recipient's gallery, which is the opposite of what deleting it meant.
 import { cleanId, loadGallery, kv, manifestKey, r2, fileKey, writeManifest, NO_STORE, appOk } from '../../cflib/media.js';
-import { dbxOn, dbxPath, moveFolder, sharedLink } from '../../cflib/dropbox.js';
+import { dbxOn, filingPath, ensureFolder, moveFolder, sharedLink } from '../../cflib/dropbox.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -50,10 +50,15 @@ export async function onRequest(context) {
   // Rename it so the filing matches the report, and take a fresh share link, because a Dropbox
   // link does not reliably survive a move.
   let dropbox = manifest.dropbox || null;
-  if (dbxOn(env) && dropbox && dropbox.path && b.subfolder && b.subfolder !== dropbox.subfolder) {
-    const to = dbxPath(env, b.subfolder);
+  // Only folders carrying the new date/id suffix can be moved automatically, and only
+  // while retaining the same inspection identity. Old folders may hold several reports.
+  const identity = sub => (String(sub||'').match(/ \d{4}-\d{2}-\d{2} ([a-z0-9]{11})$/)||[])[1];
+  const filedId = dropbox && identity(dropbox.subfolder);
+  if (dbxOn(env) && dropbox && dropbox.path && filedId && filedId === identity(b.subfolder) && b.subfolder !== dropbox.subfolder) {
+    const to = filingPath(env, b.subfolder);
     if (to && to !== dropbox.path) {
       try {
+        await ensureFolder(env, to.slice(0, to.lastIndexOf('/')));
         if (await moveFolder(env, dropbox.path, to)) {
           dropbox = { path: to, subfolder: String(b.subfolder).slice(0, 200), url: await sharedLink(env, to) };
           await writeManifest(env, token, Object.assign({}, manifest, { dropbox }));
@@ -62,5 +67,21 @@ export async function onRequest(context) {
     }
   }
 
-  return Response.json({ ok: true, removed: bort, kept: keep.size, dropbox }, { headers: NO_STORE });
+  // The gallery was made while the inspection's type had no Dropbox branch - a shortstay changed
+  // into a new property, say - or before Dropbox was set up. File it now. The folder starts empty:
+  // the phone sends the photos once more and media-put copies each of them in on the way.
+  let attached = false;
+  if (dbxOn(env) && !dropbox && b.subfolder) {
+    const path = filingPath(env, b.subfolder);
+    if (path) {
+      try {
+        await ensureFolder(env, path);
+        dropbox = { path, subfolder: String(b.subfolder).slice(0, 200), url: await sharedLink(env, path) };
+        await writeManifest(env, token, Object.assign({}, manifest, { dropbox }));
+        attached = true;
+      } catch (e) { dropbox = null }
+    }
+  }
+
+  return Response.json({ ok: true, removed: bort, kept: keep.size, dropbox, attached }, { headers: NO_STORE });
 }

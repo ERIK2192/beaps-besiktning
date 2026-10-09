@@ -546,6 +546,30 @@ const SV = {
   'Rooms':'Rum',
   'Share':'Dela',
   'Email PDF':'Mejla PDF',
+  // --- new property ---
+  'New property':'Nytt objekt',
+  'First documentation of an address or apartment that is new to us. Fine even if the address is already in the register.':'Första dokumentationen när vi får in en ny adress eller lägenhet. Går bra även om adressen redan finns i registret.',
+  'A new property is finished without signatures.':'Nytt objekt avslutas utan signaturer.',
+  'Finish and lock':'Avsluta och lås',
+  'The report is locked for changes. Unlock it if something needs correcting.':'Rapporten är låst för ändringar. Lås upp den om något behöver rättas.',
+  'Unlock the report so it can be changed again?':'Lås upp rapporten så att den kan ändras igen?',
+  'equipment items':'teknikpunkter',
+  'Installations and equipment':'Teknik och utrustning',
+  'Examples of things that can be good to photograph. Take what is relevant for the property – all items are optional.':'Exempel på sådant som kan vara bra att fotografera. Ta det som är relevant för objektet – alla punkter är frivilliga.',
+  'Add your own item':'Lägg till egen punkt',
+  'Fridge/freezer: model and serial number':'Kyl/frys: modell och serienummer',
+  'Electrical panel: circuit list or wiring diagram':'Elskåp: gruppförteckning/kopplingsschema',
+  'Dishwasher: model and serial number':'Diskmaskin: modell och serienummer',
+  'Washing machine/tumble dryer: model and serial number':'Tvättmaskin/torktumlare: modell och serienummer',
+  'Stove/oven: model and serial number':'Spis/ugn: modell och serienummer',
+  'Main water shut-off and where it is':'Huvudavstängning för vatten och var den sitter',
+  'Electricity meter: meter number and reading':'Elmätare: mätarnummer och mätarställning',
+  'Router/fibre box and where the sockets are':'Router/fiberbox och uttagens placering',
+  'Ventilation: controls and filter type':'Ventilation: reglage och filtertyp',
+  'Underfloor heating':'Golvvärme',
+  'Security door':'Säkerhetsdörr',
+  'Prepared for dishwasher/washing machine':'Förberett för disk-/tvättmaskin',
+  'Anything else worth documenting':'Övrigt som är bra att dokumentera',
   // --- checklist rows ---
   'Follow-up':'Följdfråga',
   'Yes':'Ja',
@@ -921,8 +945,37 @@ let S=null, photoCache={}, videoURL=null, view='start', openRoom=null, saveTimer
 const DEFAULT_ROOMS = ['Hall','Living room','Kitchen','Bathroom','Bedroom'];
 const KEYS_ROOM = 'Keys';
 const EXTRA = ['Bedroom','Balcony','Storage','Laundry room','Guest WC','Walk-in closet','Patio','Garage'];
-const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Årlig':'', 'Skada':''};
-const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Årlig':'Annual','Skada':'Damage'};
+const PREFIX = {'Upplåsning':'', Inflytt:'MIN', Utflytt:'MOU', 'Nytt objekt':'Nytt objekt', 'Årlig':'', 'Skada':''};
+const TYPE_LABEL = {'Upplåsning':'Shortstay upplåsning','Inflytt':'Move-in','Utflytt':'Move-out','Nytt objekt':'New property','Årlig':'Annual','Skada':'Damage'};
+// What a new inspection can be. Annual and damage were taken out of the choice on 2026-10-09:
+// an inspection already saved as one keeps its type, opens and works as before, and shows its own
+// chip while it is open (legacyType), so it can be switched away and back.
+const NEW_PROPERTY = 'Nytt objekt';
+const NEW_TYPES = ['Upplåsning','Inflytt','Utflytt',NEW_PROPERTY];
+let legacyType = null;
+// A new property is the first documentation of an address or apartment that is new to Beaps.
+// Nobody signs it: no counterparty, no signature lines, no signing link.
+const isNewProp = () => !!S && S.type===NEW_PROPERTY;
+// "Installations and equipment" on a new property (Erik, 2026-10-09): suggestions of what is worth
+// a photo, every one optional - nothing is required, counted as missing or warned about. Each item
+// holds photos and a comment, like a room. `key` is forever, as on the checklist: it is how a
+// saved item finds its suggestion again when a label is reworded. An item the inspector adds has
+// no key and keeps its own name. `file` names the photos in the gallery and in Dropbox.
+const TECH = [
+  {key:'kyl',          label:'Fridge/freezer: model and serial number',               file:'Fridge freezer'},
+  {key:'elskap',       label:'Electrical panel: circuit list or wiring diagram',      file:'Electrical panel'},
+  {key:'diskmaskin',   label:'Dishwasher: model and serial number',                   file:'Dishwasher'},
+  {key:'tvatt',        label:'Washing machine/tumble dryer: model and serial number', file:'Washing machine'},
+  {key:'spis',         label:'Stove/oven: model and serial number',                   file:'Stove oven'},
+  {key:'vatten',       label:'Main water shut-off and where it is',                   file:'Water shut-off'},
+  {key:'elmatare',     label:'Electricity meter: meter number and reading',           file:'Electricity meter'},
+  {key:'router',       label:'Router/fibre box and where the sockets are',            file:'Router'},
+  {key:'ventilation',  label:'Ventilation: controls and filter type',                 file:'Ventilation'},
+  {key:'golvvarme',    label:'Underfloor heating',                                    file:'Underfloor heating'},
+  {key:'sakerhetsdorr',label:'Security door',                                         file:'Security door'},
+  {key:'forberett',    label:'Prepared for dishwasher/washing machine',               file:'Machine connections'},
+  {key:'ovrigt',       label:'Anything else worth documenting',                       file:'Other'}
+];
 // section: heading in the list and in the PDF. The order follows the walkthrough of the
 //   apartment and must not be reshuffled; the headings are only set where the round naturally changes place.
 // showIf: the row is shown only when the question with that key is answered Yes.
@@ -1052,7 +1105,35 @@ function checkVisible(c){
   return !!parent && parent.val==='ja';
 }
 const visibleChecks = () => (S.checks||[]).filter(checkVisible);
-const mkRoom = (name,fixed) => ({id:uid(), name, comment:'', photos:[], fixed:!!fixed});
+
+// The suggestions, rebuilt from TECH every time the inspection is opened or its type changes, with
+// photos and comments carried over by key. Only a new property is given the list; an inspection of
+// another type keeps whatever items it already has, and nothing is ever dropped.
+function ensureTech(){
+  if(!S) return;
+  const old = S.tech || [];
+  if(!isNewProp() && !old.length) return;
+  const byKey = {}, used = new Set();
+  old.forEach(t=>{ if(t.key && !byKey[t.key]) byKey[t.key] = t });
+  const next = TECH.map(def=>{
+    const prev = byKey[def.key];
+    if(prev) used.add(prev);
+    return { id:(prev && prev.id) || uid(), key:def.key, label:def.label,
+             comment:(prev && prev.comment) || '', open:!!(prev && prev.open), photos:(prev && prev.photos) || [] };
+  });
+  old.forEach(t=>{ if(!used.has(t)) next.push({...t, comment:t.comment||'', photos:t.photos||[]}) });
+  S.tech = next;
+}
+const techItems = () => (S && S.tech) || [];
+const techFilled = () => techItems().filter(t=>t.comment || (t.photos||[]).length);
+// Shown on a new property, and on any other inspection that already has something in it, so a
+// type changed afterwards never hides a photo.
+const showTech = () => !!S && (isNewProp() || techFilled().length > 0);
+const techName = t => t.name || T(t.label);
+const techFile = t => t.name || (TECH.find(d=>d.key===t.key)||{}).file || t.label || 'Equipment';
+// Everything on the inspection that can hold a comment typed into a k_ field.
+const commentItems = () => (S.checks||[]).concat(S.tech||[]);
+const mkRoom =(name,fixed) => ({id:uid(), name, comment:'', photos:[], fixed:!!fixed});
 const keysRoom = () => S.rooms.find(r=>r.fixed);
 const keysOk = () => { const k = keysRoom(); return !!(k && k.photos.length) };
 
@@ -1158,7 +1239,7 @@ async function getFull(pid, inspId){
   const id = inspId || (S && S.id); if(!id) return null;
   try{ return await store.get(K.photo(id, pid)) }catch(e){ return null }
 }
-const target = id => (S.rooms||[]).find(r=>r.id===id) || (S.checks||[]).find(c=>c.id===id);
+const target = id => (S.rooms||[]).find(r=>r.id===id) || (S.checks||[]).find(c=>c.id===id) || (S.tech||[]).find(t=>t.id===id);
 async function savePhoto(roomId, data){
   unlockIfLocked();
   const room = target(roomId), pid = uid();
@@ -1298,11 +1379,14 @@ async function render(){
   if(view==='start') return renderStart();
 
   if(view==='object'){
+    const types = NEW_TYPES.slice();
+    [legacyType, S.type].forEach(t=>{ if(t && !types.includes(t)) types.push(t) });
     app.innerHTML = topbar(T('Property'),T('Step 1 of 3'),20,'leave()') + `<div class="wrap">
       <div class="card">
         <div class="field"><label class="eyebrow">${T('Inspection type')}</label>
-          <div class="chips">${Object.keys(PREFIX).map(t=>
-            `<button class="chip ${S.type===t?'on':''}" onclick="setType('${t}')">${TYPE_LABEL[t]||t}${PREFIX[t]?' · '+PREFIX[t]:''}</button>`).join('')}</div></div>
+          <div class="chips">${types.map(t=>
+            `<button class="chip ${S.type===t?'on':''}" onclick="setType('${t}')">${esc(T(TYPE_LABEL[t]||t))}${PREFIX[t] && t!==NEW_PROPERTY?' · '+PREFIX[t]:''}</button>`).join('')}</div>
+          ${isNewProp()? `<div class="hint">${T('First documentation of an address or apartment that is new to us. Fine even if the address is already in the register.')}</div>`:''}</div>
         <div class="field"><label class="eyebrow">${T('Address')}</label>
           <input id="f_address" value="${esc(S.address)}" autocomplete="off" oninput="paintPropSug()">
           <div class="sug" id="sugaddr"></div></div>
@@ -1313,7 +1397,7 @@ async function render(){
       </div>
       <div class="card">
         <div class="field"><label class="eyebrow">${T('Inspector')}</label><input id="f_iname" value="${esc(S.inspector.name)}"></div>
-        ${isCheck()? '' : `
+        ${isCheck() || isNewProp()? '' : `
         <div class="field"><label class="eyebrow">${T('Counterparty, name')}</label><input id="f_cname" value="${esc(S.counter.name)}"></div>
         <div class="field"><label class="eyebrow">${T('Counterparty, company or role')}</label><input id="f_crole" value="${esc(S.counter.role)}"></div>`}
       </div>
@@ -1332,6 +1416,7 @@ async function render(){
     app.innerHTML = topbar(ref(), `Shortstay upplåsning · ${done}/${list.length} ${T('filled')}`,
       20+Math.round(done/Math.max(1,list.length)*65), 'leave()') + `<div class="wrap">
       ${checkList(list)}
+      ${showTech()? techSection() : ''}
     </div>`;
     bar.innerHTML = `<button class="btn" onclick="go('sign')">${T('Done')}</button>`;
     return;
@@ -1370,15 +1455,45 @@ async function render(){
         : `<div class="hint" style="margin:0 0 10px">${T("Make sure the phone is on the apartment's wifi.")}</div>
            <button class="btn ghost" onclick="measureWifiRoom()">${T('Measure wifi')}</button>`}
       </div>
+      ${showTech()? techSection() : ''}
     </div>`;
     bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
-      <button class="btn" onclick="go('sign')">${T('Sign')}</button>`;
+      <button class="btn" onclick="go('sign')">${isNewProp()? T('Finish') : T('Sign')}</button>`;
     return;
   }
 
   if(view==='sign'){
     const needSig = S.type==='Inflytt' || S.type==='Utflytt';
     const locked = !!(S.signedAt || S.closedAt);
+
+    // A new property is finished, locked and sent without anyone signing it.
+    if(isNewProp()){
+      const tech = techFilled();
+      app.innerHTML = topbar(locked?T('Finished'):T('Finish'),T('Step 3 of 3'),96,'leave()') + `<div class="wrap">
+        <div class="card">
+          <div class="eyebrow">${T('Summary')}</div>
+          <h2 style="margin:6px 0 8px">${esc(ref())}</h2>
+          <div style="font-size:14px;color:var(--ink2)">
+            ${S.rooms.length} ${T('spaces')} · ${S.rooms.reduce((a,r)=>a+r.photos.length,0) + tech.reduce((a,t)=>a+t.photos.length,0)} ${T('photos')} · ${S.rooms.filter(r=>r.comment).length + tech.filter(t=>t.comment).length} ${T('comments')}${S.video?' · '+T('video attached'):''}${tech.length? ' · '+tech.length+' '+T('equipment items'):''}
+          </div>
+          ${S.comp&&S.comp.in? `<div class="hint">${T('Photos compressed from')} ${mb(S.comp.in)} ${T('to')} ${mb(S.comp.out)}.</div>`:''}
+          <div class="hint">${T('A new property is finished without signatures.')}</div>
+          <button class="btn ghost small" style="margin-top:12px" onclick="backup()">${T('Backup')}</button>
+        </div>
+        ${galleryCard()}
+        ${locked? `<div class="card">
+          <span class="locknote">${T('Finished')} ${stamp(new Date(S.closedAt||S.signedAt))}</span>
+          <div class="hint">${T('The report is locked for changes. Unlock it if something needs correcting.')}</div>
+          <button class="btn ghost small" style="margin-top:12px" onclick="unlock()">${T('Unlock')}</button>
+        </div>` : `<div class="card">
+          <button class="btn ghost" onclick="finishNewProp()">${T('Finish and lock')}</button>
+        </div>`}
+      </div>`;
+      bar.innerHTML = `<button class="btn ghost small" onclick="go('rooms')">${T('Rooms')}</button>
+        <button class="btn ghost small" onclick="doExport()">${T('Share')}</button>
+        <button class="btn" onclick="sendPdf()">${T('Email PDF')}</button>`;
+      return;
+    }
 
     if(isCheck()){
       const list = visibleChecks();
@@ -1528,10 +1643,70 @@ function checkRow(c){
     </div>`:''}
   </div>`;
 }
+// The installations and equipment on a new property. The rows look like the checklist's photo row:
+// one wide photo button, a comment behind a link. An item the inspector added can be removed again.
+function techSection(){
+  return `<div class="csec"><span>${T('Installations and equipment')}</span>
+      <span class="ccount">${techFilled().length}/${techItems().length}</span></div>
+    <div class="hint" style="margin:-4px 3px 12px">${T('Examples of things that can be good to photograph. Take what is relevant for the property – all items are optional.')}</div>
+    ${techItems().map(techRow).join('')}
+    <div class="card">
+      <div class="eyebrow" style="margin-bottom:9px">${T('Add your own item')}</div>
+      <div class="addrow">
+        <input id="newtech" placeholder="${T('Custom name')}" onkeydown="if(event.key==='Enter')addTech()">
+        <button class="btn small" onclick="addTech()">${T('Add')}</button>
+      </div>
+    </div>`;
+}
+function techRow(t){
+  const n = (t.photos||[]).length, open = !!(t.comment || t.open);
+  return `<div class="crow${open?' open':''}" id="crow_${t.id}">
+    <div class="clabel">${esc(techName(t))}</div>
+    <div class="cbtns">
+      <span class="ynrow">
+        <button class="yn snap${n?' on':''}" onclick="openCam('${t.id}')">${n? `${T('Take more')} (${n})` : T('Take photo')}</button>
+      </span>
+      <span class="clinks">
+        <button class="addc" onclick="openCheckComment('${t.id}')">${T('Comment')}</button>
+        ${t.key? '' : `<button class="addc" onclick="delTech('${t.id}')">${T('Remove')}</button>`}
+      </span>
+    </div>
+    ${open? `<input id="k_${t.id}" class="cinput" value="${esc(t.comment)}" placeholder="${T('Comment')}">`:''}
+    ${n? `<div class="thumbs">
+      ${t.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
+          <div class="x" onclick="delPhoto('${t.id}','${ph.id}')">×</div></div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+function addTech(){
+  const el = document.getElementById('newtech'); if(!el || !el.value.trim()) return;
+  const name = el.value.trim(); el.value = '';
+  saveOpenComment(); saveCheckComments(); unlockIfLocked();
+  S.tech = techItems().concat({id:uid(), key:null, name, comment:'', open:false, photos:[]});
+  save(); render();
+}
+function delTech(id){
+  const t = techItems().find(x=>x.id===id); if(!t || t.key) return;
+  saveOpenComment(); saveCheckComments();
+  if((t.photos.length || t.comment) && !confirm(`${T('Remove')} ${t.name} ${T('with contents?')}`)) return;
+  unlockIfLocked();
+  t.photos.forEach(p=>{ store.del(K.photo(S.id,p.id)); store.del(K.thumb(S.id,p.id)); delete photoCache[p.id] });
+  S.tech = techItems().filter(x=>x.id!==id);
+  save(); render();
+}
+// Locks a new property. Nothing has to be filled in first, and nobody signs.
+async function finishNewProp(){
+  saveOpenComment(); saveCheckComments();
+  if(S.closedAt) return;
+  S.closedAt = Date.now();
+  log('New property finished');
+  log('Report locked');
+  await flushSave(); render();
+}
 function saveCheckComments(){
-  if(!S || !S.checks) return false;
+  if(!S) return false;
   let changed = false;
-  S.checks.forEach(c=>{
+  commentItems().forEach(c=>{
     const el = document.getElementById('k_'+c.id);
     if(el && el.value !== c.comment){ c.comment = el.value; changed = true }
   });
@@ -1549,8 +1724,9 @@ function setCheck(id,v){
 function openCheckComment(id){
   const open = document.getElementById('k_'+id);
   if(open) return open.focus();
-  saveCheckComments();
-  S.checks.find(x=>x.id===id).open = true;
+  saveOpenComment(); saveCheckComments();
+  const c = commentItems().find(x=>x.id===id); if(!c) return;
+  c.open = true;
   render();
   const el = document.getElementById('k_'+id); if(el) el.focus();
 }
@@ -1682,7 +1858,8 @@ async function ensureAudio(){
     a.getAudioTracks().forEach(t=>cam.stream.addTrack(t));
   }catch(e){}
 }
-const camItems = () => (isCheck()? visibleChecks() : (S.rooms || []));
+// On a new property the camera steps through the rooms and then the equipment items.
+const camItems = () => (isCheck()? visibleChecks() : (S.rooms || [])).concat(showTech()? techItems() : []);
 const curRoom = () => camItems()[cam.idx];
 const shortName = t => (t||'').length>24? t.slice(0,23)+'…' : (t||'');
 function paintCam(){
@@ -1833,11 +2010,13 @@ function unlock(){
   const q = S.signReq;
   const active = q && (q.status==='pending' || q.status==='expired');
   if(active && !confirm(T('There is a signing link that has been sent out. If you unlock it, it is revoked, and you get to send a new link once the report is changed. Continue?'))) return;
-  if(!active && !confirm(isCheck()? T('Unlock the list so it can be changed again?') : T('Unlock the report? The signatures are removed and it is noted in the log.'))) return;
+  if(!active && !confirm(isCheck()? T('Unlock the list so it can be changed again?')
+                        : isNewProp()? T('Unlock the report so it can be changed again?')
+                        : T('Unlock the report? The signatures are removed and it is noted in the log.'))) return;
   if(q && q.token) revokeSignLink(q.token);   // even already signed ones: the token must not be signable again
   S.signReq = null;
   S.signedAt = null; S.closedAt = null; S.sig = {};
-  log(isCheck()? 'List unlocked' : 'Report unlocked, signatures removed');
+  log(isCheck()? 'List unlocked' : isNewProp()? 'Report unlocked' : 'Report unlocked, signatures removed');
   flushSave(); view='rooms'; render(); window.scrollTo(0,0);
 }
 function commitPad(w){
@@ -2026,24 +2205,49 @@ const galleryItems = () => {
       ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${b.name || b.label || 'Photo'} ${i+1}`});
     });
   });
+  // Equipment photos always count, whatever the type: the gallery is tidied down to this list,
+  // so leaving them out would delete them from the server.
+  techItems().forEach(t=>{
+    (t.photos||[]).forEach((p,i)=>{
+      if(!photoCache[p.id]) return;
+      ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${techFile(t)} ${i+1}`});
+    });
+  });
   if(S.video && S.video.stored && videoURL) ut.push({id:'video', kind:'video', ts:S.video.ts, name:'Walkthrough'});
   return ut;
 };
 
 const dataUrlToBlob = async d => (await fetch(d)).blob();
 
-// Dropbox filing follows the folders Beaps already uses:
-//   Longstay PICTURES / MOVE IN / "MIN - <address> <apt> <tenant>"
-// Only move-ins and move-outs are filed there; the other types do not live in that structure.
-// The server owns the "Longstay PICTURES" part, so nothing here can write elsewhere.
-const DBX_PARENT = {Inflytt:'MOVE IN', Utflytt:'MOVE OUT'};
+// Dropbox filing, one folder per inspection in one of three branches:
+//   Longstay PICTURES / MOVE IN    / "MIN - <address> <apt> <date> <id>"
+//   Longstay PICTURES / MOVE OUT   / "MOU - <address> <apt> <date> <id>"
+//   Longstay PICTURES / NYA OBJEKT / "NYTT - <address> <apt> <date> <id>"
+// The date is the day the inspection was created and the id is the inspection's own, so two
+// inspections of one apartment never share a folder and a later upload finds the same one. Until
+// 2026-10-09 the name was "MIN - <address> <apt> <tenant>": two move-ins of one apartment by one
+// tenant, or any inspections photographed before an address was typed, landed in one folder. An
+// inspection already filed under such a name keeps it, so its folder and its link stay put.
+// Shortstay and the old annual and damage types are not filed. The server owns the
+// "Longstay PICTURES" part and accepts only these three branches, so nothing here can write elsewhere.
+const DBX_PARENT = {Inflytt:'MOVE IN', Utflytt:'MOVE OUT', [NEW_PROPERTY]:'NYA OBJEKT'};
+const DBX_CODE = {Inflytt:'MIN', Utflytt:'MOU', [NEW_PROPERTY]:'NYTT'};
+const dayOf = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` };
 function dropboxSubfolder(){
   if(!S) return null;
+  // Historical folders can contain more than one inspection. Never rename one implicitly,
+  // even when the address, counterparty or inspection type has subsequently changed.
+  const filed = S.dropbox && S.dropbox.subfolder;
+  if(filed && !filed.endsWith(' ' + S.id)) return filed;
   const parent = DBX_PARENT[S.type];
   if(!parent) return null;
-  const namn = [PREFIX[S.type] + ' -', S.address, S.apt, S.counter && S.counter.name]
-    .map(x=>String(x==null?'':x).trim()).filter(Boolean).join(' ');
-  return parent + '/' + namn;
+  const clean = x => String(x==null?'':x).replace(/[\\/]+/g,'-')
+    .replace(/[:?*<>"|\u0000-\u001F]+/g,' ').replace(/\s+/g,' ').trim();
+  const suffix = ' ' + dayOf(S.created) + ' ' + S.id;
+  // The server caps each path component at 120 characters. Reserve the identity suffix
+  // before shortening the address so two long addresses cannot collapse into one folder.
+  const label = [DBX_CODE[S.type] + ' -', clean(S.address), clean(S.apt)].filter(Boolean).join(' ');
+  return parent + '/' + label.slice(0,120-suffix.length).trimEnd() + suffix;
 }
 
 // Which photos already have a copy on the server. The ids are kept on the inspection, so the
@@ -2078,13 +2282,20 @@ async function ensureGalleryUploaded(){
 async function tidyGallery(){
   if(!S || !S.gallery || !S.gallery.token) return;
   const insp = S;
-  const ids = galleryItems().map(it=>it.id);
+  // Retention is based on saved references, never on thumbnail availability or current type.
+  // A temporary read failure or switching between checklist and rooms is not a deletion.
+  const ids = [...new Set((insp.rooms||[]).concat(insp.checks||[], insp.tech||[])
+    .flatMap(item=>(item.photos||[]).map(p=>p.id)))];
+  if(insp.video) ids.push('video');
   if(!ids.length) return;
   const done = (insp.gallery.done||[]);
   const bortagna = done.some(id=>ids.indexOf(id)<0);
   const sub = dropboxSubfolder();
   const bytt = !!(insp.dropbox && sub && sub !== insp.dropbox.subfolder);
-  if(!bortagna && !bytt) return;                  // nothing removed and nothing renamed
+  // The gallery was made while the type had no Dropbox branch (a shortstay changed to a new
+  // property, say): ask the server to file it now.
+  const saknas = !!(sub && !insp.dropbox);
+  if(!bortagna && !bytt && !saknas) return;       // nothing removed, renamed or missing
   try{
     const r = await withTimeout(fetch('/api/media-sync', {
       method:'POST', headers:{'Content-Type':'application/json', ...AUTH},
@@ -2098,6 +2309,14 @@ async function tidyGallery(){
     // the folder may have been renamed to match a corrected address, which gives a new link
     if(j.dropbox && j.dropbox.url) S.dropbox = {url:j.dropbox.url, path:j.dropbox.path, subfolder:j.dropbox.subfolder};
     if(j.removed) log(`Deleted photos removed from the gallery: ${j.removed}`);
+    // A folder made just now is empty: the photos already on the server go up once more, in the
+    // background, and on the way through they are copied into it. The report itself is not held up.
+    if(j.attached){
+      log('Filed in Dropbox: ' + ((j.dropbox && j.dropbox.subfolder) || sub));
+      S.gallery.done = [];
+      S.gallery.count = 0;
+      schedulePush();
+    }
     await flushSave();
   }catch(e){}
 }
@@ -2596,8 +2815,8 @@ function go(v){
   $('#bar').className = 'bar';
   view=v; render(); window.scrollTo(0,0);
 }
-function setType(t){ unlockIfLocked(); S.type=t; ensureChecks(); save(); render() }
-function toggleRoom(id){ saveOpenComment(); openRoom = openRoom===id? null:id; render() }
+function setType(t){ saveOpenComment(); saveCheckComments(); unlockIfLocked(); S.type=t; ensureChecks(); ensureTech(); save(); render() }
+function toggleRoom(id){ saveOpenComment(); saveCheckComments(); openRoom = openRoom===id? null:id; render() }
 function saveOpenComment(){
   if(!openRoom || !S) return false;
   const el=document.getElementById('c_'+openRoom), r=S.rooms.find(x=>x.id===openRoom);
@@ -2654,7 +2873,7 @@ async function restoreBackup(d){
   const insp = d && d.inspection;
   if(!insp || !insp.id || !Array.isArray(insp.rooms)) return {ok:false, reason:'bad'};
   if(await store.get(K.insp(insp.id))) return {ok:false, reason:'exists', id:insp.id};
-  const barare = (insp.rooms||[]).concat(insp.checks||[]);
+  const barare = (insp.rooms||[]).concat(insp.checks||[], insp.tech||[]);
   for(const rc of barare) for(const p of (rc.photos||[])){ const data = d.photos && d.photos[p.id]; if(data) await store.set(K.photo(insp.id,p.id), data) }
   if(d.video && insp.video){ if(await store.set(K.video(insp.id), d.video)) insp.video.stored = true }
   if(!await store.set(K.insp(insp.id), insp)) return {ok:false, reason:'write'};
@@ -2802,9 +3021,9 @@ async function newInsp(){
   S = { id:uid(), created:Date.now(), address:'', apt:'', type:'Upplåsning',
         inspector:{name:keyMe||''}, counter:{name:'',role:''},
         rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
-        video:null, comp:{in:0,out:0}, checks:null, sig:{}, signReq:null, gallery:null,
+        video:null, comp:{in:0,out:0}, checks:null, tech:null, sig:{}, signReq:null, gallery:null,
         signedAt:null, closedAt:null, log:[] };
-  photoCache={}; videoURL=null; openRoom=null;
+  photoCache={}; videoURL=null; openRoom=null; legacyType=null;
   for(const k in pads) delete pads[k];   // ink drawn in another inspection must not follow along
   ensureChecks(); log('Inspection created'); save(); go('object');
 }
@@ -2817,7 +3036,8 @@ async function openInsp(id){
   if(!S.rooms.some(r=>r.fixed)) S.rooms.push(mkRoom(KEYS_ROOM,true));
   if(!S.comp) S.comp = {in:0,out:0};
   if(!S.sig) S.sig = {};
-  ensureChecks();
+  legacyType = NEW_TYPES.includes(S.type)? null : S.type;
+  ensureChecks(); ensureTech();
   await loadMedia(id); paintTicker(); go((S.signedAt||S.closedAt)?'sign':'rooms');
   // A draft made before the apartment name was kept gets it now, from the register. Only a
   // draft: a report already finished or signed keeps the title it was closed with. In the
@@ -4205,7 +4425,7 @@ async function buildPdf(opts){
   doc.splitTextToSize = (t, ...a) => _split(wa(t), ...a);
   const allPhotos = isCheck()
     ? visibleChecks().reduce((a,c)=>a+((c.photos&&c.photos.length)||0), 0)
-    : S.rooms.reduce((a,r)=>a+r.photos.length, 0);
+    : S.rooms.reduce((a,r)=>a+r.photos.length, 0) + techFilled().reduce((a,t)=>a+t.photos.length, 0);
   const photoBudget = Math.max(80*1024, Math.min(720*1024, Math.floor(3.3*1048576 / Math.max(1, allPhotos))));
   let packed = 0;
   const packNote = ()=>{ packed++; if(allPhotos>8 && packed%5===0) toast(`Packing photos ${packed} of ${allPhotos}`) };
@@ -4221,7 +4441,7 @@ async function buildPdf(opts){
   };
 
   doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  doc.text(isCheck()? 'SHORTSTAY UPPLÅSNING' : 'INSPECTION REPORT', M, y+8);
+  doc.text(isCheck()? 'SHORTSTAY UPPLÅSNING' : isNewProp()? 'NYTT OBJEKT' : 'INSPECTION REPORT', M, y+8);
   doc.setFontSize(8);
   doc.text(isCheck()? [stamp(new Date(S.created)), 'ID '+S.id]
                     : [TYPE_LABEL[S.type]||S.type, stamp(new Date(S.created)), 'ID '+S.id],
@@ -4271,7 +4491,7 @@ async function buildPdf(opts){
 
   const keys = isCheck()? null : S.rooms.find(r=>r.fixed || r.name.toLowerCase().startsWith('nyck'));
   line(`Inspector: ${S.inspector.name||'-'}`, 10);
-  if(!isCheck()) line(`Counterparty: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
+  if(!isCheck() && !isNewProp()) line(`Counterparty: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
   if(keys) line(`Keys: ${keys.comment||'-'}, ${keys.photos.length} photos`, 10);
   if(S.video) line(`Video recorded ${stamp(new Date(S.video.ts))}`, 10);
   if(S.wifi) line(`Internet: ${wifiLine(S.wifi)}`, 10);
@@ -4419,7 +4639,13 @@ async function buildPdf(opts){
     y += 10;
   }
   const RCOL = 3, RGAP = 10, rcw = (CW - RGAP*(RCOL-1))/RCOL, rmaxH = 240;
-  for(const r of (isCheck()? [] : S.rooms)){
+  // The equipment follows the rooms under a heading of its own, laid out like a room each. Only
+  // items with a photo or a comment are printed; an untouched suggestion leaves no trace, and with
+  // none filled there is no heading either.
+  const tech = techFilled().map(t=>({name:t.name || t.label, comment:t.comment, photos:t.photos, tech:true}));
+  const blocks = (isCheck()? [] : S.rooms).concat(tech);
+  for(const r of blocks){
+    const firstTech = r === tech[0];
     // measure the photos first so that the heading is never left alone at the bottom
     const shots = [];
     for(const p of r.photos){
@@ -4438,7 +4664,11 @@ async function buildPdf(opts){
       cmt = doc.splitTextToSize(r.comment, CW);
       head += cmt.length*13;
     }
-    need(head + firstRow);
+    need(head + firstRow + (firstTech? 26 : 0));   // the section heading stays with its first item
+    if(firstTech){
+      doc.setFont('helvetica','bold'); doc.setFontSize(14);
+      doc.text('Installations and equipment', M, y+12); y += 26;
+    }
 
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
     doc.text(r.name, M, y+10); y += 20;
@@ -4464,7 +4694,8 @@ async function buildPdf(opts){
     doc.setDrawColor(215); doc.setLineWidth(.6); need(6); doc.line(M, y, W-M, y); y += 12;
   }
 
-  if(isCheck()){
+  // A new property has no Signatures block at all, only who did it and when it was finished.
+  if(isCheck() || isNewProp()){
     need(50);
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
     doc.text(`Performed by: ${S.inspector.name||'-'}`, M, y+10); y += 16;
@@ -4529,7 +4760,7 @@ async function sharePdf(blob, name){
   const file = new File([blob], name, {type:'application/pdf'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:name,
-      text: isCheck()? `Upplåsning ${ref()}` : `Inspection ${ref()}` }); return }
+      text: isCheck()? `Upplåsning ${ref()}` : isNewProp()? ref() : `Inspection ${ref()}` }); return }
     catch(e){ if(e && e.name === 'AbortError') return }
   }
   const url = URL.createObjectURL(blob);
@@ -4688,9 +4919,10 @@ async function sendPdf(){
 // The backup file: the inspection with its photos and video, as one JSON blob. Built apart
 // from the sharing so a test can read what Restore will be given.
 async function buildBackup(){
-  // check-ins have the photos on the checklist rows, other types on the rooms.
-  // Include both, plus the video, so a backup never becomes silently incomplete.
-  const barare = (S.rooms||[]).concat(S.checks||[]);
+  // check-ins have the photos on the checklist rows, other types on the rooms, and a new property
+  // on its equipment items too. Include all of them, plus the video, so a backup never becomes
+  // silently incomplete.
+  const barare = (S.rooms||[]).concat(S.checks||[], S.tech||[]);
   let video = null;
   try{ if(S.video && S.video.stored) video = await store.get(K.video(S.id)) }catch(e){}
   // Written as a stream of pieces straight into the Blob. Turning a hundred photos into one
@@ -4741,20 +4973,28 @@ function legacyPrint(){
     <div class="p-photos">${r.photos.map(p=>`<div><img src="${photoCache[p.id]||''}">
       <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>
   </div>`)).join('');
+  const tech = techFilled();
+  const techRows = tech.length? `<h2 style="margin-top:20px">Installations and equipment</h2>` + tech.map(t=>`<div class="p-room">
+    <h3>${esc(t.name || t.label)}</h3>
+    ${t.comment?`<p style="font-size:13px">${esc(t.comment)}</p>`:''}
+    <div class="p-photos">${t.photos.map(p=>`<div><img src="${photoCache[p.id]||''}">
+      <div style="font:10px monospace">${stamp(new Date(p.ts))}</div></div>`).join('')}</div>
+  </div>`).join('') : '';
   $('#print').innerHTML = `
     <div style="font-family:Helvetica,Arial;padding:24px;max-width:760px">
       <div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px">
-        <div><div style="font:11px monospace;letter-spacing:.15em">INSPECTION REPORT</div>
+        <div><div style="font:11px monospace;letter-spacing:.15em">${isNewProp()? 'NYTT OBJEKT' : 'INSPECTION REPORT'}</div>
         <h1 style="margin:4px 0">${esc(ref())}</h1></div>
         <div style="font:11px monospace;text-align:right">${esc(TYPE_LABEL[S.type]||S.type)}<br>${stamp(new Date(S.created))}<br>ID ${esc(S.id)}</div>
       </div>
       <p style="font-size:13px">
         Keys: ${esc((keysRoom()&&keysRoom().comment)||'-')} · ${keysRoom()?keysRoom().photos.length:0} photos${S.video?`<br>Video attached ${stamp(new Date(S.video.ts))}`:''}<br>
-        Inspector: ${esc(S.inspector.name)}<br>
-        Counterparty: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}
+        Inspector: ${esc(S.inspector.name)}${isNewProp()? '' : `<br>
+        Counterparty: ${esc(S.counter.name)} ${esc(S.counter.role?'('+S.counter.role+')':'')}`}
       </p>
       ${rows}
-      ${isCheck()? `<p style="font-size:13px;margin-top:20px">Performed by: ${esc(S.inspector.name||'-')}${S.closedAt? '<br>Finished '+stamp(new Date(S.closedAt)) : ''}</p>` : `
+      ${techRows}
+      ${isCheck() || isNewProp()? `<p style="font-size:13px;margin-top:20px">Performed by: ${esc(S.inspector.name||'-')}${S.closedAt? '<br>Finished '+stamp(new Date(S.closedAt)) : ''}</p>` : `
       <h3 style="margin-top:20px">Signatures</h3>
       ${sigNote()? `<p style="font-size:12px;color:#555;margin:0 0 8px">${esc(sigNote())}</p>` : ''}
       <div style="display:flex;gap:30px" class="p-sig">

@@ -128,9 +128,6 @@
   .clinks{margin-left:auto;display:flex;align-items:center;gap:14px}
   .addc{margin:0;padding:0;background:none;border:0;line-height:1;font-family:var(--sans);font-size:13px;
         color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
-  .wifibtn{font-family:var(--sans);font-size:14px;font-weight:650;color:var(--ink);background:var(--brand);
-           border:1px solid var(--brand-dark);border-radius:9px;padding:9px 15px;line-height:1;cursor:pointer;white-space:nowrap}
-  .wifibtn:active{background:var(--brand-dark)}
   .crow .thumbs{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}
   .cinput{margin-top:10px;font-size:15px;padding:11px 12px}
   .room.drop, .card.drop{outline:2px dashed var(--ink);outline-offset:-2px;background:#F6F7F7}
@@ -485,11 +482,6 @@ const SV = {
   'too large to save':'för stor för att sparas',
   'Remove video':'Ta bort video',
   'Record a walkthrough of the whole apartment.':'Spela in en genomgång av hela lägenheten.',
-  'Internet':'Internet',
-  'Measured':'Mätt',
-  'Measure again':'Mät igen',
-  'Measure wifi':'Mät wifi',
-  "Make sure the phone is on the apartment's wifi.":'Se till att telefonen är uppkopplad till lägenhetens wifi.',
   'Type or scan the keys you leave in the apartment.':'Skriv in eller skanna de nycklar du lämnar i lägenheten.',
   'Set your name in the menu':'Sätt ditt namn i menyn',
   'Saved on this phone. Used on every key line and on a new inspection.':'Sparas på telefonen. Används på varje nyckelrad och i nya besiktningar.',
@@ -603,7 +595,7 @@ const SV = {
   // --- signature ---
   'The counterparty':'Motparten',
   'signed digitally via signing link':'signerade digitalt via signeringslänk',
-  'Already emailed to longstay@beaps.se.':'Redan mejlad till longstay@beaps.se.',
+  'Already emailed to michal@beaps.se.':'Redan mejlad till michal@beaps.se.',
   'Signed':'Signerat',
   'Signature saved':'Signaturen sparades',
   'Save the app to the home screen':'Spara appen på hemskärmen',
@@ -638,14 +630,6 @@ const SV = {
   'Unlock the list so it can be changed again?':'Lås upp listan så den kan ändras igen?',
   'Unlock the report? The signatures are removed and it is noted in the log.':'Lås upp rapporten? Signaturerna tas bort och det noteras i loggen.',
   'Draw the signature in the box first.':'Rita signaturen i rutan först.',
-  // --- wifi measurement ---
-  'A measurement is already running':'En mätning pågår redan',
-  'Measuring latency':'Mäter latens',
-  'Measuring download':'Mäter nedladdning',
-  'Measuring upload':'Mäter uppladdning',
-  'Measurement cancelled, you switched inspection':'Mätning avbruten, du bytte besiktning',
-  'Measurement done':'Mätning klar',
-  'Could not measure wifi right now':'Kunde inte mäta wifi just nu',
   // --- gallery ---
   'An upload is already running':'En uppladdning pågår redan',
   'Upload cancelled, you switched inspection':'Uppladdning avbruten, du bytte besiktning',
@@ -674,7 +658,7 @@ const SV = {
   'Emails a link where the counterparty sees the whole report and signs in the browser.':'Mejlar en länk där motparten ser hela rapporten och signerar i webbläsaren.',
   'Remote signing':'Signering på distans',
   'signed via the link that was sent to':'signerade via länken som skickades till',
-  'The report has been emailed to longstay@beaps.se with a copy to the recipient.':'Rapporten har mejlats till longstay@beaps.se med en kopia till mottagaren.',
+  'The report has been emailed to michal@beaps.se with a copy to the recipient.':'Rapporten har mejlats till michal@beaps.se med en kopia till mottagaren.',
   'The link to':'Länken till',
   'is revoked.':'är återkallad.',
   'Send a new link':'Skicka en ny länk',
@@ -683,7 +667,7 @@ const SV = {
   'Sent to':'Skickad till',
   'copy':'kopia',
   'valid until':'giltig till',
-  'Emailed to longstay@beaps.se as soon as it is signed.':'Mejlas till longstay@beaps.se så snart den är signerad.',
+  'Emailed to michal@beaps.se as soon as it is signed.':'Mejlas till michal@beaps.se så snart den är signerad.',
   'Check status':'Kontrollera status',
   'Revoke':'Återkalla',
   // --- send signing link sheet ---
@@ -1447,14 +1431,6 @@ async function render(){
         : `<div class="hint" style="margin:0 0 10px">${T('Record a walkthrough of the whole apartment.')}</div>
            <button class="btn ghost" onclick="openCam(S.rooms[0]&&S.rooms[0].id,true)">${T('Add video')}</button>`}
       </div>
-      <div class="card">
-        <div class="eyebrow" style="margin-bottom:9px">${T('Internet')}</div>
-        ${S.wifi? `<div style="font-size:14px">${esc(wifiLine(S.wifi))}</div>
-          <div class="hint">${T('Measured')} ${stamp(new Date(S.wifi.ts))}</div>
-          <button class="btn ghost small" style="margin-top:10px" onclick="measureWifiRoom()">${T('Measure again')}</button>`
-        : `<div class="hint" style="margin:0 0 10px">${T("Make sure the phone is on the apartment's wifi.")}</div>
-           <button class="btn ghost" onclick="measureWifiRoom()">${T('Measure wifi')}</button>`}
-      </div>
       ${showTech()? techSection() : ''}
     </div>`;
     bar.innerHTML = `<button class="btn ghost small" onclick="go('object')">${T('Property')}</button>
@@ -1630,12 +1606,10 @@ function checkRow(c){
         ${answers}
       </span>
       <span class="clinks">
-        ${c.key==='internet'? `<button class="wifibtn" onclick="measureWifi('${c.id}')">${T('Measure wifi')}</button>`:''}
         ${photoRow? '' : `<button class="addc" onclick="openCheckComment('${c.id}')">${T('Comment')}</button>`}
         ${photoRow? '' : `<button class="addc" onclick="openCam('${c.id}')">${T('Photo')}</button>`}
       </span>
     </div>
-    ${c.key==='internet'? `<div class="hint">${T("Make sure the phone is on the apartment's wifi.")}</div>`:''}
     ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${T('Comment')}">`:''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
@@ -1949,7 +1923,7 @@ function sigBlock(who){
       <div style="font-size:14px"><b>${esc(s.name||T('The counterparty'))}</b> ${T('signed digitally via signing link')}</div>
       <div class="hint" style="font-family:var(--mono);font-size:11px;margin-top:4px">${stamp(new Date(s.ts))}</div>
     </div>
-    <div class="hint">${T('Already emailed to longstay@beaps.se.')}</div>`;
+    <div class="hint">${T('Already emailed to michal@beaps.se.')}</div>`;
   if(s) return `<div class="sigdone"><img src="${s.data}" alt="signature"></div>
     <div class="hint" style="font-family:var(--mono);font-size:11px">${T('Signed')} ${stamp(new Date(s.ts))}</div>`;
   return `<canvas class="sigpad" id="pad_${who}"></canvas>
@@ -2058,135 +2032,6 @@ function commitPendingPads(list){
   save();
   toast(T('Signature saved'));
   return n;
-}
-
-/* ---------- wifi measurement ---------- */
-// Measures against Beaps' own Netlify function, so no third-party service needs to be involved.
-// The numbers are an assessment of the phone -> internet connection, not a lab measurement:
-// they reflect what a guest actually gets out of the network, which is what we want to know.
-const WIFI_DOWN = 4*1024*1024, WIFI_UP = 2*1024*1024, WIFI_PINGS = 5;
-// matches exactly one previous measurement and nothing more, so a handwritten comment after it survives
-const MATNING = /^Down .*?Latency \d+ ms(?: · mobile data)?/;
-let measuring = false;
-
-async function pingOnce(){
-  const t = performance.now();
-  const r = await withTimeout(fetch('/api/speed-ping?x='+uid(), {cache:'no-store'}), 8000);
-  if(!r.ok) throw new Error('ping ' + r.status);
-  await r.text();
-  return performance.now() - t;
-}
-
-async function measureDown(){
-  const r = await withTimeout(fetch('/api/speed-down?bytes='+WIFI_DOWN+'&x='+uid(), {cache:'no-store'}), 45000);
-  if(!r.ok || !r.body) throw new Error('down');
-  const reader = r.body.getReader();
-  let bytes = 0, t0 = 0;
-  for(;;){
-    const {done, value} = await reader.read();
-    if(done) break;
-    if(!t0) t0 = performance.now();   // the clock starts on the first byte, not on the connection
-    bytes += value.length;
-  }
-  const s = (performance.now() - t0)/1000;
-  return (s > 0.05 && bytes > 0) ? (bytes*8)/s/1e6 : null;
-}
-
-async function measureUp(){
-  const buf = new Uint8Array(WIFI_UP);
-  for(let i=0;i<buf.length;i+=65536) crypto.getRandomValues(buf.subarray(i, Math.min(i+65536, buf.length)));
-  const t0 = performance.now();
-  const r = await withTimeout(fetch('/api/speed-up?x='+uid(), {method:'POST', body:buf, cache:'no-store'}), 45000);
-  if(!r.ok) throw new Error('up');
-  await r.json();
-  const s = (performance.now() - t0)/1000;
-  return s > 0.05 ? (WIFI_UP*8)/s/1e6 : null;
-}
-
-async function measureWifi(id){
-  if(measuring) return toast(T('A measurement is already running'));
-  if(!S || !S.checks) return;
-  const insp = S;                    // the measurement takes seconds, the user may switch inspection in the meantime
-  const c = S.checks.find(x=>x.id===id);
-  if(!c) return;
-  measuring = true;
-  saveCheckComments();
-  try{
-    toast(T('Measuring latency'));
-    const pings = [];
-    for(let i=0;i<WIFI_PINGS;i++){ try{ pings.push(await pingOnce()) }catch(e){} }
-    if(!pings.length) throw new Error('no contact');
-    pings.sort((a,b)=>a-b);
-    const latens = Math.round(pings[Math.floor(pings.length/2)]);
-
-    toast(T('Measuring download'));
-    const ned = await measureDown();
-    toast(T('Measuring upload'));
-    const upp = await measureUp().catch(()=>null);
-
-    // another inspection opened in the meantime: don't write the result in the wrong place
-    if(S !== insp){ measuring = false; return toast(T('Measurement cancelled, you switched inspection')) }
-
-    // short enough to be shown in full in the comment field. The time is deliberately omitted,
-    // it is in the activity log that follows along in the PDF.
-    const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
-    const conn = navigator.connection;
-    const mobil = conn && conn.type === 'cellular';
-    const rad = `Down ${bit(ned)} · Up ${bit(upp)} Mbit/s · Latency ${latens} ms`
-              + (mobil? ' · mobile data' : '');
-
-    // keep any handwritten comment, only replace a previous measurement
-    const rest = (c.comment||'').replace(MATNING,'').replace(/^\s*[—·-]\s*/,'').trim();
-    c.comment = rad + (rest? ' — ' + rest : '');
-    unlockIfLocked();
-    c.val = 'ja';   // a successful measurement answers "Does the internet work?" -> Yes, saves a click
-    c.open = true;
-    log(`Wifi measured: down ${bit(ned)} / up ${bit(upp)} Mbit/s, ${latens} ms`);
-    save(); render();
-    toast(T('Measurement done'));
-  }catch(e){
-    toast(T('Could not measure wifi right now'));
-  }
-  measuring = false;
-}
-
-// Format a stored wifi measurement for display / the PDF.
-function wifiLine(w){
-  if(!w) return '';
-  const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
-  return `Down ${bit(w.down)} · Up ${bit(w.up)} Mbit/s · Latency ${w.latency} ms` + (w.mobile? ' · mobile data' : '');
-}
-// Wifi test for the room-based types (move-in/out, annual, damage). Optional, never required;
-// the result is stored on S.wifi and shown on the rooms screen and in the PDF.
-async function measureWifiRoom(){
-  if(measuring) return toast(T('A measurement is already running'));
-  if(!S) return;
-  const insp = S;
-  measuring = true;
-  try{
-    toast(T('Measuring latency'));
-    const pings = [];
-    for(let i=0;i<WIFI_PINGS;i++){ try{ pings.push(await pingOnce()) }catch(e){} }
-    if(!pings.length) throw new Error('no contact');
-    pings.sort((a,b)=>a-b);
-    const latency = Math.round(pings[Math.floor(pings.length/2)]);
-    toast(T('Measuring download'));
-    const down = await measureDown();
-    toast(T('Measuring upload'));
-    const up = await measureUp().catch(()=>null);
-    if(S !== insp){ measuring = false; return toast(T('Measurement cancelled, you switched inspection')) }
-    const conn = navigator.connection;
-    const mobile = !!(conn && conn.type === 'cellular');
-    unlockIfLocked();
-    S.wifi = { down, up, latency, ts:Date.now(), mobile };
-    const bit = v => v==null? '?' : (v>=10? String(Math.round(v)) : v.toFixed(1));
-    log(`Wifi measured: down ${bit(down)} / up ${bit(up)} Mbit/s, ${latency} ms`);
-    save(); render();
-    toast(T('Measurement done'));
-  }catch(e){
-    toast(T('Could not measure wifi right now'));
-  }
-  measuring = false;
 }
 
 /* ---------- gallery: photos and video in full resolution ---------- */
@@ -2472,7 +2317,7 @@ function signReqCard(){
     <div class="eyebrow" style="margin-bottom:8px">${T('Remote signing')}</div>
     <span class="locknote">${T('Signed')} ${stamp(new Date(q.signedAt||Date.now()))}</span>
     <div class="hint">${esc(q.signedName||q.name||T('The counterparty'))} ${T('signed via the link that was sent to')}
-      ${esc(q.to)}. ${T('The report has been emailed to longstay@beaps.se with a copy to the recipient.')}</div>
+      ${esc(q.to)}. ${T('The report has been emailed to michal@beaps.se with a copy to the recipient.')}</div>
   </div>`;
 
   if(q.status==='cancelled') return `<div class="card">
@@ -2488,7 +2333,7 @@ function signReqCard(){
     <div style="font-size:14px;color:var(--ink2)">
       ${T('Sent to')} ${esc(q.to)}${q.cc? ', '+T('copy')+' '+esc(q.cc):''}<br>${stamp(new Date(q.sentAt))}${q.expires? ' · '+T('valid until')+' '+stamp(new Date(q.expires)):''}
     </div>
-    <div class="hint">${T('Emailed to longstay@beaps.se as soon as it is signed.')}</div>
+    <div class="hint">${T('Emailed to michal@beaps.se as soon as it is signed.')}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="btn ghost small" onclick="checkSignStatus()">${T('Check status')}</button>
       <button class="btn ghost small" onclick="copySignLink()">${T('Copy link')}</button>
@@ -4494,7 +4339,6 @@ async function buildPdf(opts){
   if(!isCheck() && !isNewProp()) line(`Counterparty: ${S.counter.name||'-'}${S.counter.role? ' ('+S.counter.role+')':''}`, 10);
   if(keys) line(`Keys: ${keys.comment||'-'}, ${keys.photos.length} photos`, 10);
   if(S.video) line(`Video recorded ${stamp(new Date(S.video.ts))}`, 10);
-  if(S.wifi) line(`Internet: ${wifiLine(S.wifi)}`, 10);
   y += 8;
 
   /* A receipt for the keys, not a question about them. It appears only when a bundle was
@@ -4777,7 +4621,7 @@ async function doExport(){
   if(!out) return legacyPrint();
   await sharePdf(out.blob, out.name);
 }
-const mailTarget = () => isCheck()? 'guestservice@beaps.se' : 'longstay@beaps.se';
+const mailTarget = () => 'michal@beaps.se';
 // Up to this size the PDF rides base64-encoded inside the request, as it always has. Above it
 // the report is parked in the gallery's storage first (report-put) and the mail carries a link
 // the mail service fetches itself, so the server never holds the bytes as text. That is what

@@ -1465,6 +1465,25 @@ Tests: new property in the browser 78 (`outputs/newprop-test/np.cjs`), Dropbox s
 51 against a stubbed Dropbox (`dbx-test.mjs`), inventory script 10; server 320, keys 26, e2e 157
 (one assertion updated for the new folder name), upgrade 48, key photo 42, key flow 53.
 
+### 2026-10-09 — wifi measurement removed, Beaps mail to Mike
+
+**Wifi is gone.** Erik: take the wifi part out entirely. The Internet card on the rooms, the
+*Measure wifi* button and hint on the checklist's *Does the internet work?* row (the question
+itself stays), the measuring code, the PDF's *Internet:* line and the functions
+`speed-down`/`speed-up` are removed. `speed-ping` stays: it is the one-byte health check in
+CLOUDFLARE.md. A measurement already saved on an old inspection (`S.wifi`, or the text in the
+row's comment) stays in the data and the activity log; it is just not shown or printed. The old
+Netlify host still has its `speedtest.mjs`, untouched like the rest of that host.
+
+**Every report mail to Beaps goes to michal@beaps.se** (`MAIL_TO` in wrangler.jsonc, production
+and preview): move-in/out, new property and shortstay reports from *Email PDF*, and the signed
+report. Mail to the counterparty (signing link, reminder, their copy of the signed report) still
+goes to the counterparty. Replies still go to longstay@beaps.se (`MAIL_REPLY_TO`). The app's
+texts say michal@beaps.se. Remove `MAIL_TO` to go back to longstay@/guestservice@.
+
+Tests: new property 83, Dropbox and mail routing 54, server 318 (two function files fewer), keys
+26, e2e 157, upgrade 48, key photo 42, key flow 53 (the wifi-hint check now checks it is gone).
+
 ---
 
 ## 6. Kvar att göra
@@ -1472,8 +1491,6 @@ Tests: new property in the browser 78 (`outputs/newprop-test/np.cjs`), Dropbox s
 Inget beslutat just nu. Idéer som dykt upp men inte prioriterats:
 
 - **Hämta signaturen automatiskt** i stället för att appen frågar när protokollet öppnas.
-- **Mät wifi på fler ställen** i lägenheten och spara flera mätningar, om det visar sig att
-  en punkt inte räcker.
 
 ---
 

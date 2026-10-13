@@ -1785,3 +1785,28 @@ Verifierat lokalt: webbläsare 159 (bl.a. tryck på egen knippa, skrivet nummer,
 **Bara rutan** (Erik): kortet i besiktningen är nu bara nummerfält, *Skanna* och *Leave in apartment / Lämna i lägenheten*. Rubrik, gäst-/telefonfält och knapparna för egna knippor är borta. Lämnade knippor visas som ✓-rader ovanför (× ångrar). Gästen sätts automatiskt till motparten på inflytt; shortstay får ingen gäst och inget telefonnummer. Webbläsare 164, nyckelfoto 42, nyckelflöde 53, e2e 157.
 
 **Nyckeladmin, Var nu → Annan** (Erik): för någon som varken är personal eller gäst, t.ex. fastighetsägare. Ett fritt fält *Vem* (krävs, som för Personal) och telefon. Sparas som utlånad till den personen med `reason:'Annan'` (märket visas inte), så formuläret väljer *Annan* igen när knippan öppnas. Webbläsare 170.
+
+### 2026-10-14 — I lägenheten och hos gäst åtskilda, hämtning efter utflytt
+
+Så arbetar vi: shortstay lämnar nycklar i tom lägenhet; inflytt (MIN) lämnar oftast direkt till gästen; efter utflytt (MOU) hämtar personal nycklarna. Gästens hämtning ur lägenheten registreras inte. Inga utskick till gäster.
+
+**Två lägen, inte ett.** `place`-händelser har nu `loc:'apt'` (i lägenheten, ingen innehavare) eller `loc:'guest'` (överlämnad till gäst, mottagaren i `guest`). Lägenheten knippan tillhör (registret), var den är (`place`/`loc`) och vem som registrerade (`who`) hålls isär. Servern tar emot `apt`/`guest` och `act:'pickup'` (bara på `out`).
+
+**Historik i hela meningar** (`evSentence`): "Anders lämnade 113:1 i lägenheten (lgh 1301 TRAST)", "Anders lämnade 113:1 till Anna", "Anders hämtade 113:1 från lgh 1301 TRAST", "Anders checkade in 113:1". Loggtabellens *Vad* har samma text utan namn och nummer.
+
+**Besiktningen** (shortstay under nyckelfotoraden, inflytt/utflytt i rummet Nycklar; foto och fritext oförändrade):
+- Två val, *I lägenheten* / *Till gäst*, förval shortstay = I lägenheten, inflytt = Till gäst, byts med ett tryck (`S.keyMode`).
+- I lägenheten: ingen mottagare, även om protokollet har en gäst.
+- Till gäst: namnet från Objekt, annars ett frivilligt fält. Utan namn står det "till gäst" – inget namn hittas på.
+- Utflytt: bara *Hämta nycklar* (skanna flera i rad). Knipporna hamnar hos den som hämtar (`out`, `act:'pickup'`). Till skåpet först när de checkas in där. Att avsluta protokollet flyttar inga nycklar.
+- Menyn har *Hämta nycklar* för hämtning utan protokoll.
+
+**Kvitto i PDF:en**: *KEYS LEFT IN THE APARTMENT* / *KEYS HANDED TO THE GUEST* / *KEYS PICKED UP*, med lägenhet, mottagare (bara vid överlämning till gäst; utan namn "the guest (name not recorded)"), "Registered by … · tid" och nycklarna som de var vid registreringen. Inget om att gästen bekräftat.
+
+**Knippbladet**: valen Mig · I lägenheten · Gäst · Annan person · Servicebox · Nyckeltub · Skåpet. Från lägenhet/gäst/box/tub är förvalet *Hämta* (pickup).
+
+**Listor och admin**: nyckelloggen har flikarna *I lägenheter* och *Gäster* (menyn: *Nycklar i lägenheter*, *Nycklar hos gäster*). Adminlistan har filtren *Alla · I lägenheten · Hos gäst*. *Var nu* i admin har *I lägenheten* och *Gäst* som egna val.
+
+**Äldre data** – känns igen på att `loc` saknar `apt`/`guest` (kvitton: saknar `act`), inte på datum; även poster från tidigare i dag kan ha den gamla betydelsen: status *Lämnad (äldre)*, listas under I lägenheter, aldrig under Gäster. Ett sparat gästnamn visas som "gäst enligt uppgift", inte som mottagare. Admin visar "Äldre post: …" utan förvalt läge; att välja ett läge registrerar det som rättelse. Äldre kvitton (utan `act`) skrivs ut som *KEYS REGISTERED* med "Guest on record". Inget äldre skrivs om.
+
+Verifierat lokalt: server 74, webbläsare 194 (bl.a. förval och byte, i lägenheten utan mottagare trots gäst i protokollet, till gäst utan namn, flera knippor i rad, offlinekö och återförsök vid hämtning → en händelse per knippa, avslutat utflyttsprotokoll flyttar inget, incheckning senare, hämtning från menyn, äldre post i listor/admin/PDF, kvittot oförändrat efter registerändring); övriga sviter gröna (nyckelflöde 53, e2e 157, uppgradering 48, nytt objekt 84, nyckelfoto 42, server 321, nycklar 26). Gamla testförväntningar ändrade där betydelsen ändrats (formuleringar, äldre post ej "hos gäst", utflytt har nu hämtningsruta).

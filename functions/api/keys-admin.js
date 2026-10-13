@@ -105,7 +105,7 @@ export async function onRequest(context) {
         place: clip(raw.place, 60), guest: clip(raw.guest, 60),
         holder: raw.kind === 'out' ? clip(raw.holder, 60) : '',
         phone: cleanPhone(raw.phone),
-        loc: ['box', 'tube'].includes(raw.loc) ? raw.loc : '',
+        loc: ['box', 'tube', 'apt', 'guest'].includes(raw.loc) ? raw.loc : '',
         unit: clip(raw.unit, 40)
       });
       await record(store, [ev]);

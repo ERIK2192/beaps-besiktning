@@ -1,6 +1,6 @@
 // Records a check-out, a check-in or a hand-over in the shared key ledger.
 //   POST /api/keys-event  { events:[{id, bundle, kind:'out'|'in'|'place', who, reason, name, ts, from, apt, place, guest,
-//                                    holder, phone, loc, unit}] }
+//                                    holder, phone, loc, unit, act}] }
 //   -> { ok, saved:[id] }
 //
 // Three kinds. 'out': someone took the bundle (from the cabinet, or over from a colleague,
@@ -31,7 +31,9 @@ import { record, fitMeta, cleanPhone } from '../../cflib/keys.js';
 
 const MAX_BATCH = 50;
 const KINDS = ['out', 'in', 'place'];
-const LOCS = ['box', 'tube'];
+// 2026-10-14: 'apt' = left in the empty apartment, nobody holds it; 'guest' = handed straight to
+// the guest. An event from before has loc '' and may mean either - read as such, never guessed.
+const LOCS = ['box', 'tube', 'apt', 'guest'];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -72,7 +74,8 @@ export async function onRequest(context) {
       holder: kind === 'out' ? clip(raw.holder, 60) : '',
       phone: cleanPhone(raw.phone),
       loc: LOCS.includes(raw.loc) ? raw.loc : '',
-      unit: clip(raw.unit, 40)
+      unit: clip(raw.unit, 40),
+      act: kind === 'out' && raw.act === 'pickup' ? 'pickup' : ''   // picked up from where it was left
     };
 
     events.push(fitMeta(event));

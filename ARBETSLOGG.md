@@ -1762,3 +1762,20 @@ CSV och källtext finns i outputs/nyckellista/Swedenborgsgatan-13-nycklar.csv re
 **Verifierat lokalt**: server/admin 71 (bl.a. två orter med 60 s fördröjning: båda sparningarna landar, konflikt visas, avgörs, kopian lagas), webbläsare 126 (inkl. konfliktvy), övriga sviter oförändrat gröna. Inte verifierat mot riktig KV.
 
 **Kvar, känt sedan tidigare**: `kst/<knippa>` (knippans läge + senaste 30 i historiken) skrivs fortfarande med läs-ändra-skriv för alla flyttar, inte bara admins. Två flyttar av samma knippa inom KV:s fördröjning från olika orter kan ge fel läge tills nästa flytt; nyckelloggen (`kevr/`) har alltid alla händelser.
+
+### 2026-10-13 — Nycklar till gästen inifrån inflyttsbesiktningen
+
+På begäran: nycklar ska kunna lämnas till gästen direkt i besiktningen (ändrar 2026-10-07 "ingen skanning i en besiktning", men bara för inflytt och utan krav).
+
+- I rummet **Nycklar** på en inflytt, under foto och fritext (som finns kvar oförändrade): *Nycklar till gästen*. Gästen = motparten från Objekt; bara **telefon** att fylla i (sparas på besiktningen, `S.keyPhone`).
+- **Dina nycklar** visas som knappar (den här lägenhetens först): ett tryck lämnar knippan. Annars skriv numret eller **Skanna** → *Lämna till gästen*.
+- Skrivs som ett `place`-event (gäst, telefon, `reason:'Inflytt'`, `who` = du) direkt från skåpet eller dina nycklar. Knippa hos någon annan eller från annan lägenhet visas en gång för koll först. Arkiverad knippa nekas; redan hos samma gäst → "redan här".
+- Varje knippa hamnar på protokollets nyckelkvitto (`S.keysOut`, PDF: *KEYS HANDED OVER* med alla nycklar). × tar bort den från kvittot och, om loggen fortfarande har den hos gästen från just den överlämningen, tillbaka till dig (`reason:'Rättad'`).
+- Låst/signerad rapport: knippan loggas men kvittot och signaturerna rörs inte.
+- Utflytt och shortstay: ingen ändring.
+
+**Skanna flera i rad**: skannern stängs inte efter en bricka. Läst → stor grön bock med numret, knippan listas (✓ 113:1 ✓ 113:2), nästa bricka. Samma bricka kvar framför kameran skrivs inte två gånger (4 s). Behöver en knippa en koll (hos någon annan, annan lägenhet) stannar skannern på *Lämna ändå* / *Hoppa över*. Nummer kan också skrivas i skannern. *Klart* stänger och kortet visar allt som lämnats.
+
+**Grön bock = sparat**: bocken visas först när händelsen ligger i telefonens kö (skickas när nätet finns) *och* kvittot är skrivet i den sparade besiktningen (`flushSave`, inte efter 0,6 s). Överlämningens uppgifter tas innan något väntas på, så en dubbeltryckning kan inte blanda ihop två. Fliken *Gäster* visar lägenheten där knippan lämnades (händelsens `place`), samma som kvittot.
+
+Verifierat lokalt: webbläsare 159 (bl.a. tryck på egen knippa, skrivet nummer, två brickor i rad, samma bricka två gånger, offline-skanning med kö och sparat kvitto före bocken, återförsök till servern → en händelse per knippa i logg och historik, *Hoppa över* ändrar varken server, kö, kvitto eller logg, gäst/lägenhet/telefon lika i logg, Gäster och kvitto, ångra, låst rapport, PDF-kvitto, inget kort på utflytt); övriga sviter gröna.

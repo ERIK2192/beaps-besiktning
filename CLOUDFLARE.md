@@ -86,6 +86,7 @@ Pages-projektet → **Settings** → **Environment variables** → **Production*
 | `RESEND_API_KEY` | din nyckel från Resend | **Secret** (klicka Encrypt) |
 | `MAIL_FROM` | `Beaps Besiktning <besiktning@bedoma.se>` | Text |
 | `APP_PASSWORD` | teamets lösenord till appen | **Secret** (klicka Encrypt) |
+| `ADMIN_PASSWORD` | lösenord till Nyckeladmin, **ett annat** än `APP_PASSWORD` | **Secret** (klicka Encrypt) |
 
 Vill du styra mottagarna, lägg även till `MAIL_TO_LONGSTAY` och `MAIL_TO_SHORTSTAY`.
 Utan dem används longstay@beaps.se och guestservice@beaps.se, precis som förut.
@@ -95,6 +96,13 @@ Väggen stänger hellre än står öppen: saknas lösenordet serveras appen inte
 som säger vilket namn som ska sättas (503). Gästernas signeringssida, galleriet och det
 mejltjänsten hämtar påverkas inte av väggen. Ordningen är alltså: lägg in secreten, pusha
 sedan. Den läses av funktionerna direkt, utan ombyggnad.
+
+**`ADMIN_PASSWORD` (2026-10-13)** öppnar Meny → Nyckeladmin. Saknas den, eller är den samma som
+`APP_PASSWORD`, är admin avstängt och appen säger det; allt annat fungerar. Byts den loggas alla
+admins ut. Felförsök räknas separat (`auth/afail/`), tio per kvart. Lägg gärna WAF-regeln nedan även
+på `/api/keys-admin`. `/api/keys-admin` står bakom inloggningsväggen: utan teamets inloggning når
+man inte ens adminens lösenordsruta. Inga nya bindningar behövs; registret ligger i samma KV
+(`krv/…`, `kreg:all`, `kreg:dirty`).
 
 **Två inställningar till i Cloudflare hör till väggen.** Koden har två spärrar mot
 lösenordsgissning: fler än tio svar till samma adress på tio sekunder avvisas direkt, och tio
@@ -148,14 +156,18 @@ Variabler läses in vid bygget, så de gäller inte förrän en ny deploy körts
 1. `https://beaps-besiktning.pages.dev/api/speed-ping` — ska visa bokstaven `p`.
    Gör den inte det byggdes inte funktionerna. Läs byggloggen.
 2. `https://beaps-besiktning.pages.dev/` — appen ska starta.
-3. Gör en testbesiktning och mejla PDF:en: en inflytt ska komma till longstay@beaps.se, ett nytt objekt till michal@beaps.se.
+3. Gör en shortstay och tryck **Mät wifi** på *Funkar internet?* — siffrorna ska hamna i kommentaren.
+   Gör en testbesiktning och mejla PDF:en: en inflytt ska komma till longstay@beaps.se, ett nytt objekt till michal@beaps.se.
 4. Gör en utflytt och skicka en **signeringslänk till dig själv**. Öppna den, signera,
    och se att **två** filer kommer i mejlen: protokollet och signatursidan.
 5. Öppna `https://beaps-besiktning.pages.dev/` i ett **privat fönster** — du ska mötas av
    inloggningssidan, inte appen. Prova `…/ARBETSLOGG.md` och `…/nycklar.js` på samma sätt:
-   de ska också stoppas (401), inte visa sitt innehåll. Prova `…/api/keys-log` — 401.
+   de ska också stoppas (401), inte visa sitt innehåll. Prova `…/api/keys-log` och
+   `…/api/keys-admin` — 401.
 6. Logga in med teamets lösenord. Stäng webbläsaren helt och öppna adressen igen: appen ska
    starta utan att fråga efter lösenordet. Menyn har nu **Logga ut**.
+6b. Meny → **Nyckeladmin**: teamets lösenord ska nekas, `ADMIN_PASSWORD` släppa in. Ändra en
+   kommentar och spara; ladda om – den ska stå kvar, också på en annan telefon inom en minut.
 7. Öppna signeringslänken från steg 4 i det privata fönstret — den ska fungera utan någon
    inloggning, liksom gallerilänken i ett protokoll.
 

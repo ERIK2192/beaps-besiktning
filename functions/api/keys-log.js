@@ -1,6 +1,8 @@
 // The shared key ledger, read in the pieces a screen actually needs (2026-10-07).
 //
-//   GET /api/keys-log?view=state                 -> { ok, state }   where every bundle is now
+//   GET /api/keys-log?view=state[&reg=<ver>]     -> { ok, state, reg, regRev, regVer }   where every bundle
+//                                                   is now, and the admin's register entries (cflib/keyreg.js);
+//                                                   reg is null when the phone already has regVer
 //   GET /api/keys-log?view=events[&cursor=][&limit=]
 //                                                -> { ok, events, cursor }  the log, newest first,
 //                                                   one page; cursor is null on the last page
@@ -15,7 +17,8 @@
 //
 // Guarded by the login wall in front of the app, and by the app key as well.
 import { kv, appOk, NO_STORE } from '../../cflib/media.js';
-import { migrate } from '../../cflib/keys.js';
+import { migrate, STATUS_KINDS } from '../../cflib/keys.js';
+import { fresh } from '../../cflib/keyreg.js';
 
 const OK_BUNDLE = /^[A-Za-z0-9:_-]{1,32}$/;
 
@@ -48,7 +51,11 @@ export async function onRequest(context) {
     await migrate(store);
 
     if (view === 'state') {
-      return Response.json({ ok: true, state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
+      const all = await fresh(store);   // rebuilt here when a save may be missing from it (cflib/keyreg.js)
+      // reg=<regVer>: the copy the phone has, by when it was built - a repair can add an entry
+      // without raising the newest rev, so the rev alone cannot say "unchanged".
+      const reg = String(all.builtAt || 0) === u.searchParams.get('reg') ? null : Object.values(all.recs);
+      return Response.json({ ok: true, state: await listAll(store, 'kst/', 5), reg, regRev: all.rev || 0, regVer: all.builtAt || 0 }, { headers: NO_STORE });
     }
     if (view === 'events') {
       const limit = Math.max(1, Math.min(200, Number(u.searchParams.get('limit')) || 50));
@@ -62,8 +69,9 @@ export async function onRequest(context) {
       return Response.json({ ok: true, events: (v && Array.isArray(v.hist)) ? v.hist : [] }, { headers: NO_STORE });
     }
     // An app from before this change: the newest 200 and the state, in two list calls.
+    // Only moves: an app that old reads every event as a position and knows no 'edit'.
     const p = await eventsPage(store, null, 200);
-    return Response.json({ ok: true, events: p.events, state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
+    return Response.json({ ok: true, events: p.events.filter(e => STATUS_KINDS.includes(e.kind)), state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
   } catch (e) {
     return new Response('Could not read the log: ' + String(e && e.message).slice(0, 140), { status: 502 });
   }

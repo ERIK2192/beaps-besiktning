@@ -44,6 +44,10 @@ Två lägen:
 | [functions/api/](functions/api/) | Cloudflares versioner av funktionerna |
 | [functions/api/keys-event.js](functions/api/keys-event.js) | Tar emot en in/utcheckning · `/api/keys-event` |
 | [functions/api/keys-log.js](functions/api/keys-log.js) | Läser den delade nyckelloggen · `/api/keys-log` |
+| [functions/api/keys-admin.js](functions/api/keys-admin.js) | Nyckeladmin: inloggning, registerändring, statusrättelse · `/api/keys-admin` |
+| [cflib/keyreg.js](cflib/keyreg.js) | Adminens registerändringar i KV: en version per sparning (`krv/…`), kopia för telefonerna (`kreg:all`) |
+| [cflib/admin.js](cflib/admin.js) | Adminlösenord (`ADMIN_PASSWORD`) och adminkaka |
+| [functions/api/speed-down.js](functions/api/speed-down.js), [speed-up.js](functions/api/speed-up.js) | Wifi-mätningen i shortstay · `/api/speed-down`, `/api/speed-up` |
 | [functions/api/report-put.js](functions/api/report-put.js) | Parkerar ett stort protokoll i R2 inför mejlet · `/api/report-put` |
 | [functions/api/sign-upload.js](functions/api/sign-upload.js) | Tar emot protokollet till en signeringslänk · `/api/sign-upload` |
 | [functions/api/sign-remind.js](functions/api/sign-remind.js) | Påminner om en signeringslänk som väntar, samma länk igen · `/api/sign-remind` |
@@ -1688,3 +1692,73 @@ Reproducerbara säkerhetstester finns i `tests/new-property-safety.mjs` och `tes
 Användarens tabell med 229 nyckelrader har lagts till som 62 knippor i nycklar.js och 15 lägenheter i fastigheter.js. De 30 befintliga knipporna har jämförts före/efter och är oförändrade. Upprepade rader, tomma märkningar och de sju kommentarerna har bevarats exakt; inga slutsatser om aktuell utlåningsstatus har förts in i nyckelloggen.
 
 CSV och källtext finns i outputs/nyckellista/Swedenborgsgatan-13-nycklar.csv respektive swedenborg-kalla.txt. Gröna etiketter genereras från samma knippnummer; samtliga 62 QR-koder är avlästa tillbaka med appens QR-läsare. Underlaget anger 15 lägenheter men bekräftar inte att hela huset omfattas. Utlåningskommentarer, okända nycklar och återanvända brickmärkningar behöver stämmas av vid inventering.
+
+### 2026-10-13 — Nyckel till gäst direkt, överlämning, servicebox/nyckeltub, nyckeladmin, wifi tillbaka
+
+**Knippbladet** har en rad *Till*: Mig · Gäst · Annan person · Servicebox · Nyckeltub · Skåpet, och en knapp vars text säger vad som händer.
+
+- **Gäst** (inflytt): ett `place`-event direkt till lägenheten (`apt`, `place`), valfritt gästnamn och telefon, `reason:'Inflytt'`. Hamnar aldrig under *Mina nycklar*. *Inflytt* är borttagen ur ärendena under *Mig*.
+- **Mig**: som förr, `out` på den som registrerar (visning, service …).
+- **Annan person**: `out` med `holder` + `phone`; namnet krävs (enda kravet). Försvinner från avsändarens nycklar, syns hos mottagaren om hen har samma namn i appen.
+- **Servicebox / Nyckeltub**: `place` med `loc:'box'|'tube'`, `unit` (vilken), `place` (fastighet/lgh, förifylld). Ingen innehavare. Från box/tub föreslås *Ta med*.
+- `who` = den som registrerar, alltid. Historiken visar *händelse · vem* och tid.
+
+**Nyckellogg**: ny flik *Gäster* (knippa, lgh, gäst, telefon, sedan, utlämnad av), även i menyn som *Nycklar hos gäster*. Flikordningen Var nu · Logg · Gäster.
+
+**Nyckeladmin** (meny): sök, tryck på knippan, ändra, *Spara*. Adress, lgh, namn, kommentar, nycklar (typ, märkning, antal, not), *Var nu* (Skåpet/Personal/Gäst/Servicebox/Nyckeltub + namn, telefon, nr, plats, varför). *Ny knippa* för nya nummer. Admins ser *Redigera* på knippbladet.
+- Behörighet på servern: Cloudflare-secret `ADMIN_PASSWORD` (annat än `APP_PASSWORD`), egen HttpOnly-kaka (30 dagar), egen felräknare. Utan secret är admin avstängt. Bakom inloggningsväggen som förut.
+- Registerändring (ersatt samma dag, se *Samtidiga adminändringar*): `kreg/<knippa>` (sanningen) + `kreg:all` (en läsning för telefonerna, följer med `keys-log?view=state`). nycklar.js skrivs aldrig om; en sparad post ersätter knippans rad. Knippnummer och QR oförändrade. Sparning från inaktuell kopia → 409, inget skrivs över.
+- Statusrättelse: nytt vanligt event med `adm:1` och `note`, efter knippans senaste. Inget tidigare raderas. Registerändringar loggas som `kind:'edit'` (historik, aldrig position).
+
+**Bakåtkompatibelt**: gamla event utan nya fält läses som förut (innehavare = `who`). Nya fält följer med i offlinekön. KV-metadata hålls under 1024 byte (`fitMeta`). Telefoner på gammal version visar en överlämning som utlånad till den som registrerade, tills de laddat om.
+
+**Wifi-testet i shortstay är tillbaka.** Orsak till att det försvann: borttaget med avsikt 2026-10-09 (65e38c5, Eriks besked), inte cache eller service worker — appen har ingen service worker och index.html valideras om vid varje laddning. Återställt från git: *Mät wifi* + tips på *Funkar internet?*, mätkoden, `speed-down`/`speed-up`. Resultatet skrivs i radens kommentar (handskriven text behålls), svarar *Ja*, loggas, och skrivs ut med raden i PDF och utskrift. Rummens Internet-kort är fortfarande borta; gamla `S.wifi` ligger kvar orörda. Checklistnycklar oförändrade.
+
+**Verifierat lokalt**: server/admin 42 (`outputs/keyadmin-test/admin-test.mjs`), webbläsare mot de riktiga funktionerna 83 (`outputs/keyadmin-test/cdp.cjs test sv`): inflytt direkt till gäst, visning, överlämning, box/tub och hämtning, offlinekö, admin nekad/sparad/efter omladdning/annan telefon, ny knippa, konflikt, wifi inkl. PDF. Befintliga: nycklar 26, server 321, nyckelflöde 53, e2e 157, uppgradering 48, nyckelfoto 42, nytt objekt 84 (wifi-kontrollerna i nyckelflöde och nytt objekt ändrade till nytt läge).
+
+**Före deploy**: sätt `ADMIN_PASSWORD` som secret i Cloudflare (Production, och Preview vid behov). Inget pushat eller driftsatt.
+
+**Kvar**: ingen ArtIT-koppling. Admin-identitet är telefonens namn, inte ett konto. Inspektionens gamla nyckelkort (`inspKeyCard`) är fortfarande oanvänt sedan 2026-10-07. (Arkivering och nycklar.js-krockar: se slutgranskningen nedan.)
+
+### 2026-10-13 — Slutgranskning av nyckeländringarna och wifi
+
+**Fel som rättats**
+- *Tappade adminändringar*: efter en egen sparning höjde telefonen sin registerversion och kunde då aldrig hämta det en annan admin sparat strax före. Nu höjs den inte; `keyRegSet` behåller egna poster tills servern har dem och ignorerar äldre serverkopior.
+- *Dubbla händelser vid återförsök*: en rättelse vars svar tappades skrevs två gånger, och en upprepad registersparning gav falsk konflikt. Telefonen skickar nu `op_id`; servern känner igen återförsöket (`kreg.op`, händelse-id `a<op_id>`/`e<op>`).
+- *Wifi*: *Ja* sattes även när uppladdningen misslyckades, på mobildata och över ett redan givet *Nej*. Nu bara vid hel mätning, på wifi, när raden är obesvarad; annars "Mätningen ofullständig"/"Mätt på mobildata". Text som skrivs i kommentaren under mätningen behålls. Avbruten nedladdning ger "?", aldrig ett påhittat värde; ett mycket snabbt nät (<50 ms) mäts från anropet i stället för att bli "?". Uppladdningen kontrolleras mot serverns bytesvar.
+- *Gamla appar* (före 10-07) som läser `keys-log` utan `view` får inte längre `edit`-rader som de skulle tolka som incheckning.
+- `holder` sparas bara på `out`. Adminens inloggning har samma burst-spärr som teamets.
+- Namn jämförs utan skiftläge och extra mellanslag (*Mina nycklar*, "av …", från-fältet). Namn som redan används föreslås när mottagare/personal skrivs.
+- Adminsidan: *Var nu* först, kolumnrubriker på nycklarna, *Stäng* med osparade ändringar frågar först (det enda fallet där något går förlorat).
+
+**Nytt**
+- *Arkivera knippan* / *Ta i bruk igen* längst ner på adminsidan (`off` i registerposten, en `edit`-rad i historiken). Arkiverad: syns inte i *Var nu* när den ligger i skåpet, märkt i adminlistan, går inte att flytta från knippbladet. Gamla QR-koder (även `https://beaps.se/#nyckel=`) öppnar bladet med "Arkiverad · Lämna den till en admin". Okända nummer: "finns inte i registret" som förut. Ta aldrig bort en knippa ur nycklar.js – arkivera den.
+- nycklar.js mot admin: posten bär ett fingeravtryck (`src`) av nycklar.js-raden den utgick från. Ändras raden i filen senare visar adminsidan det, med *Använd grundregistret* (laddar filens version i formuläret; inget sparas utan *Spara*). Inget döljs eller återställs tyst.
+
+**Verifierat lokalt**: server/admin 52, webbläsare 121 (alla flöden inkl. återlämning från gäst, extern person, nyckeltub och egen; arkivering; nycklar.js-ändring; registersammanslagning; namnvarianter; wifi utan kontakt, med misslyckad uppladdning, mobildata, befintligt Nej, text under mätning, PDF och utskrift). Befintliga: 26, 321, 53, 157, 48, 84, 42, dropbox 56, new-property-safety godkänd. Ändrade gamla förväntningar: nyckelflödet kontrollerar "ingen wifi" på inflyttens skärm i stället för hela sidans källtext (koden finns ju igen); nytt objekt kräver nu exakt en wifi-knapp på checklistan och bara `measureWifi`/`pingOnce`.
+
+**Kvar / inte verifierat**
+- Inget kört mot riktig Cloudflare KV. (Risken att två admins skriver över varandra är åtgärdad, se nästa avsnitt.)
+- Telefoner på gammal appversion visar en överlämning som hos den som registrerade tills de laddat om.
+- Personer identifieras bara med namn: två med samma namn delar *Mina nycklar*. Använd fullständiga namn.
+- Gästnamn och telefon ligger i nyckelloggen i tre år (KEEP), som allt annat där. Bör stämmas av mot GDPR.
+- Rate-limit-regeln i Cloudflare (WAF) gäller `/api/login`; lägg gärna samma på `/api/keys-admin`.
+
+### 2026-10-13 — Samtidiga adminändringar, inför driftsättning
+
+**Problemet**: KV har ingen jämför-och-skriv, och en läsning eller listning kan ligga upp till ca 60 s efter en skrivning gjord på en annan ort. Registret läste, ändrade och skrev tillbaka (`kreg/<knippa>`), så två admins nära i tid kunde skriva över varandra.
+
+**Lösningen** (`cflib/keyreg.js`): ingenting skrivs om.
+- Varje sparning är en egen nyckel `krv/<knippa>/<op>` med hela posten; metadata `{id, rev, base, seen, op}`. `base` = versionen admin utgick från, `seen` = versioner admin fick se och valde bort.
+- Gällande post = senaste version som ingen annan bygger på. Två sådana = samtidiga ändringar: den nyaste gäller, den andra sparas och visas. Adminlistan märker knippan *Konflikt*; redigeringssidan visar *Sparad samtidigt* (vem, när, innehåll) med *Använd den här*. *Spara* avgör (skickar `seen`).
+- Syns den andra versionen redan vid sparning → 409 som förut. Återförsök med samma `op_id` skriver samma nyckel.
+- `kreg:all` (telefonernas kopia) är bara en cache. Den byggs om efter varje sparning; `kreg:dirty` håller tiden för senaste sparning och `keys-log?view=state` bygger om kopian när en sparning kan ha missats och är äldre än 75 s (högst en gång per minut). Telefonen frågar med `reg=<regVer>` (byggtid), inte senaste rev, så en lagad kopia når fram.
+- Redigeringssidan hämtar posten direkt från versionerna (`op:'get'`), inte från telefonens kopia.
+- Statusrättelse: telefonen skickar `base_ev` (händelsen den utgick från); har knippan flyttats sedan dess → 409 och sidan visar nya läget. Händelser är egna nycklar, så ingen flytt försvinner oavsett.
+- Inget i produktion behöver flyttas: `kreg/` har aldrig driftsatts.
+
+**Inloggningsskydd `/api/keys-admin`**: kontrollerat hela kedjan middleware → teamkaka → adminkaka. Utan teamkaka 401 innan funktionen nås (även inloggningsförsök), bara teamkaka 403, båda → OK, adminkaka utan teamkaka 401. Lösenordet ekas aldrig.
+
+**Verifierat lokalt**: server/admin 71 (bl.a. två orter med 60 s fördröjning: båda sparningarna landar, konflikt visas, avgörs, kopian lagas), webbläsare 126 (inkl. konfliktvy), övriga sviter oförändrat gröna. Inte verifierat mot riktig KV.
+
+**Kvar, känt sedan tidigare**: `kst/<knippa>` (knippans läge + senaste 30 i historiken) skrivs fortfarande med läs-ändra-skriv för alla flyttar, inte bara admins. Två flyttar av samma knippa inom KV:s fördröjning från olika orter kan ge fel läge tills nästa flytt; nyckelloggen (`kevr/`) har alltid alla händelser.

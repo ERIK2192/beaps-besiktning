@@ -1,5 +1,6 @@
 // Records a check-out, a check-in or a hand-over in the shared key ledger.
-//   POST /api/keys-event  { events:[{id, bundle, kind:'out'|'in'|'place', who, reason, name, ts, from, apt, place, guest}] }
+//   POST /api/keys-event  { events:[{id, bundle, kind:'out'|'in'|'place', who, reason, name, ts, from, apt, place, guest,
+//                                    holder, phone, loc, unit}] }
 //   -> { ok, saved:[id] }
 //
 // Three kinds. 'out': someone took the bundle (from the cabinet, or over from a colleague,
@@ -8,6 +9,12 @@
 // object number (112 in 112:3), `place` the label the log shows ("lgh 1102 TÄRNA"), `guest`
 // the guest's name; any of the three may be empty. Where a bundle is right now is always
 // the last of these for it, whichever kind.
+//
+// 2026-10-13: `who` is whoever registered the event. `holder` on an 'out' is the person who
+// has the bundle when that is someone else (a hand-over to a caretaker without an account);
+// empty means `who` has it, as before. `phone` is the holder's or the guest's number. `loc`
+// on a 'place' is '' (apartment/guest), 'box' (service box) or 'tube' (key tube), `unit`
+// which box or tube. Admin corrections (`adm`, `note`) only come in through keys-admin.
 //
 // Every event is a KV entry of its own. That matters: if the whole log lived under one key,
 // two phones writing in the same minute would overwrite each other and one check-out would
@@ -20,10 +27,11 @@
 // exactly what happens when a flaky connection retries - writes the same key twice instead
 // of making a duplicate.
 import { kv, appOk, NO_STORE, clip } from '../../cflib/media.js';
-import { record } from '../../cflib/keys.js';
+import { record, fitMeta, cleanPhone } from '../../cflib/keys.js';
 
 const MAX_BATCH = 50;
 const KINDS = ['out', 'in', 'place'];
+const LOCS = ['box', 'tube'];
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -60,10 +68,14 @@ export async function onRequest(context) {
       // a hand-over: the apartment (object number and label), the guest, or both
       apt: clip(raw.apt, 16).replace(/[^A-Za-z0-9_-]/g, ''),
       place: clip(raw.place, 60),
-      guest: clip(raw.guest, 60)
+      guest: clip(raw.guest, 60),
+      holder: kind === 'out' ? clip(raw.holder, 60) : '',
+      phone: cleanPhone(raw.phone),
+      loc: LOCS.includes(raw.loc) ? raw.loc : '',
+      unit: clip(raw.unit, 40)
     };
 
-    events.push(event);
+    events.push(fitMeta(event));
   }
 
   // Its own newest-first entry, and its bundle's 'where is it now' (cflib/keys.js).

@@ -28,6 +28,25 @@ export const MIGRATED = 'kmeta/v2';
 // The same rule the phones use: the later time wins; on a tie, the larger id.
 export const later = (a, b) => !b || a.ts > b.ts || (a.ts === b.ts && String(a.id) > String(b.id));
 
+// Only these say where a bundle is. 'edit' (an admin changed the register entry) is history
+// and log, never a position (2026-10-13).
+export const STATUS_KINDS = ['out', 'in', 'place'];
+const placing = e => STATUS_KINDS.includes(e && e.kind);
+
+// A phone number as typed, minus anything that is not part of one.
+export const cleanPhone = s => String(s == null ? '' : s).slice(0, 24).replace(/[^0-9+ ()-]/g, '').trim();
+
+// KV metadata holds at most 1024 bytes. An event full of long Swedish text could pass that, so
+// the free-text fields are shortened, least important first, until it fits.
+const bytes = o => new TextEncoder().encode(JSON.stringify(o)).length;
+export function fitMeta(e, max = 1000) {
+  const out = { ...e };
+  for (const f of ['note', 'reason', 'from', 'place', 'unit', 'guest', 'holder', 'name', 'who']) {
+    while (bytes(out) > max && typeof out[f] === 'string' && out[f]) out[f] = out[f].slice(0, Math.floor(out[f].length * 0.7));
+  }
+  return out;
+}
+
 // Folds events into their bundles' kst entries: one read and one write per bundle touched.
 // Idempotent - an event already in the history is not added twice - so a retry, or the
 // migration running over events a phone has meanwhile written, changes nothing.
@@ -43,16 +62,18 @@ export async function foldState(kv, events) {
     let last = cur && cur.last || null, changed = false;
     for (const e of byBundle[bundle]) {
       if (!seen.has(e.id)) { hist.push(e); seen.add(e.id); changed = true }
-      if (later(e, last)) { last = e; changed = true }
+      if (placing(e) && later(e, last)) { last = e; changed = true }
     }
     if (!changed) continue;
     hist.sort((a, b) => later(a, b) ? -1 : 1);
-    await kv.put(key, JSON.stringify({ last, hist: hist.slice(0, HIST) }), { metadata: last, expirationTtl: KEEP });
+    // No metadata without a position: the state list skips the bundle, as for one never moved.
+    await kv.put(key, JSON.stringify({ last, hist: hist.slice(0, HIST) }), last ? { metadata: last, expirationTtl: KEEP } : { expirationTtl: KEEP });
   }
 }
 
 // One event into the ledger: its own newest-first entry, and its bundle's state.
 export async function record(kv, events) {
+  events = events.map(e => fitMeta(e));
   for (const e of events) await kv.put(revKey(e.ts, e.id), '1', { metadata: e, expirationTtl: KEEP });
   await foldState(kv, events);
 }

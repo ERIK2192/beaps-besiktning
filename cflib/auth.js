@@ -73,12 +73,13 @@ export async function verify(env, token, now) {
   return { exp, iat };
 }
 
-export function cookieOf(request) {
+export function cookieOf(request, name) {
+  const want = name || COOKIE;
   const raw = request.headers.get('cookie') || '';
   for (const part of raw.split(';')) {
     const i = part.indexOf('=');
     if (i < 0) continue;
-    if (part.slice(0, i).trim() === COOKIE) return part.slice(i + 1).trim();
+    if (part.slice(0, i).trim() === want) return part.slice(i + 1).trim();
   }
   return '';
 }
@@ -129,14 +130,15 @@ export function crossSite(request) {
 // effort: KV missing or failing must not stop a correct password from working. A preview
 // deployment shares the namespace with production (wrangler.jsonc), so its counter is kept
 // under its own name (ENV), and a lockout test there never locks the office out of the app.
-export const failKey = (env, ip) => 'auth/fail/' + (env && env.ENV ? String(env.ENV) + '/' : '') + (ip || 'unknown');
-export async function failsFor(env, ip) {
-  try { return Number(await env.SIGNSTORE.get(failKey(env, ip))) || 0 } catch (e) { return 0 }
+// `kind` keeps the admin password's counter apart from the team password's (cflib/admin.js).
+export const failKey = (env, ip, kind) => 'auth/' + (kind || 'fail') + '/' + (env && env.ENV ? String(env.ENV) + '/' : '') + (ip || 'unknown');
+export async function failsFor(env, ip, kind) {
+  try { return Number(await env.SIGNSTORE.get(failKey(env, ip, kind))) || 0 } catch (e) { return 0 }
 }
-export async function noteFail(env, ip) {
+export async function noteFail(env, ip, kind) {
   try {
-    const n = (await failsFor(env, ip)) + 1;
-    await env.SIGNSTORE.put(failKey(env, ip), String(n), { expirationTtl: FAIL_WINDOW_S });
+    const n = (await failsFor(env, ip, kind)) + 1;
+    await env.SIGNSTORE.put(failKey(env, ip, kind), String(n), { expirationTtl: FAIL_WINDOW_S });
     return n;
   } catch (e) { return 0 }
 }

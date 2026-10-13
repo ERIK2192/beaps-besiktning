@@ -994,6 +994,8 @@ const SV = {
   'Hand over anyway':'Lämna ändå',
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
+  'Other':'Annan',
+  'Who, e.g. property owner':'Vem, t.ex. fastighetsägare',
   'Skip':'Hoppa över',
   'Scan the next one, or Done':'Skanna nästa, eller Klart',
   'Guest name: under Property':'Gästens namn: under Objekt',
@@ -3425,7 +3427,7 @@ function evLine(e){
   }
   else if(e.kind === 'out'){
     s = e.holder && !sameName(e.holder, e.who) ? `${T('Handed to')} ${e.holder}${e.phone? ' · ' + e.phone : ''}` : T('Out');
-    if(e.reason) s += ' · ' + e.reason;
+    if(e.reason && e.reason !== 'Annan') s += ' · ' + e.reason;
   }
   else s = T('In the cabinet');
   return e.adm ? s + ' · ' + T('corrected') + (e.note ? ': ' + e.note : '') : s;
@@ -3442,7 +3444,7 @@ const stText = s => { const k = stKind(s);
        : k === 'guest' ? (s.guest ? T('At guest') : T('In apartment')) : T('In the cabinet') };
 // Who has it or where it is, in one line: "Kalle · 070-123 45", "Servicebox 2 · Upplandsgatan 91B".
 const stWhere = s => { const k = stKind(s);
-  return k === 'out' ? [s.holder, s.phone, s.reason].filter(Boolean).join(' · ')
+  return k === 'out' ? [s.holder, s.phone, s.reason === 'Annan' ? '' : s.reason].filter(Boolean).join(' · ')
        : k === 'in' ? '' : [placeLabel(s), !s.loc ? s.phone : ''].filter(Boolean).join(' · ') };
 // Whoever last touched a bundle - the one carrying it, or the one who left it somewhere.
 const whoOf = s => s.status === 'out' ? (s.holder||'') : (s.by||'');
@@ -4584,10 +4586,13 @@ function paintAdminList(){
 // The bundle being edited: the register entry, and where it is, each with the copy it started
 // from so Save can tell what changed.
 let ae = null, admAfter = null;
-const ST_LABEL = { cab:'Cabinet', staff:'Staff', guest:'Guest', box:'Service box', tube:'Key tube' };
+// other: anyone who is neither staff nor guest - a property owner, a contractor - typed as you like.
+// Written as a check-out to that person, marked reason 'Annan' so the form knows it again.
+const OTHER = 'Annan';
+const ST_LABEL = { cab:'Cabinet', staff:'Staff', guest:'Guest', other:'Other', box:'Service box', tube:'Key tube' };
 function stForm(id){
   const s = bstate(id), k = stKind(s);
-  if(k === 'out') return { dest:'staff', name:s.holder||'', phone:s.phone||'', unit:'', place:'', note:'' };
+  if(k === 'out') return { dest: s.reason === OTHER ? 'other' : 'staff', name:s.holder||'', phone:s.phone||'', unit:'', place:'', note:'' };
   if(k === 'guest') return { dest:'guest', name:s.guest||'', phone:s.phone||'', unit:'', place:'', note:'' };
   if(k === 'box' || k === 'tube') return { dest:k, name:'', phone:'', unit:s.unit||'', place:s.place||'', note:'' };
   return { dest:'cab', name:'', phone:'', unit:'', place:'', note:'' };
@@ -4670,7 +4675,7 @@ function paintAdmEdit(){
       <div class="csec">${T('Where now')}</div>
       <div class="card">
         <div class="chips">${Object.keys(ST_LABEL).map(d => `<button class="chip${f.dest===d?' on':''}" onclick="aeDest('${d}')">${T(ST_LABEL[d])}</button>`).join('')}</div>
-        ${f.dest === 'staff' || f.dest === 'guest' ? `<div class="kfrow">${inp('st.name', f.name, f.dest === 'guest' ? 'Guest' : 'Name', f.dest === 'staff' ? 'list="knames"' : '')}${inp('st.phone', f.phone, 'Phone', 'type="tel"')}</div>` : ''}
+        ${f.dest === 'staff' || f.dest === 'guest' || f.dest === 'other' ? `<div class="kfrow">${inp('st.name', f.name, f.dest === 'guest' ? 'Guest' : f.dest === 'other' ? 'Who, e.g. property owner' : 'Name', f.dest === 'staff' ? 'list="knames"' : '')}${inp('st.phone', f.phone, 'Phone', 'type="tel"')}</div>` : ''}
         ${f.dest === 'box' || f.dest === 'tube' ? `<div class="kfrow">${inp('st.unit', f.unit, 'Number', 'class="kfnum"')}${inp('st.place', f.place, 'Property / apartment')}</div>` : ''}
         <div style="margin-top:10px">${inp('st.note', f.note, 'Why (shown in the history)')}</div>
       </div>
@@ -4728,6 +4733,7 @@ function aeEvent(){
   const t = { name:f.name.trim(), phone:f.phone.trim(), unit:f.unit.trim(), place:f.place.trim() };
   if(f.dest === 'cab') return { kind:'in' };
   if(f.dest === 'staff') return { kind:'out', holder:t.name, phone:t.phone };
+  if(f.dest === 'other') return { kind:'out', holder:t.name, phone:t.phone, reason:OTHER };
   if(f.dest === 'guest') return { kind:'place', apt:objOf(ae.id), place:bundleApt(b), guest:t.name, phone:t.phone };
   return { kind:'place', apt:objOf(ae.id), loc:f.dest, unit:t.unit, place:t.place };
 }
@@ -4743,7 +4749,7 @@ async function admSave(){
   const regChanged = ae.isNew || JSON.stringify(ae.rec) !== ae.orig || !!(ae.conf && ae.conf.length);
   const stChanged = aeStSig(ae.st) !== ae.stOrig;
   if(!regChanged && !stChanged) return toast(T('No changes'));
-  if(stChanged && ae.st.dest === 'staff' && !ae.st.name.trim()) return toast(T('Write the name'));
+  if(stChanged && (ae.st.dest === 'staff' || ae.st.dest === 'other') && !ae.st.name.trim()) return toast(T('Write the name'));
   aeBusy = true;
   const btn = document.getElementById('aesave'); if(btn) btn.disabled = true;
   try{

@@ -1519,6 +1519,7 @@ async function render(){
       ${checkList(list)}
       ${showTech()? techSection() : ''}
     </div>`;
+    inspKeyPrime();
     bar.innerHTML = `<button class="btn" onclick="go('sign')">${T('Done')}</button>`;
     return;
   }
@@ -1731,6 +1732,7 @@ function checkRow(c){
     </div>
     ${c.key==='internet'? `<div class="hint">${T("Make sure the phone is on the apartment's wifi.")}</div>`:''}
     ${show?`<input id="k_${c.id}" class="cinput" value="${esc(c.comment)}" placeholder="${T('Comment')}">`:''}
+    ${isPhotoRow(c) && canHandover() ? inspKeyCard() : ''}
     ${c.photos && c.photos.length? `<div class="thumbs">
       ${c.photos.map(ph=>`<div class="thumb"><img src="${photoCache[ph.id]||''}" alt="">
           <div class="x" onclick="delPhoto('${c.id}','${ph.id}')">×</div></div>`).join('')}
@@ -4239,7 +4241,8 @@ async function checkIn(id){ kfFor(id).dest = 'cab'; return bundleAct(id) }
    as one 'place' event. Nothing is required: no name, no phone, no bundle; the photo and the free
    text work as before. A bundle registered elsewhere, or belonging to another apartment, is
    shown for a second look first. Each hand-over goes on the report's key receipt (S.keysOut). */
-const HANDOVER_TYPES = ['Inflytt'];
+// Shortstay first (under the key-photo row of the checklist), and move-in (in the Keys space).
+const HANDOVER_TYPES = ['Upplåsning','Inflytt'];
 const canHandover = () => !!S && HANDOVER_TYPES.includes(S.type);
 let ho = null;        // the hand-over in progress: {apt, place, guest, phone, got, notes, step}
 
@@ -4269,12 +4272,15 @@ function inspKeyCard(){
   const mine = myKeys().filter(id => !doneIds.has(id));
   const carried = ctx.apt ? mine.filter(id => objOf(id) === ctx.apt).concat(mine.filter(id => objOf(id) !== ctx.apt)) : mine;
   const keep = id => { const e = document.getElementById(id); return e ? e.value : null };
-  const num = keep('kbnum'), phone = keep('kbphone');
+  const num = keep('kbnum'), phone = keep('kbphone'), gname = keep('kbguest');
   return `<div class="kcard inspkeys" id="inspkeys">
     <div class="eyebrow">${T('Keys to the guest')}</div>
-    <div class="hint" style="margin:2px 0 0">${guest ? `<b>${esc(guest)}</b>` : T('Guest name: under Property')}${ctx.place ? ' · ' + esc(ctx.place) : ''}</div>
+    ${isCheck() ? (ctx.place ? `<div class="hint" style="margin:2px 0 0">${esc(ctx.place)}</div>` : '') + `<div class="kfrow">
+        <input id="kbguest" autocomplete="off" value="${esc(gname != null ? gname : (S.keyTo || ''))}" placeholder="${T('Guest')}" oninput="S.keyTo=this.value.trim();save()">
+        <input id="kbphone" type="tel" autocomplete="off" value="${esc(phone != null ? phone : (S.keyPhone || ''))}" placeholder="${T('Phone')}" oninput="S.keyPhone=this.value.trim();save()"></div>`
+    : `<div class="hint" style="margin:2px 0 0">${guest ? `<b>${esc(guest)}</b>` : T('Guest name: under Property')}${ctx.place ? ' · ' + esc(ctx.place) : ''}</div>
     <input id="kbphone" type="tel" autocomplete="off" style="margin-top:10px" value="${esc(phone != null ? phone : (S.keyPhone || ''))}"
-           placeholder="${T('Guest phone')}" oninput="S.keyPhone=this.value.trim();save()">
+           placeholder="${T('Guest phone')}" oninput="S.keyPhone=this.value.trim();save()">`}
     ${done.map(k => `<div class="hoconf"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
         <b>${esc(k.bundle)}${k.name ? ' · ' + esc(k.name) : ''}</b>
         <div>${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')} · ${stamp(new Date(k.ts))}${k.ev ? queuedSuffix(k.ev) : ''}</div></div>
@@ -4296,7 +4302,7 @@ function paintInspKeyCard(){
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   el.outerHTML = inspKeyCard();
-  if(focused === 'kbnum' || focused === 'kbphone'){
+  if(focused === 'kbnum' || focused === 'kbphone' || focused === 'kbguest'){
     const f = document.getElementById(focused);
     if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
   }
@@ -4316,8 +4322,9 @@ async function hoBegin(){
   await keyBoot();
   const ctx = inspApt();
   const name = await koName(); if(!name) return false;
-  const ph = document.getElementById('kbphone');
+  const ph = document.getElementById('kbphone'), gn = document.getElementById('kbguest');
   if(ph){ S.keyPhone = ph.value.trim() }
+  if(gn){ S.keyTo = gn.value.trim() }
   ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), phone: S.keyPhone || '', got:null, notes:[], step:'scan' };
   return true;
 }
@@ -4363,7 +4370,7 @@ async function hoWrite(id){
   const name = await koName(); if(!name) return null;
   const s = bstate(id);
   const ev = await keyWrite(id, 'place', { who:name, place:h.place || bundleApt(bundleOf(id)), guest:h.guest, phone:h.phone,
-                                           apt:h.apt || objOf(id), reason:'Inflytt', from: fromOf(s, name) });
+                                           apt:h.apt || objOf(id), reason: insp && insp.type === 'Upplåsning' ? 'Shortstay' : 'Inflytt', from: fromOf(s, name) });
   if(!ev) return null;
   // The receipt the PDF prints. The keys are copied off the register as they stood at the
   // moment of the hand-over, so the report says what was actually handed over even if the

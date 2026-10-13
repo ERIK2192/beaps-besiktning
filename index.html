@@ -320,7 +320,7 @@
   .namerow input:last-child{width:84px;flex:none;font-family:var(--num);text-align:center;text-transform:uppercase}
   .kcard .addrow{margin-top:2px} .kcard .addrow input{font-family:var(--num);letter-spacing:.06em}
   /* the confirmation after a hand-over, on the card that made it */
-  .inspkeys{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .inspkeys{margin-top:12px}
   .hoconf{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px 12px;border-radius:10px;
           background:#F6F5F2;border:1px solid var(--line);font-size:13px;line-height:1.4}
   .hoconf b{display:block;font-size:14px}
@@ -992,6 +992,8 @@ const SV = {
   'Close without saving?':'Stäng utan att spara?',
   'Keys to the guest':'Nycklar till gästen',
   'Hand over anyway':'Lämna ändå',
+  'Leave anyway':'Lämna ändå',
+  'Leave in apartment':'Lämna i lägenheten',
   'Skip':'Hoppa över',
   'Scan the next one, or Done':'Skanna nästa, eller Klart',
   'Guest name: under Property':'Gästens namn: under Objekt',
@@ -3868,7 +3870,7 @@ async function openScan(mode){
       <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
       <input id="scanman" placeholder="112:3"
              autocapitalize="characters" autocomplete="off" spellcheck="false">
-      <button class="btn ghost" onclick="scanManual()">${hand? T('Hand to the guest') : T('Open')}</button>
+      <button class="btn ghost" onclick="scanManual()">${hand? T('Leave in apartment') : T('Open')}</button>
     </div>`;
   document.body.appendChild(el);
   document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
@@ -4263,37 +4265,24 @@ function inspApt(){
 const inspTo = () => S.keyTo || ((S.counter && S.counter.name) || '');
 const hoDest = () => !ho ? '' : ([ho.place, ho.guest].filter(Boolean).join(' · ') || T('the apartment'));
 
+// Just the number, Scan and Leave in apartment (Erik, 2026-10-13: "only this box"). A bundle
+// left here shows as a ✓ line above it, with × to take it back.
 function inspKeyCard(){
   if(!canHandover()) return '';
-  const ctx = inspApt(), guest = inspTo().trim();
   const done = (S.keysOut || []).filter(k => k.bundle);
-  const doneIds = new Set(done.map(k => k.bundle));
-  // Your own keys, this apartment's first. Without an apartment in the register: all of them.
-  const mine = myKeys().filter(id => !doneIds.has(id));
-  const carried = ctx.apt ? mine.filter(id => objOf(id) === ctx.apt).concat(mine.filter(id => objOf(id) !== ctx.apt)) : mine;
   const keep = id => { const e = document.getElementById(id); return e ? e.value : null };
-  const num = keep('kbnum'), phone = keep('kbphone'), gname = keep('kbguest');
+  const num = keep('kbnum');
   return `<div class="kcard inspkeys" id="inspkeys">
-    <div class="eyebrow">${T('Keys to the guest')}</div>
-    ${isCheck() ? (ctx.place ? `<div class="hint" style="margin:2px 0 0">${esc(ctx.place)}</div>` : '') + `<div class="kfrow">
-        <input id="kbguest" autocomplete="off" value="${esc(gname != null ? gname : (S.keyTo || ''))}" placeholder="${T('Guest')}" oninput="S.keyTo=this.value.trim();save()">
-        <input id="kbphone" type="tel" autocomplete="off" value="${esc(phone != null ? phone : (S.keyPhone || ''))}" placeholder="${T('Phone')}" oninput="S.keyPhone=this.value.trim();save()"></div>`
-    : `<div class="hint" style="margin:2px 0 0">${guest ? `<b>${esc(guest)}</b>` : T('Guest name: under Property')}${ctx.place ? ' · ' + esc(ctx.place) : ''}</div>
-    <input id="kbphone" type="tel" autocomplete="off" style="margin-top:10px" value="${esc(phone != null ? phone : (S.keyPhone || ''))}"
-           placeholder="${T('Guest phone')}" oninput="S.keyPhone=this.value.trim();save()">`}
-    ${done.map(k => `<div class="hoconf"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
+    ${done.map(k => `<div class="hoconf" style="margin:0 0 8px"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
         <b>${esc(k.bundle)}${k.name ? ' · ' + esc(k.name) : ''}</b>
         <div>${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')} · ${stamp(new Date(k.ts))}${k.ev ? queuedSuffix(k.ev) : ''}</div></div>
         ${S.signedAt || S.closedAt ? '' : `<button class="admdel" onclick="hoUndo('${k.bundle}')" aria-label="${T('Remove')}">×</button>`}</div>`).join('')}
-    ${carried.length ? `<div class="knums" style="margin-top:10px">${carried.map(id =>
-        `<button class="knum-chip" onclick="inspHand('${id}')">${esc(id)} →</button>`).join('')}</div>
-      <div class="hint" style="margin-top:4px">${T('Your keys: tap to hand over.')}</div>` : ''}
-    <div class="addrow" style="margin-top:10px">
+    <div class="addrow">
       <input id="kbnum" value="${esc(num || '')}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
              onkeydown="if(event.key==='Enter')inspLeave()">
       <button class="btn ghost small" onclick="inspScan()">${T('Scan')}</button>
     </div>
-    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T('Hand to the guest')}</button>
+    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T('Leave in apartment')}</button>
   </div>`;
 }
 // Repaint the card in place - never the whole view, which would wipe a comment mid-typing.
@@ -4302,7 +4291,7 @@ function paintInspKeyCard(){
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   el.outerHTML = inspKeyCard();
-  if(focused === 'kbnum' || focused === 'kbphone' || focused === 'kbguest'){
+  if(focused === 'kbnum'){
     const f = document.getElementById(focused);
     if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
   }
@@ -4322,10 +4311,7 @@ async function hoBegin(){
   await keyBoot();
   const ctx = inspApt();
   const name = await koName(); if(!name) return false;
-  const ph = document.getElementById('kbphone'), gn = document.getElementById('kbguest');
-  if(ph){ S.keyPhone = ph.value.trim() }
-  if(gn){ S.keyTo = gn.value.trim() }
-  ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), phone: S.keyPhone || '', got:null, notes:[], step:'scan' };
+  ho = { apt: ctx.apt, place: ctx.place, guest: inspTo().trim(), phone: '', got:null, notes:[], step:'scan' };
   return true;
 }
 async function inspLeave(){
@@ -4402,7 +4388,7 @@ async function hoSave(){
     if(!ev){ toast(T('Could not save')); return }
     ho = null;
     closeHandover();
-    toast(ev.locked ? `${id} → ${ev.guest || T('the guest')} · ${T('report locked: in the key log only')}` : `${id} → ${ev.guest || T('the guest')}`);
+    toast(ev.locked ? `${id} → ${ev.place || T('the apartment')} · ${T('report locked: in the key log only')}` : `${id} → ${ev.place || T('the apartment')}`);
     const f = document.getElementById('kbnum'); if(f) f.value = '';
     paintInspKeyCard();
   }finally{ hoBusy = false }
@@ -4430,7 +4416,7 @@ async function scanHand(id){
     scanPaused = true;
     const ask = document.getElementById('scanask');
     if(ask) ask.innerHTML = `<div class="ask"><b>${esc(id)}</b>${c.notes.map(n => `<div>${esc(n)}</div>`).join('')}
-      <div class="kbtns"><button class="btn go" onclick="scanAsk('${id}',true)">${T('Hand over anyway')}</button>
+      <div class="kbtns"><button class="btn go" onclick="scanAsk('${id}',true)">${T('Leave anyway')}</button>
         <button class="btn ghost" onclick="scanAsk('${id}',false)">${T('Skip')}</button></div></div>`;
     scanMsg('');
     return;
@@ -4490,13 +4476,13 @@ function hoRescan(){ if(!ho) return; ho.step = 'scan'; ho.got = null; ho.notes =
 function paintHandover(){
   const el = document.getElementById('handover'); if(!el || !ho || ho.step !== 'review' || !ho.got) return;
   const b = bundleOf(ho.got);
-  el.innerHTML = topbar(T('Hand to the guest'), ho.got, null, 'closeHandover()') + `<div class="wrap">
+  el.innerHTML = topbar(T('Leave in apartment'), ho.got, null, 'closeHandover()') + `<div class="wrap">
       <div class="card">
         <div class="bhead"><span class="bnum">${esc(b.id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
         ${ho.notes.map(n => `<div class="hint" style="margin-top:8px">${esc(n)}</div>`).join('')}
         <div style="margin-top:12px;font-size:14px"><b>${esc(hoDest())}</b></div>
         <div class="kbtns">
-          <button class="btn" onclick="hoSave()">${T('Hand to the guest')}</button>
+          <button class="btn" onclick="hoSave()">${T('Leave in apartment')}</button>
           <button class="btn ghost" onclick="hoRescan()">${T('Scan another')}</button>
         </div>
       </div>

@@ -995,6 +995,7 @@ const SV = {
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
+  'Checked out to you. Scan the next one, or Done':'Utcheckad till dig. Skanna nästa, eller Klart',
   'Empty the key log':'Töm nyckelloggen',
   'Emptied':'Tömd',
   'Undo':'Ångra',
@@ -3918,21 +3919,21 @@ async function openScan(mode){
   closeScan();            // same again: one scanner at a time, camera released first
   scanMode = mode === 'hand' && ho ? 'hand' : 'open';
   const hand = scanMode === 'hand';
-  if(hand){ scanDone = []; scanPaused = false; scanLastId = '' }
+  scanDone = []; scanPaused = false; scanLastId = '';
   const el = document.createElement('div');
   el.className = 'cam'; el.id = 'scan';
   el.innerHTML = `
     <div class="camtop">
       <span style="font-weight:600">${hand? T('Scan the key') : T('Scan QR code')}</span>
-      <button onclick="${hand? 'scanHandDone()' : 'closeScan()'}" style="font-size:15px;font-weight:${hand? 650 : 400}">${hand? T('Done') : T('Close')}</button>
+      <button onclick="${hand? 'scanHandDone()' : 'scanOpenDone()'}" style="font-size:15px;font-weight:650">${T('Done')}</button>
     </div>
     <div class="view">
       <video id="scanview" playsinline muted autoplay></video>
       <div class="scanbox" id="scanbox"><i></i></div>
-      ${hand? '<div class="scanok" id="scanok"></div>' : ''}
+      <div class="scanok" id="scanok"></div>
     </div>
     <div class="scanfoot">
-      ${hand? `<div class="dest">→ ${esc(hoDest())}</div><div class="scandone" id="scandone"></div><div id="scanask"></div>` : ''}
+      ${hand? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}<div class="scandone" id="scandone"></div>${hand? '<div id="scanask"></div>' : ''}
       <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
       <input id="scanman" placeholder="112:3"
              autocapitalize="characters" autocomplete="off" spellcheck="false">
@@ -4086,6 +4087,10 @@ function gotCode(raw){
   }
   // In an inspection the scanner stays open: green check, next tag (scanHand).
   if(scanMode === 'hand') return scanHand(id);
+  // Check in/out: a bundle in the cabinet is checked out to you on the scan itself (Erik,
+  // 2026-10-14: no second tap). Anything else - with you, left somewhere, archived - opens its
+  // sheet, where the choices are.
+  if(bstate(id).status === 'in' && !b.off) return scanQuickOut(id);
   scanFeedback();
   closeScan();
   showBundle(id);
@@ -4546,6 +4551,30 @@ async function scanWrite(id){
   if(list) list.innerHTML = scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('');
   scanMsg(ev.locked ? T('report locked: in the key log only') : T('Scan the next one, or Done'));
   scanResume(1100);
+}
+async function scanQuickOut(id){
+  if(scanPaused) return;
+  const now = Date.now();
+  if(id === scanLastId && now - scanLastAt < 4000){ scanLastAt = now; return scanResume(300) }
+  scanLastId = id; scanLastAt = now;
+  const m = document.getElementById('scanman'); if(m) m.value = '';
+  scanFeedback();
+  const name = await koName(); if(!name){ closeScan(); return }
+  const ev = await keyWrite(id, 'out', { who:name });
+  if(!ev){ scanMsg(T('Could not save')); return scanResume(1200) }
+  if(!scanDone.includes(id)) scanDone.push(id);
+  const ok = document.getElementById('scanok');
+  if(ok){ ok.innerHTML = `<b>✓</b><span>${esc(id)}</span>`; ok.classList.add('on') }
+  const list = document.getElementById('scandone');
+  if(list) list.innerHTML = scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('');
+  scanMsg(T('Checked out to you. Scan the next one, or Done'));
+  scanResume(1100);
+}
+async function scanOpenDone(){
+  const any = scanDone.length;
+  scanDone = []; scanLastId = '';
+  closeScan();
+  if(any && view === 'start') await renderStart();
 }
 function scanHandDone(){
   const free = !!(ho && ho.free);

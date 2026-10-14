@@ -1818,3 +1818,5 @@ Verifierat lokalt: server 74, webbläsare 194 (bl.a. förval och byte, i lägenh
 - **Adminlistan som tabell** som nyckelloggen: sökruta, filter Alla / I lägenheten / Hos gäst, kolumner Knippa, Lägenhet, Status, Var, Nycklar, Kommentar, Sedan; klick på rubrik sorterar, tryck på rad öppnar knippan. Lika bred som loggen på stora skärmar.
 
 Verifierat lokalt: server 82, webbläsare 210 (tömning: läge/logg/historik tomma, köad testhändelse borttagen, nya händelser syns, admin-rättelse efter tömning ingen falsk konflikt, ångra; skåp → direkt till mig; tabell sortering, sök, tryck på rad); övriga sviter gröna.
+
+**Checka in/ut: utcheckning direkt på skanningen.** En knippa i skåpet checkas ut till dig så fort den läses (grön bock, skannern står kvar för nästa, *Klart* stänger). Samma bricka igen inom 4 s skrivs inte två gånger. En knippa du har, eller som ligger någon annanstans eller är arkiverad, öppnar knippbladet som förut (där checkar du in eller väljer annat). Ärende (Visning m.m.) anges inte vid snabb-utcheckning. Webbläsare 214, övriga gröna.

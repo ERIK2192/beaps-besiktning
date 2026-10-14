@@ -20,7 +20,7 @@
 // cookie, checked here on every call.
 import { kv, appOk, NO_STORE, clip } from '../../cflib/media.js';
 import { crossSite, clientIp, failsFor, noteFail, MAX_FAILS } from '../../cflib/auth.js';
-import { record, fitMeta, stKey, cleanPhone, readEpoch, EPOCH } from '../../cflib/keys.js';
+import { record, fitMeta, stKey, cleanPhone, cleanEmail, readEpoch, EPOCH } from '../../cflib/keys.js';
 import { cleanRec, current, saveVersion, OK_ID } from '../../cflib/keyreg.js';
 import { burst } from './login.js';
 import { adminConfigured, adminPasswordOk, adminIssue, isAdmin, adminCookie, adminClear, ADMIN_FAIL } from '../../cflib/admin.js';
@@ -122,6 +122,7 @@ export async function onRequest(context) {
         place: clip(raw.place, 60), guest: clip(raw.guest, 60),
         holder: raw.kind === 'out' ? clip(raw.holder, 60) : '',
         phone: cleanPhone(raw.phone),
+        email: cleanEmail(raw.email),
         loc: ['box', 'tube', 'apt', 'guest'].includes(raw.loc) ? raw.loc : '',
         unit: clip(raw.unit, 40)
       });

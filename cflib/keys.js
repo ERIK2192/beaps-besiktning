@@ -44,12 +44,16 @@ const placing = e => STATUS_KINDS.includes(e && e.kind);
 // A phone number as typed, minus anything that is not part of one.
 export const cleanPhone = s => String(s == null ? '' : s).slice(0, 24).replace(/[^0-9+ ()-]/g, '').trim();
 
+// An e-mail address for the person who has a bundle (2026-10-14): optional; anything that does
+// not look like one is dropped rather than stored half-right.
+export const cleanEmail = s => { const e = String(s == null ? '' : s).trim().slice(0, 80); return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : '' };
+
 // KV metadata holds at most 1024 bytes. An event full of long Swedish text could pass that, so
 // the free-text fields are shortened, least important first, until it fits.
 const bytes = o => new TextEncoder().encode(JSON.stringify(o)).length;
 export function fitMeta(e, max = 1000) {
   const out = { ...e };
-  for (const f of ['note', 'reason', 'from', 'place', 'unit', 'guest', 'holder', 'name', 'who']) {
+  for (const f of ['note', 'reason', 'from', 'email', 'place', 'unit', 'guest', 'holder', 'name', 'who']) {
     while (bytes(out) > max && typeof out[f] === 'string' && out[f]) out[f] = out[f].slice(0, Math.floor(out[f].length * 0.7));
   }
   return out;

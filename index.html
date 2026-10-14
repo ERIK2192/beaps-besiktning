@@ -201,7 +201,7 @@
   /* camera */
   .cam{position:fixed;inset:0;z-index:80;background:#000;color:#fff;display:flex;flex-direction:column}
   .cam .camtop{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;font-size:15px}
-  .cam .view{position:relative;flex:1;min-height:0;background:#0A0A0A}
+  .cam .view{position:relative;flex:1;min-height:0;background:#0A0A0A;overflow:hidden}
   .cam video{width:100%;height:100%;object-fit:cover;display:block}
   .cam .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .18s}
   .cam .reclabel{position:absolute;top:12px;left:12px;background:var(--rec);color:#fff;font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:5px}
@@ -223,6 +223,36 @@
   .cam .scanfoot{padding:14px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
   .cam .scanfoot .msg{font-size:13.5px;color:#C9CDCE;text-align:center;line-height:1.45;min-height:20px}
   .cam .scanfoot .btn{background:transparent;color:#fff;border-color:#555}
+  /* the move panel inside the scanner (2026-10-14): a light card on the dark camera */
+  .cam .scanfoot{max-height:64vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .cam .scanfoot .btn.go{background:var(--brand);color:var(--ink);border-color:var(--brand)}
+  .scansteps{display:flex;gap:6px;justify-content:center;padding:0 12px 8px;font-size:12.5px}
+  .scansteps:empty{display:none}
+  .scansteps span{padding:4px 10px;border-radius:999px;color:#9AA0A1;border:1px solid #3A3D3E}
+  .scansteps span.on{background:#fff;color:#000;border-color:#fff;font-weight:650}
+  .scansteps span.done{color:#BBF7D0;border-color:#14532D}
+  .mvcard{background:#fff;color:var(--ink);border-radius:14px;padding:14px;text-align:left}
+  .mvcard .hint{color:var(--ink2)}
+  .mvstate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:14px}
+  .mvwarn{margin-top:10px;padding:10px 12px;border-radius:10px;background:#FFF4E5;color:#7A4B00;font-size:13.5px;line-height:1.45}
+  .cmtbox{min-width:200px}
+  .cmtin{width:100%;min-height:38px;font-size:13.5px;line-height:1.35;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;resize:vertical}
+  .cmtin.dirty{border-color:#D99A00;background:#FFFBEB}
+  .cmtin.error{border-color:var(--rec)}
+  .cmtst{display:block;font-size:11.5px;margin-top:3px;min-height:14px;color:var(--ink2)}
+  .cmtst.dirty{color:#8A5E00} .cmtst.saved{color:#2E7D5B} .cmtst.error{color:var(--rec)}
+  .ferr{margin-top:6px;font-size:13px;color:var(--rec);line-height:1.4}
+  .mvsentence{margin-top:12px;padding:10px 12px;border-radius:10px;background:#EEF6F1;color:#14532D;font-weight:650;font-size:14.5px;line-height:1.4}
+  .mvphotos{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .mvphead{font-size:13px;color:var(--ink2);margin-bottom:8px}
+  .mvthumbs{display:flex;flex-wrap:wrap;gap:8px}
+  .mvthumb{position:relative;width:64px;height:64px;border-radius:9px;overflow:hidden;background:#eee}
+  .mvthumb img{width:100%;height:100%;object-fit:cover}
+  .mvthumb button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:22px}
+  .mvshot{width:64px;height:64px;border-radius:9px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink2);background:#fafbfb}
+  .mvreview{position:fixed;inset:0;z-index:95;background:#000;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:16px}
+  .mvreview img{max-width:100%;max-height:75vh;object-fit:contain;margin:0 auto}
+  .mvreview .btn.ghost{background:transparent;color:#fff;border-color:#555}
   .scanok{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
   .scanok.on{display:flex}
   .scanok b{width:96px;height:96px;border-radius:50%;background:#22C55E;color:#fff;font-size:56px;line-height:96px;text-align:center}
@@ -995,6 +1025,39 @@ const SV = {
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
+  'Not saved':'Ej sparad',
+  'Could not save - try again':'Kunde inte spara – försök igen',
+  'E-mail (optional)':'Mejladress (valfri)',
+  'That e-mail address does not look right - write it like name@example.se, or leave it empty.':'Mejladressen ser inte rätt ut – skriv den som namn@exempel.se, eller lämna fältet tomt.',
+  // --- one scanner, confirmed moves (2026-10-14) ---
+  'Scan key':'Skanna nyckel',
+  'Settings':'Inställningar',
+  'Show':'Visa',
+  'Confirm':'Bekräfta',
+  'Saving…':'Sparar…',
+  'Move':'Flytta',
+  'from':'från',
+  'you':'dig',
+  'someone':'någon',
+  'the cabinet':'skåpet',
+  'done':'klart',
+  'left':'kvar',
+  'Retake':'Ta om',
+  'Reading where it is…':'Läser var den är…',
+  'Where this bundle is could not be read.':'Det gick inte att läsa var knippan är.',
+  'Nothing is changed. Try again with a connection.':'Inget ändras. Försök igen med uppkoppling.',
+  'Correct (admin)':'Rätta (admin)',
+  'No contact - shown as last known on this phone':'Ingen kontakt – visas som senast känt på telefonen',
+  'Already registered in the apartment.':'Redan registrerad i lägenheten.',
+  'Already registered with the guest.':'Redan registrerad hos gästen.',
+  'Nothing to do - or choose another move.':'Inget att göra – eller välj en annan förflyttning.',
+  'Check out to':'Checka ut till',
+  'Leave with':'Lämna i/till',
+  'Take over from':'Ta emot från',
+  'Pick up – to':'Hämta – till',
+  'Photos of the keys':'Bilder på nycklarna',
+  'The report is locked: photos are not added.':'Rapporten är låst: bilder läggs inte till.',
+  'Moved by someone else just now - check and confirm again':'Flyttades nyss av någon annan – kontrollera och bekräfta igen',
   'Checked out to you. Scan the next one, or Done':'Utcheckad till dig. Skanna nästa, eller Klart',
   'Empty the key log':'Töm nyckelloggen',
   'Emptied':'Tömd',
@@ -3332,9 +3395,9 @@ function applyEvents(){
     // cabinet. One status per bundle, read from one event, so it can never be in two places at
     // once. `by` is whoever registered it; on 'out' the holder is `holder` when someone handed
     // it over to another person, otherwise the one who registered it (2026-10-13).
-    next[id] = e.kind === 'out'   ? { status:'out', holder:e.holder || e.who, phone:e.phone||'', reason:e.reason||'', since:e.ts, by:e.who, ev:e }
+    next[id] = e.kind === 'out'   ? { status:'out', holder:e.holder || e.who, phone:e.phone||'', email:e.email||'', reason:e.reason||'', since:e.ts, by:e.who, ev:e }
              : e.kind === 'place' ? { status:'placed', holder:null, reason:e.reason||'', since:e.ts, place:e.place||'', guest:e.guest||'', apt:e.apt||'',
-                                      phone:e.phone||'', loc:e.loc||'', unit:e.unit||'', by:e.who, ev:e }
+                                      phone:e.phone||'', email:e.email||'', loc:e.loc||'', unit:e.unit||'', by:e.who, ev:e }
              :                      { status:'in', holder:null, reason:'', since:null, ev:e };
   });
   keyState = next;
@@ -3468,13 +3531,13 @@ function evPhrase(e, id){
   if(e.kind === 'edit') return W('changed the register', 'ändrade registret') + (id ? W(' for', ' för') + n : '') + (e.note ? ': ' + e.note : '');
   if(e.kind === 'place'){
     if(e.loc === 'apt') s = W('left', 'lämnade') + n + W(' in the apartment', ' i lägenheten') + at(e.place);
-    else if(e.loc === 'guest') s = W('left', 'lämnade') + n + W(' to ', ' till ') + (e.guest || W('the guest', 'gäst')) + (e.phone ? ' · ' + e.phone : '') + at(e.place);
+    else if(e.loc === 'guest') s = W('left', 'lämnade') + n + W(' to ', ' till ') + (e.guest || W('the guest', 'gäst')) + (e.phone ? ' · ' + e.phone : '') + (e.email ? ' · ' + e.email : '') + at(e.place);
     else if(e.loc === 'box' || e.loc === 'tube') s = W('put', 'lade') + n + W(' in ', ' i ') + locName(e.loc).toLowerCase() + (e.unit ? ' ' + e.unit : '') + at(e.place);
     else s = W('left', 'lämnade') + n + at(e.place) + (e.guest ? ' · ' + W('guest on record: ', 'gäst enligt uppgift: ') + e.guest : '');
   }
   else if(e.kind === 'out'){
     if(e.act === 'pickup') s = W('picked up', 'hämtade') + n + (e.from ? W(' from ', ' från ') + e.from : '');
-    else if(e.holder && !sameName(e.holder, e.who)) s = W('left', 'lämnade') + n + W(' to ', ' till ') + e.holder + (e.phone ? ' · ' + e.phone : '');
+    else if(e.holder && !sameName(e.holder, e.who)) s = W('left', 'lämnade') + n + W(' to ', ' till ') + e.holder + (e.phone ? ' · ' + e.phone : '') + (e.email ? ' · ' + e.email : '');
     else s = W('checked out', 'checkade ut') + n;
     if(e.reason && e.reason !== 'Annan' && e.act !== 'pickup') s += ' · ' + e.reason;
   }
@@ -3499,8 +3562,8 @@ const stText = s => { const k = stKind(s);
        : k === 'apt' ? T('In the apartment') : k === 'guest' ? T('At guest') : k === 'old' ? T('Left (older)') : T('In the cabinet') };
 // Who has it or where it is, in one line: "Kalle · 070-123 45", "Anna · lgh 1102", "Servicebox 2 · Upplandsgatan 91B".
 const stWhere = s => { const k = stKind(s);
-  return k === 'out' ? [s.holder, s.phone, s.reason === 'Annan' ? '' : s.reason].filter(Boolean).join(' · ')
-       : k === 'guest' ? [s.guest || T('guest, no name'), s.phone, s.place].filter(Boolean).join(' · ')
+  return k === 'out' ? [s.holder, s.phone, s.email, s.reason === 'Annan' ? '' : s.reason].filter(Boolean).join(' · ')
+       : k === 'guest' ? [s.guest || T('guest, no name'), s.phone, s.email, s.place].filter(Boolean).join(' · ')
        : k === 'old' ? [s.place, s.guest ? T('guest on record') + ': ' + s.guest : ''].filter(Boolean).join(' · ')
        : k === 'in' ? '' : placeLabel(s) };
 // Whoever last touched a bundle - the one carrying it, or the one who left it somewhere.
@@ -3517,7 +3580,7 @@ function syncHint(){
 // After a sync that changed something, repaint whichever key screen is showing.
 function refreshKeyViews(moved){
   if(!moved) return;
-  if(document.getElementById('handover')) return paintHandover();
+  if(document.getElementById('scan') && kf.id && kf.where === 'scan') return paintScanFoot();
   const bundleEl = document.getElementById('bundle');
   if(bundleEl) return paintBundle(bundleEl.dataset.bundle);
   const logEl = document.getElementById('keylog');
@@ -3545,19 +3608,12 @@ async function openMenu(){
       <button style="font-size:22px;line-height:1;padding:4px 8px" onclick="closeMenu()" aria-label="${T('Close')}">×</button>
     </div>
     <button class="mitem" onclick="closeMenu();openScan()">
-      <span>${T('Check key in/out')}</span><span class="chev">›</span></button>
-    <button class="mitem" onclick="closeMenu();pickupScan()">
-      <span>${T('Pick up keys')}</span><span class="chev">›</span></button>
+      <span>${T('Scan key')}</span><span class="chev">›</span></button>
     <button class="mitem" onclick="closeMenu();openKeyLog('now')">
       <span>${T('Key log')}</span><span class="chev">›</span></button>
-    <button class="mitem" onclick="closeMenu();openKeyLog('apts')">
-      <span>${T('Keys in apartments')}</span><span class="chev">›</span></button>
-    <button class="mitem" onclick="closeMenu();openKeyLog('guests')">
-      <span>${T('Keys with guests')}</span><span class="chev">›</span></button>
     <button class="mitem" onclick="closeMenu();openAdmin()">
       <span>${T('Key admin')}</span><span class="chev">›</span></button>
-    <button class="mitem" onclick="closeMenu();pickRestore()">
-      <span>${T('Restore from backup')}</span><span class="chev">›</span></button>
+    <div class="mhead" style="margin-top:14px"><span class="eyebrow">${T('Settings')}</span></div>
     <div class="mitem" style="flex-direction:column;align-items:stretch;gap:8px">
       <span>${T('Your name')}</span>
       <div class="namerow">
@@ -3569,10 +3625,12 @@ async function openMenu(){
       </div>
       <span class="hint" style="margin:0">${T('Saved on this phone. Used on every key line and on a new inspection.')}</span>
     </div>
-    <div class="mitem"${hasWall? '' : ' style="border-bottom:0"'}>
+    <div class="mitem">
       <span>${T('Language')}</span>${langToggle()}</div>
-    ${hasWall? `<button class="mitem" style="border-bottom:0" onclick="logout()">
+    ${hasWall? `<button class="mitem" onclick="logout()">
       <span>${T('Log out')}</span><span class="chev">›</span></button>` : ''}
+    <button class="mitem" style="border-bottom:0" onclick="closeMenu();pickRestore()">
+      <span>${T('Restore from backup')}</span><span class="chev">›</span></button>
   </div>`;
   document.body.appendChild(el);
 }
@@ -3910,37 +3968,35 @@ let scanRaf = 0, scanStream = null, scanOn = false;
 const scanCv = document.createElement('canvas');
 const scanCtx = scanCv.getContext('2d', {willReadFrequently:true});
 
-// The same scanner and the same tag for both jobs: opened bare it shows the bundle behind
-// the tag; opened with 'hand' it reads the tag for a hand-over already set up (see ho).
-let scanMode = 'open';
-async function openScan(mode){
+// One scanner for every key move (2026-10-14): Scan key in the menu, and the key box in an
+// inspection. It only identifies the bundle; the move panel below the picture shows where the
+// bundle is registered and the moves that are possible from there, and nothing changes until a
+// move is confirmed. From an inspection the same view also takes the photos of the keys.
+let scanJob = { insp:false };
+async function openScan(opts){
   await keyBoot();
-  keySync().then(refreshKeyViews);   // not awaited: the tag may be read before this lands
-  closeScan();            // same again: one scanner at a time, camera released first
-  scanMode = mode === 'hand' && ho ? 'hand' : 'open';
-  const hand = scanMode === 'hand';
-  scanDone = []; scanPaused = false; scanLastId = '';
+  keySync().then(refreshKeyViews);   // not awaited; the move panel reads the bundle afresh anyway
+  closeScan();            // one scanner at a time, camera released first
+  scanJob = { insp: !!(opts && opts.insp && canHandover()), mode: opts && opts.insp ? keyModeOf() : '' };
+  scanDone = []; kf = { id:null };
   const el = document.createElement('div');
   el.className = 'cam'; el.id = 'scan';
   el.innerHTML = `
     <div class="camtop">
-      <span style="font-weight:600">${hand? T('Scan the key') : T('Scan QR code')}</span>
-      <button onclick="${hand? 'scanHandDone()' : 'scanOpenDone()'}" style="font-size:15px;font-weight:650">${T('Done')}</button>
+      <span style="font-weight:600">${T('Scan key')}</span>
+      <button onclick="scanFinish()" style="font-size:15px;font-weight:650">${T('Done')}</button>
     </div>
+    <div class="scansteps" id="scansteps"></div>
     <div class="view">
       <video id="scanview" playsinline muted autoplay></video>
       <div class="scanbox" id="scanbox"><i></i></div>
       <div class="scanok" id="scanok"></div>
+      <div class="flash" id="scanflash"></div>
     </div>
-    <div class="scanfoot">
-      ${hand? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}<div class="scandone" id="scandone"></div>${hand? '<div id="scanask"></div>' : ''}
-      <div class="msg" id="scanmsg">${T('Starting the camera…')}</div>
-      <input id="scanman" placeholder="112:3"
-             autocapitalize="characters" autocomplete="off" spellcheck="false">
-      <button class="btn ghost" onclick="scanManual()">${hand? T(MODE_BTN[ho.mode] || 'Open') : T('Open')}</button>
-    </div>`;
+    <div class="scanfoot" id="scanfoot"></div>`;
   document.body.appendChild(el);
-  document.getElementById('scanman').addEventListener('keydown', e=>{ if(e.key==='Enter') scanManual() });
+  paintScanFoot();
+  if(opts && opts.id){ gotCode(opts.id) }
 
   if(!await loadJsQR()) return scanMsg(T('Scanner unavailable — type the number'), true);
 
@@ -3978,8 +4034,9 @@ async function openScan(mode){
   if(!v) return;
   v.srcObject = scanStream;
   try{ await v.play() }catch(e){}
-  scanMsg(T('Hold the tag in the frame'));
-  scanOn = true; scanSince = Date.now(); scanTick();
+  scanOn = true;
+  if(!kf.id){ scanMsg(T('Hold the tag in the frame')); scanSince = Date.now(); scanTick() }
+  else paintScanFoot();
 }
 function scanMsg(txt, hideBox){
   const m = document.getElementById('scanmsg'); if(m) m.textContent = txt;
@@ -4085,137 +4142,405 @@ function gotCode(raw){
     if(scanOn) scanRaf = requestAnimationFrame(scanTick);   // a stray QR must not end the scan
     return;
   }
-  // In an inspection the scanner stays open: green check, next tag (scanHand).
-  if(scanMode === 'hand') return scanHand(id);
-  // Check in/out: a bundle in the cabinet is checked out to you on the scan itself (Erik,
-  // 2026-10-14: no second tap). Anything else - with you, left somewhere, archived - opens its
-  // sheet, where the choices are.
-  if(bstate(id).status === 'in' && !b.off) return scanQuickOut(id);
+  // The same tag read again while it is on screen: nothing to do.
+  if(kf.id === id && document.getElementById('scan')) return;
   scanFeedback();
-  closeScan();
-  showBundle(id);
+  // Identified - and nothing more. The scanner stops looking while the move is on screen.
+  cancelAnimationFrame(scanRaf);
+  mvOpen(id, 'scan');
 }
 function closeScan(){
-  scanOn = false; scanMode = 'open'; cancelAnimationFrame(scanRaf);
+  scanOn = false; cancelAnimationFrame(scanRaf);
   if(scanStream){ scanStream.getTracks().forEach(t=>{ try{ t.stop() }catch(e){} }); scanStream = null }
   const el = document.getElementById('scan'); if(el) el.remove();
+  if(kf.where === 'scan') kf = { id:null };
+}
+async function scanFinish(){
+  const any = scanDone.length, insp = scanJob.insp;
+  scanDone = [];
+  closeScan();
+  if(insp) paintInspKeyCard();
+  else if(any && view === 'start') await renderStart();
+}
+// Back to reading tags, the camera still running: after a move, or "Scan another".
+function scanAgain(){
+  kf = { id:null };
+  const ok = document.getElementById('scanok'); if(ok) ok.classList.remove('on');
+  paintScanFoot();
+  if(scanOn){ scanMsg(T('Hold the tag in the frame')); scanSince = Date.now(); scanRaf = requestAnimationFrame(scanTick) }
 }
 
-/* ----- the bundle behind the tag ----- */
+/* ----- the bundle behind the tag, opened from a list ----- */
 function showBundle(id){
   const b = bundleOf(id);
   if(!b) return;
   closeBundle();          // never stack two bundle sheets on top of each other
-  kf = { id:null };       // a fresh choice and empty fields for every opening
   const el = document.createElement('div');
   el.className = 'sheet hasbar ksheet'; el.id = 'bundle'; el.dataset.bundle = id;
   document.body.appendChild(el);
-  paintBundle(id);
   window.scrollTo(0,0);
-  // Ask the server what everyone else has done with this ring, then repaint either way -
-  // a failed fetch changes the hint too.
-  keySync(true).then(()=>{ const s = document.getElementById('bundle'); if(s && s.dataset.bundle===id) paintBundle(id) });
+  mvOpen(id, 'sheet');
 }
-function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove() }
+function closeBundle(){ const el = document.getElementById('bundle'); if(el) el.remove(); if(kf.where === 'sheet') kf = { id:null } }
 let histOpen = false;
 function toggleHist(){ histOpen = !histOpen; const el = document.getElementById('bundle'); if(!el) return;
   paintBundle(el.dataset.bundle); if(histOpen) histLoad(el.dataset.bundle) }
-
-// After checking a bundle in or out, land on the start screen, where the Keys card now
-// shows the result. (It briefly reopened the scanner instead; Erik preferred this.)
 async function backToStart(){ closeBundle(); closeScan(); if(view==='start') await renderStart() }
 
-/* Where the bundle goes next is picked on the sheet itself (2026-10-13). One row of choices, the
-   few fields that choice needs, one button:
-     me      you carry it (viewing, service ...) - it shows under your keys on the start screen;
-             from an apartment, a guest, a box or a tube this is "Pick up" (act 'pickup')
-     apt     left in the empty apartment, nobody holds it (shortstay)
-     guest   handed straight to the guest (move-in), name and phone if known
-     person  handed over to someone else, with or without an account: name and phone
-     box     a service box, tube a key tube: which one and where; picked up from there later
-     cab     back in the cabinet
-   `who` on the event is always you, who registered it; who has it is the holder, the guest or
-   the box. Only the receiving person's name is needed for a hand-over; everything else may be
-   left empty. The fields live in `kf`, so a sync repainting the sheet mid-typing loses nothing. */
-const DESTS = ['me','apt','guest','person','box','tube','cab'];
-const DEST_LABEL = { me:'Me', apt:'In the apartment', guest:'Guest', person:'Someone else', box:'Service box', tube:'Key tube', cab:'Cabinet' };
+/* ======== Moving a bundle (2026-10-14) ========
+   Scanning or opening a bundle only shows it: which bundle, where it is registered (the cabinet,
+   a person, an apartment, a guest, a box or a tube) and the moves possible from there, the likely
+   one first. Nothing changes until the move is confirmed, written out in full - "Flytta 113:1
+   från lgh 1301 TRAST till skåpet". The bundle's state is read from the server when it is shown
+   and again just before the move is written; if someone else moved it in between, the move is
+   not written and the new state is shown. A state that cannot be read at all, with nothing on
+   this phone either, is said to be unknown and nothing can be moved (admin can correct it).
+   One move is one event: the status, the place, the holder and the log line all come from it.
+
+   kf: { id, where:'scan'|'sheet', dest, reason, name, phone, unit, place, fresh:'loading'|'ok'|
+         'stale'|'unknown', basis: id of the event the screen is based on, note, photos:[data] } */
+const DESTS = ['me','cab','apt','guest','person','box','tube'];
+const DEST_LABEL = { me:'Me', cab:'Cabinet', apt:'In the apartment', guest:'Guest', person:'Someone else', box:'Service box', tube:'Key tube' };
 let kf = { id:null };
 const bundleApt = b => b ? 'lgh ' + b.l + (b.n ? ' ' + b.n : '') : '';
 const objOf = id => String(id).split(':')[0];
-function destsFor(id){
-  const s = bstate(id), mine = s.status === 'out' && sameName(s.holder, keyMe);
-  return DESTS.filter(d => !(d === 'me' && mine) && !(d === 'cab' && s.status === 'in'));
+// Where the bundle is, as a starting point: in (cabinet), mine, person (someone else), apt, guest,
+// old (left, before the two were told apart), box, tube.
+function mvKind(id){
+  const s = bstate(id), k = stKind(s);
+  return k === 'out' ? (sameName(s.holder, keyMe) ? 'mine' : 'person') : k;
 }
-function kfFor(id){
-  if(kf.id === id) return kf;
-  const s = bstate(id), b = bundleOf(id), k = stKind(s);
-  // The likely next step: from the cabinet you take it; from wherever it was left (apartment,
-  // guest, box, tube) you pick it up; from a person it comes back to the cabinet.
-  const dest = k === 'out' ? 'cab' : 'me';
-  kf = { id, dest, reason:'', name:'', phone:'', unit:'', place: b ? [b.a, b.l ? 'lgh ' + b.l : ''].filter(Boolean).join(' ') : '' };
-  return kf;
+const inInsp = () => kf.where === 'scan' && scanJob.insp && canHandover();
+function validDests(id){
+  if(kf.fresh === 'unknown' || kf.fresh === 'loading') return [];
+  const k = mvKind(id);
+  const all = {
+    in:     ['me','apt','guest','person','box','tube'],
+    mine:   ['cab','apt','guest','person','box','tube'],
+    person: ['me','cab','apt','guest','person','box','tube'],
+    apt:    ['me','cab','guest','person','box','tube'],
+    guest:  ['me','cab','apt','person','box','tube'],
+    old:    ['me','cab','apt','guest','person','box','tube'],
+    box:    ['me','cab','apt','guest','person','box','tube'],
+    tube:   ['me','cab','apt','guest','person','box','tube']
+  }[k] || [];
+  return DESTS.filter(d => all.includes(d));
 }
-function kfSet(field, v){ kf[field] = v }
-function kfDest(d){ kf.dest = d; const el = document.getElementById('bundle'); if(el) paintBundle(el.dataset.bundle) }
-const actLabel = (d, s) => d === 'me' ? (s.status === 'in' ? T('Check out') : s.status === 'placed' ? T('Pick up') : T('Take it'))
-  : d === 'apt' ? T('Leave in apartment') : d === 'guest' ? T('Leave with guest') : d === 'person' ? T('Hand over')
-  : d === 'box' ? T('Put in service box') : d === 'tube' ? T('Put in key tube') : T('Check in');
+// The likely next step. In an inspection: what the inspection is for (in the apartment, to the
+// guest, pick up) - nothing at all when the bundle is already there. Elsewhere: from the cabinet
+// to you; from you back to the cabinet; from anyone or anywhere else to you.
+function defaultDest(id){
+  const v = validDests(id), k = mvKind(id);
+  if(!v.length) return null;
+  if(inInsp()){
+    const m = scanJob.mode === 'pick' ? 'me' : scanJob.mode;
+    if(m === k) return null;
+    return v.includes(m) ? m : null;
+  }
+  const d = k === 'mine' ? 'cab' : 'me';
+  return v.includes(d) ? d : v[0];
+}
+// The place an apartment or guest move goes to: the inspection's apartment, else the bundle's own.
+function mvApt(id){
+  const b = bundleOf(id);
+  if(inInsp()){ const c = inspApt(); return { apt: c.apt || objOf(id), place: c.place || bundleApt(b) } }
+  return { apt: objOf(id), place: bundleApt(b) };
+}
+const mvGuest = () => inInsp() ? (S.keyTo || ((S.counter && S.counter.name) || '')) : (kf.name || '').trim();
+function fromText(id){
+  const s = bstate(id), k = mvKind(id);
+  return k === 'in' ? T('the cabinet') : k === 'mine' ? T('you') : k === 'person' ? (s.holder || T('someone'))
+    : k === 'guest' ? [s.guest || T('the guest'), s.place].filter(Boolean).join(' · ')
+    : (placeLabel(s) || T('the apartment'));
+}
+function toText(id, d){
+  const f = kf;
+  return d === 'me' ? T('you') : d === 'cab' ? T('the cabinet')
+    : d === 'apt' ? T('the apartment') + ' ' + mvApt(id).place
+    : d === 'guest' ? (mvGuest() || T('the guest')) + ' · ' + mvApt(id).place
+    : d === 'person' ? ((f.name || '').trim() || '…')
+    : (locName(d).toLowerCase() + ((f.unit || '').trim() ? ' ' + f.unit.trim() : ''));
+}
+// An e-mail address is optional; one that is filled in has to look like one.
+const okEmail = e => !String(e || '').trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e).trim());
+const EMAIL_BAD = 'That e-mail address does not look right - write it like name@example.se, or leave it empty.';
+const emailErr = v => okEmail(v) ? '' : `<div class="ferr" id="kf_emailerr">${T(EMAIL_BAD)}</div>`;
+const moveSentence = (id, d) => `${T('Move')} ${id} ${T('from')} ${fromText(id)} ${T('to')} ${toText(id, d)}`;
+// The heading over the choices: what you are about to do from where it is.
+function moveTitle(id){
+  const k = mvKind(id), s = bstate(id);
+  return k === 'in' ? T('Check out to') : k === 'mine' ? T('Leave with') : k === 'person' ? `${T('Take over from')} ${s.holder} – ${T('to')}`
+    : T('Pick up – to');
+}
 
-// Renders the sheet in place, so a sync landing mid-visit (or a toggled chip, or the name
-// field opening) never has to tear the sheet down and rebuild it from nothing.
+// Reads the bundle's last move straight from the server (one KV read, not the whole list) and
+// folds it in. null when the server could not be reached.
+async function fetchLast(id){
+  try{
+    const r = await withTimeout(fetch('/api/keys-log?view=hist&bundle=' + encodeURIComponent(id), {headers:AUTH}), 8000);
+    if(!r.ok) return null;
+    const j = await r.json();
+    if(typeof j.epoch === 'number') await keyEpochSet(j.epoch);
+    const hist = (j.events || []).filter(e => e && e.bundle === id);
+    histCache[id] = hist;
+    const ev = hist.filter(e => STATUS_KINDS.includes(e.kind) && afterEpoch(e)).sort((a, b) => later(a, b) ? -1 : 1)[0] || null;
+    const cur = bstate(id).ev;
+    if(ev && !(keyEvents||[]).some(e => e.id === ev.id) && (!cur || later(ev, cur))){ keyEvents.push(ev); applyEvents() }
+    return { ev };
+  }catch(e){ return null }
+}
+async function mvOpen(id, where){
+  const b = bundleOf(id), place = b ? [b.a, b.l ? 'lgh ' + b.l : ''].filter(Boolean).join(' ') : '';
+  kf = { id, where, dest:null, reason:'', name:'', phone:'', email:'', unit:'', place, fresh:'loading', basis:'', note:'', photos:[] };
+  paintMove();
+  const r = await fetchLast(id);
+  if(kf.id !== id || kf.where !== where) return;
+  kf.fresh = r ? 'ok' : (keySeenAt || bstate(id).ev) ? 'stale' : 'unknown';
+  kf.basis = (bstate(id).ev && bstate(id).ev.id) || '';
+  kf.dest = defaultDest(id);
+  paintMove();
+}
+function paintMove(){
+  if(!kf.id) return;
+  if(kf.where === 'scan') paintScanFoot();
+  else paintBundle(kf.id);
+}
+function kfSet(field, v){
+  kf[field] = v;
+  const el = document.getElementById('mvsentence'); if(el && kf.dest) el.textContent = moveSentence(kf.id, kf.dest);
+  if(field === 'email'){ const er = document.getElementById('kf_emailerr'), ok = okEmail(v);
+    if(ok && er) er.remove();
+    else if(!ok && !er){ const box = document.getElementById('kf_email'); if(box) box.closest('.kfwrap').insertAdjacentHTML('beforeend', emailErr(v)) } }
+}
+function kfDest(d){ if(validDests(kf.id).includes(d)) kf.dest = d; kf.note = ''; paintMove() }
+let koBusy = false;
+const REASONS = ['Visning','Service','Hantverkare','Städ','Besiktning','Utflytt'];
+function koPick(btn, reason){
+  const already = btn.classList.contains('on');
+  document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'));
+  const input = document.getElementById('koreason');
+  kf.reason = already ? '' : reason;
+  if(input) input.value = kf.reason;
+  if(!already) btn.classList.add('on');
+}
+// The name is the one thing the log cannot do without. Set once, in the menu, and kept on the
+// phone. An inspection that already names its inspector counts as having set it.
+async function koName(){
+  let name = (keyMe || '').trim();
+  if(!name && S && S.inspector && S.inspector.name) name = S.inspector.name.trim();
+  if(!name){ toast(T('Set your name in the menu')); openMenu(); return '' }
+  if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
+  return name;
+}
+// Where it was before, when that was not the cabinet: the person, the guest or the place.
+const fromOf = (s, name) => s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && !sameName(s.holder, name) ? s.holder : '');
+
+// The state line and the choices, the same in the scanner and on the sheet.
+function moveHtml(id){
+  const b = bundleOf(id), s = bstate(id), k = stKind(s), f = kf;
+  const inp = (fld, ph, extra) => `<input id="kf_${fld}" value="${esc(f[fld])}" placeholder="${T(ph)}" oninput="kfSet('${fld}',this.value)" ${extra||''}>`;
+  const stateLine = f.fresh === 'loading' ? `<div class="hint">${T('Reading where it is…')}</div>`
+    : f.fresh === 'unknown' ? `<div class="mvwarn"><b>${T('Where this bundle is could not be read.')}</b> ${T('Nothing is changed. Try again with a connection.')}
+        <div class="kbtns"><button class="btn ghost small" onclick="mvOpen('${id}','${f.where}')">${T('Try again')}</button>
+        ${admOn ? `<button class="btn ghost small" onclick="mvCorrect('${id}')">${T('Correct (admin)')}</button>` : ''}</div></div>`
+    : `<div class="mvstate"><span class="kstat ${stClass(k)}">${stText(s)}</span>
+        ${k !== 'in' ? `<span>${esc(stWhere(s))}${s.since ? ' · ' + stamp(new Date(s.since)) : ''}${s.by && !sameName(s.by, s.holder) ? ' · ' + T('by') + ' ' + esc(s.by) : ''}</span>` : ''}</div>
+       ${f.fresh === 'stale' ? `<div class="hint">${T('No contact - shown as last known on this phone')}</div>` : ''}
+       ${k === 'old' ? `<div class="hint">${T('Older entry: left, not recorded whether in the apartment or with the guest.')}</div>` : ''}
+       ${isQueued(s.ev) ? `<div class="kwait" style="margin-top:6px">${T('waiting')}</div>` : ''}`;
+  if(b.off) return stateLine + `<div class="mvwarn"><b>${T('Archived')}</b> · ${T('This bundle is no longer in use. Hand it to an admin.')}</div>`;
+  const v = validDests(id);
+  if(!v.length) return stateLine;
+  const already = inInsp() && !f.dest && scanJob.mode !== 'pick' && mvKind(id) === scanJob.mode;
+  const d = f.dest;
+  const fields = d === 'me' && mvKind(id) === 'in' ? `
+      <div class="chips" id="kochips" style="margin-top:10px">
+        ${REASONS.map(r=>`<button class="chip${f.reason===r?' on':''}" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
+      </div>
+      <input id="koreason" style="margin-top:8px" value="${esc(f.reason)}" placeholder="${T('Reason')}"
+             oninput="kfSet('reason',this.value);document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'))">`
+    : d === 'guest' && !inInsp() ? `<div class="kfwrap"><div class="kfrow">${inp('name', "Guest's name (if known)", 'autocomplete="off"')}${inp('phone', 'Phone', 'type="tel" autocomplete="off"')}</div>
+        <div class="kfrow">${inp('email', 'E-mail (optional)', 'type="email" autocomplete="off" autocapitalize="off"')}</div>${emailErr(f.email)}</div>`
+    : d === 'guest' && inInsp() && !mvGuest() ? `<div class="kfrow">${inp('name', "Guest's name (if known)", 'autocomplete="off" oninput="S.keyTo=this.value.trim();save()"')}</div>`
+    : d === 'person' ? `<div class="kfwrap"><div class="kfrow">${inp('name', 'Name', 'autocomplete="off" list="knames"')}${inp('phone', 'Phone', 'type="tel" autocomplete="off"')}</div>
+        <div class="kfrow">${inp('email', 'E-mail (optional)', 'type="email" autocomplete="off" autocapitalize="off"')}</div>${emailErr(f.email)}</div>${nameList()}`
+    : (d === 'box' || d === 'tube') ? `<div class="kfrow">${inp('unit', 'Number', 'autocomplete="off" class="kfnum"')}${inp('place', 'Property / apartment', 'autocomplete="off"')}</div>`
+    : '';
+  return stateLine + `
+    ${already ? `<div class="mvwarn">${scanJob.mode === 'apt' ? T('Already registered in the apartment.') : T('Already registered with the guest.')} ${T('Nothing to do - or choose another move.')}</div>` : ''}
+    <div class="field" style="margin-top:12px">
+      <label>${esc(moveTitle(id))}</label>
+      <div class="chips mvdests">${v.map(x => `<button class="chip${d===x?' on':''}" onclick="kfDest('${x}')">${T(DEST_LABEL[x])}</button>`).join('')}</div>
+      ${fields}
+    </div>
+    ${f.note ? `<div class="mvwarn">${esc(f.note)}</div>` : ''}
+    ${d ? `<div class="mvsentence" id="mvsentence">${esc(moveSentence(id, d))}</div>` : ''}`;
+}
+
+// The scanner's lower half: reading, or the bundle and its move (with photos in an inspection).
+function scanStepsHtml(){
+  if(!scanJob.insp) return '';
+  const step = !kf.id ? 1 : !kf.photos.length ? 2 : 3;
+  const names = [T('Scan'), T('Photo'), T('Confirm')];
+  return names.map((n, i) => `<span class="${i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}">${i + 1} ${n}</span>`).join('');
+}
+const keyPhotoTarget = () => !S ? null : isCheck() ? (S.checks||[]).find(c => c.key === 'nycklar_foto') : keysRoom();
+function paintScanFoot(){
+  const foot = document.getElementById('scanfoot'); if(!foot) return;
+  const steps = document.getElementById('scansteps'); if(steps) steps.innerHTML = scanStepsHtml();
+  // The frame says "reading": hidden while a bundle is shown and nothing is being read.
+  const sb = document.getElementById('scanbox'); if(sb && scanOn) sb.classList.toggle('hidden', !!kf.id);
+  const done = scanDone.length ? `<div class="scandone" id="scandone">${scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('')}</div>` : '';
+  if(!kf.id){
+    const keepMsg = (document.getElementById('scanmsg') || {}).textContent;
+    foot.innerHTML = `${scanJob.insp ? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}${done}
+      <div class="msg" id="scanmsg">${esc(keepMsg || T('Starting the camera…'))}</div>
+      <input id="scanman" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
+             onkeydown="if(event.key==='Enter')scanManual()">
+      <button class="btn ghost" onclick="scanManual()">${T('Show')}</button>`;
+    return;
+  }
+  const id = kf.id, b = bundleOf(id), locked = !!(S && (S.signedAt || S.closedAt));
+  const photoOk = scanJob.insp && !!keyPhotoTarget() && !locked && kf.fresh !== 'unknown' && !b.off;
+  const need = kf.dest === 'apt' || kf.dest === 'guest' ? 1 : 0;
+  const focused = document.activeElement && document.activeElement.id;
+  const caret = focused ? document.activeElement.selectionStart : null;
+  foot.innerHTML = `${done}
+    <div class="mvcard">
+      <div class="bhead"><span class="bnum">${esc(id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
+      ${moveHtml(id)}
+      ${photoOk ? `<div class="mvphotos">
+          <div class="mvphead">${T('Photos of the keys')}: ${kf.photos.length}${need ? ' · ' + (kf.photos.length >= need ? T('done') : need - kf.photos.length + ' ' + T('left')) : ''}</div>
+          <div class="mvthumbs">${kf.photos.map((p, i) => `<span class="mvthumb"><img src="${p}" alt="" onclick="mvReview(${i})"><button onclick="mvDropPhoto(${i})" aria-label="${T('Remove')}">×</button></span>`).join('')}
+            ${scanOn ? `<button class="mvshot" onclick="mvShoot()" aria-label="${T('Take photo')}">${T('Photo')}</button>`
+              : `<label class="mvshot">${T('Photo')}<input type="file" accept="image/*" capture="environment" class="hidden" onchange="mvPickPhoto(this)"></label>`}</div>
+        </div>` : (scanJob.insp && locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : '')}
+    </div>
+    <div class="kbtns">
+      ${kf.dest && !b.off ? `<button class="btn go" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
+      <button class="btn ghost" onclick="scanAgain()">${T('Scan another')}</button>
+    </div>`;
+  if(focused && /^(kf_|koreason)/.test(focused)){ const fe = document.getElementById(focused); if(fe){ try{ fe.focus(); if(caret != null) fe.setSelectionRange(caret, caret) }catch(e){} } }
+}
+// Photos from the scanner's own picture - the camera never closes between scanning and photographing.
+function mvShoot(){
+  const v = document.getElementById('scanview');
+  if(!v || !v.videoWidth || !kf.id) return;
+  kf.photos.push(draw(v, v.videoWidth, v.videoHeight));
+  const f = document.getElementById('scanflash'); if(f){ f.style.opacity = .85; setTimeout(()=>f.style.opacity = 0, 90) }
+  paintScanFoot();
+}
+async function mvPickPhoto(input){
+  const file = input.files && input.files[0]; input.value = '';
+  if(!file || !kf.id) return;
+  const r = await compressFile(file); if(r){ kf.photos.push(r.data); paintScanFoot() }
+}
+function mvDropPhoto(i){ kf.photos.splice(i, 1); paintScanFoot() }
+// Look at a photo before confirming; Retake removes it so the next one takes its place.
+function mvReview(i){
+  const p = kf.photos[i]; if(!p) return;
+  const el = document.createElement('div');
+  el.className = 'mvreview'; el.id = 'mvreview';
+  el.innerHTML = `<img src="${p}" alt=""><div class="kbtns"><button class="btn ghost" onclick="mvDropPhoto(${i});document.getElementById('mvreview').remove()">${T('Retake')}</button>
+    <button class="btn" onclick="document.getElementById('mvreview').remove()">${T('Close')}</button></div>`;
+  document.body.appendChild(el);
+}
+function mvCorrect(id){ closeScan(); closeBundle(); openAdmEdit(id) }
+
+// The event a confirmed move writes - one, carrying everything the status and the log line show.
+function moveEvent(id, d, name){
+  const s = bstate(id), k = mvKind(id), f = kf;
+  const reason = (f.reason || '').trim() || (inInsp() ? ({ 'Upplåsning':'Shortstay', 'Inflytt':'Inflytt', 'Utflytt':'Utflytt' }[S.type] || '') : '');
+  const a = mvApt(id);
+  if(d === 'me'){
+    if(k === 'in') return ['out', { who:name, reason }];
+    if(k === 'person') return ['out', { who:name, from: s.holder || '', reason }];
+    return ['out', { who:name, act:'pickup', from: placeLabel(s), reason }];
+  }
+  if(d === 'cab') return ['in', { who:name, from: k === 'mine' ? '' : fromOf(s, name) }];
+  if(d === 'apt') return ['place', { who:name, loc:'apt', apt:a.apt, place:a.place, reason, from: fromOf(s, name) }];
+  if(d === 'guest') return ['place', { who:name, loc:'guest', guest: mvGuest(), phone: inInsp() ? '' : (f.phone||'').trim(), email: inInsp() ? '' : (f.email||'').trim(), apt:a.apt, place:a.place, reason, from: fromOf(s, name) }];
+  if(d === 'person') return ['out', { who:name, holder:(f.name||'').trim(), phone:(f.phone||'').trim(), email:(f.email||'').trim(), from: k === 'mine' ? name : fromOf(s, name) }];
+  return ['place', { who:name, loc:d, unit:(f.unit||'').trim(), place:(f.place||'').trim(), apt:objOf(id), from: fromOf(s, name) }];
+}
+// Confirm: read the bundle again, write the one event, then the photos and the receipt in an
+// inspection. A second tap while it is being written does nothing.
+async function bundleAct(id){
+  if(koBusy || kf.id !== id) return;
+  const b = bundleOf(id); if(!b || b.off){ toast(T('Archived')); return }
+  const d = kf.dest;
+  if(!d || !validDests(id).includes(d)) return;
+  if(d === 'person' && !(kf.name||'').trim()){ toast(T('Write the name')); const n = document.getElementById('kf_name'); if(n) try{ n.focus() }catch(e){} return }
+  if((d === 'person' || d === 'guest') && !okEmail(kf.email)){ toast(T(EMAIL_BAD)); const n = document.getElementById('kf_email'); if(n) try{ n.focus() }catch(e){} return }
+  koBusy = true; paintMove();
+  try{
+    const name = await koName(); if(!name) return;
+    // Has anyone moved it since this was shown? Then nothing is written; the new state is shown.
+    const r = await fetchLast(id);
+    const now = (bstate(id).ev && bstate(id).ev.id) || '';
+    if(r && now !== kf.basis){
+      kf.basis = now; kf.fresh = 'ok';
+      kf.dest = validDests(id).includes(d) ? d : defaultDest(id);
+      kf.note = T('Moved by someone else just now - check and confirm again');
+      return;
+    }
+    if(!r && !keySeenAt && !bstate(id).ev){ kf.fresh = 'unknown'; return }
+    const sentence = moveSentence(id, d);
+    const insp = inInsp() ? S : null, locked = !!(insp && (insp.signedAt || insp.closedAt));
+    const [kind, extra] = moveEvent(id, d, name);
+    const ev = await keyWrite(id, kind, extra);
+    if(!ev){ kf.note = T('Could not save'); return }
+    // In an inspection: the photos of the keys into the report, and the receipt line.
+    if(insp && S === insp && !locked){
+      const pids = [];
+      const tgt = keyPhotoTarget();
+      if(tgt) for(const p of kf.photos){ if(await savePhoto(tgt.id, p)) pids.push(tgt.photos[tgt.photos.length - 1].id) }
+      const act = d === 'apt' ? 'apt' : d === 'guest' ? 'guest' : (d === 'me' && ev.act === 'pickup') ? 'pickup' : '';
+      if(act){
+        S.keysOut = (S.keysOut || []).filter(k => k.bundle !== id);
+        S.keysOut.push({ bundle:id, name:ev.name||'', place: act === 'pickup' ? (ev.from || '') : (ev.place || ''), guest: ev.guest || '',
+                         act, ts:ev.ts, who:ev.who||'', evId:ev.id, photos: pids,
+                         keys: b.k.map(k => [k[0]||'', k[1]||'', k[2]||1]) });
+      }
+      log(`Key ${id}: ${act === 'pickup' ? 'picked up' : act === 'guest' ? 'left with ' + (ev.guest || 'the guest') : act === 'apt' ? 'left in the apartment' : kind} by ${ev.who}`);
+      await flushSave();
+    }
+    if(kf.where === 'scan'){
+      if(!scanDone.includes(id)) scanDone.push(id);
+      const ok = document.getElementById('scanok');
+      if(ok){ ok.innerHTML = `<b>✓</b><span>${esc(id)}</span>`; ok.classList.add('on') }
+      koBusy = false;
+      scanAgain();
+      const ok2 = document.getElementById('scanok'); if(ok2) ok2.classList.add('on');
+      scanMsg(sentence + (locked ? ' · ' + T('report locked: in the key log only') : ''));
+      setTimeout(() => { const o = document.getElementById('scanok'); if(o) o.classList.remove('on') }, 1100);
+      return;
+    }
+    kf = { id:null };
+    await backToStart();
+    toast(sentence);
+  }finally{ koBusy = false; if(kf.id === id) paintMove() }
+}
+// What the sheet had before it had a choice; kept for anything that calls them.
+async function checkOut(id){ kfDest('me'); return bundleAct(id) }
+async function checkIn(id){ kfDest('cab'); return bundleAct(id) }
+
+// The sheet: the bundle, where it is, the move, its keys and its history.
 function paintBundle(id){
   const el = document.getElementById('bundle');
   if(!el) return;
-  const b = bundleOf(id), s = bstate(id), f = kfFor(id), k = stKind(s);
-  if(!b) return;
-  const dests = destsFor(id);
-  if(!dests.includes(f.dest)) f.dest = dests[0];
+  const b = bundleOf(id); if(!b) return;
+  if(kf.id !== id) return mvOpen(id, 'sheet');
   const keys = b.k.map(k=>({t:k[0], m:k[1]||'', q:k[2]||1, note:k[3]||''}));
   const total = keys.reduce((n,k)=>n+k.q, 0);
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
-  const hint = syncHint();
-  const inp = (fld, ph, extra) => `<input id="kf_${fld}" value="${esc(f[fld])}" placeholder="${T(ph)}" oninput="kfSet('${fld}',this.value)" ${extra||''}>`;
-  const fields = f.dest === 'me' ? `
-      <label style="margin-top:14px">${T('Reason')}</label>
-      <div class="chips" id="kochips">
-        ${REASONS.map(r=>`<button class="chip${f.reason===r?' on':''}" onclick="koPick(this,'${r}')">${r}</button>`).join('')}
-      </div>
-      <input id="koreason" style="margin-top:10px" value="${esc(f.reason)}" placeholder="${T('Something else')}"
-             oninput="kfSet('reason',this.value);document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'))">`
-    : f.dest === 'apt' ? `
-      <div class="hint" style="margin-top:10px">→ ${esc(bundleApt(b))} · ${esc(b.a)}</div>`
-    : f.dest === 'guest' ? `
-      <div class="hint" style="margin-top:10px">→ ${esc(bundleApt(b))} · ${esc(b.a)}</div>
-      <div class="kfrow">${inp('name', 'Guest', 'autocomplete="off"')}${inp('phone', 'Phone', 'type="tel" autocomplete="off"')}</div>`
-    : f.dest === 'person' ? `
-      <div class="kfrow">${inp('name', 'Name', 'autocomplete="off" list="knames"')}${inp('phone', 'Phone', 'type="tel" autocomplete="off"')}</div>${nameList()}`
-    : (f.dest === 'box' || f.dest === 'tube') ? `
-      <div class="kfrow">${inp('unit', 'Number', 'autocomplete="off" class="kfnum"')}${inp('place', 'Property / apartment', 'autocomplete="off"')}</div>`
-    : '';
-
   el.innerHTML = topbar(T('Key bundle'), '', null, "closeBundle()") + `
     <div class="wrap">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
-          <div class="bhead">
-            <span class="bnum">${esc(b.id)}</span>
-            ${b.n? `<span class="bname">${esc(b.n)}</span>` : ''}
-            <span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span>
-          </div>
-          <span class="kstat ${!keySeenAt? 'unk' : stClass(k)}" style="margin-top:2px">${!keySeenAt? T('Not fetched yet') : stText(s)}</span>
-        </div>
-        ${k !== 'in'? `<div class="hint" style="margin-top:10px"><b>${esc(stWhere(s))}</b> ·
-          ${stamp(new Date(s.since))}${s.by && !sameName(s.by, s.holder) ? ' · ' + T('by') + ' ' + esc(s.by) : ''}</div>` : ''}
+        <div class="bhead"><span class="bnum">${esc(b.id)}</span>${b.n? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
         ${b.c? `<div class="hint" style="margin-top:8px">${esc(b.c)}</div>` : ''}
-        ${b.off? `<div class="hint" style="margin-top:10px;color:var(--rec)"><b>${T('Archived')}</b> · ${T('This bundle is no longer in use. Hand it to an admin.')}</div>` : ''}
-        ${isQueued(s.ev)? `<div class="kwait" style="margin-top:8px">${T('waiting')}</div>` : ''}
-        ${hint? `<div class="hint" style="margin-top:8px">${hint}</div>` : ''}
-        <div class="field" style="margin-top:14px${b.off? ';display:none' : ''}">
-          <label>${T('To')}</label>
-          <div class="chips">${dests.map(d=>`<button class="chip${f.dest===d?' on':''}" onclick="kfDest('${d}')">${T(DEST_LABEL[d])}</button>`).join('')}</div>
-          ${fields}
-        </div>
+        ${moveHtml(id)}
       </div>
 
       <div class="csec">${T('Keys')}<span class="ccount">${total}</span></div>
@@ -4241,7 +4566,7 @@ function paintBundle(id){
     </div>
     <div class="sheetbar">
       <button class="btn ghost" onclick="closeBundle()">${T('Close')}</button>
-      ${b.off? '' : `<button class="btn" onclick="bundleAct('${id}')">${actLabel(f.dest, s)}</button>`}
+      ${kf.dest && !b.off ? `<button class="btn" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
     </div>`;
   if(focused && /^(kf_|koreason)/.test(focused)){
     const fe = document.getElementById(focused);
@@ -4249,91 +4574,17 @@ function paintBundle(id){
   }
 }
 
-/* One tap on the sheet's button writes the move. Only your own name is needed (set once, in
-   the menu), and the receiver's name on a hand-over. A second tap while the first is still being
-   written is ignored, so a nervous thumb cannot log twice. */
-let koBusy = false;
-const REASONS = ['Visning','Service','Hantverkare','Städ','Besiktning','Utflytt'];
-function koPick(btn, reason){
-  const already = btn.classList.contains('on');
-  document.querySelectorAll('#kochips .chip').forEach(c=>c.classList.remove('on'));
-  const input = document.getElementById('koreason');
-  kf.reason = already ? '' : reason;
-  if(input) input.value = kf.reason;
-  if(!already) btn.classList.add('on');
-}
-// The name is the one thing the log cannot do without. It is read from the field when one is
-// shown, otherwise it is the saved one; either way it is saved for next time.
-async function koName(){
-  // Set once, in the menu, and kept on the phone. An inspection that already names its
-  // inspector counts as having set it, so an older report still writes a name to the log.
-  let name = (keyMe || '').trim();
-  if(!name && S && S.inspector && S.inspector.name) name = S.inspector.name.trim();
-  if(!name){ toast(T('Set your name in the menu')); openMenu(); return '' }
-  if(name !== keyMe){ keyMe = name; await store.set(KEYNAME, name) }
-  return name;
-}
-// Where it was before, when that was not the cabinet: the person, the guest or the box.
-// Leaving out your own name on a check-out, as before - "from Erik" on Erik's own line says nothing.
-const fromOf = (s, name) => s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && !sameName(s.holder, name) ? s.holder : '');
-async function bundleAct(id){
-  if(koBusy) return;
-  const bb = bundleOf(id); if(!bb || bb.off){ toast(T('Archived')); return }
-  const d = kfFor(id).dest;
-  if(d === 'person' && !kf.name.trim()){ toast(T('Write the name')); const n = document.getElementById('kf_name'); if(n) try{ n.focus() }catch(e){} return }
-  koBusy = true;
-  try{
-    const name = await koName(); if(!name) return;
-    const s = bstate(id), b = bundleOf(id), from = fromOf(s, name);
-    const kv = { name: kf.name.trim(), phone: kf.phone.trim(), unit: kf.unit.trim(), place: kf.place.trim(), reason: kf.reason.trim() };
-    let ev = null, msg = '';
-    if(d === 'me'){ ev = await keyWrite(id, 'out', {who:name, reason:kv.reason, from, act: s.status === 'placed' ? 'pickup' : ''}); msg = id + ' → ' + name }
-    else if(d === 'apt'){
-      ev = await keyWrite(id, 'place', {who:name, apt:objOf(id), loc:'apt', place:bundleApt(b), from});
-      msg = id + ' → ' + bundleApt(b);
-    }
-    else if(d === 'person'){
-      ev = await keyWrite(id, 'out', {who:name, holder:kv.name, phone:kv.phone, from: s.status === 'out' ? (s.holder||'') : from});
-      msg = id + ' → ' + kv.name;
-    }
-    else if(d === 'guest'){
-      ev = await keyWrite(id, 'place', {who:name, apt:objOf(id), loc:'guest', place:bundleApt(b), guest:kv.name, phone:kv.phone, from});
-      msg = id + ' → ' + (kv.name || bundleApt(b));
-    }
-    else if(d === 'box' || d === 'tube'){
-      ev = await keyWrite(id, 'place', {who:name, apt:objOf(id), loc:d, unit:kv.unit, place:kv.place, from});
-      msg = id + ' → ' + locName(d) + (kv.unit ? ' ' + kv.unit : '');
-    }
-    else { ev = await keyWrite(id, 'in', {who:name, from: s.status === 'placed' ? placeLabel(s) : (s.holder && !sameName(s.holder, name) ? s.holder : '')}); msg = id + ' — ' + T('Back in the cabinet') }
-    if(!ev){ toast(T('Could not save')); return }
-    kf = { id:null };
-    await backToStart();
-    toast(msg);
-  }finally{ koBusy = false }
-}
-// The two moves the sheet had before it had a choice; kept for anything that calls them.
-async function checkOut(id){ kfFor(id).dest = 'me'; const f = document.getElementById('koreason'); if(f) kf.reason = f.value; return bundleAct(id) }
-async function checkIn(id){ kfFor(id).dest = 'cab'; return bundleAct(id) }
-
 /* ----- keys in an inspection (2026-10-14) -----
-   Three ways it goes, chosen once per inspection and switchable before registering:
-     apt    left in the empty apartment, nobody holds it - shortstay's default
-     guest  handed straight to the guest - move-in's default; the name from the Property step,
-            or typed, or none (then it says "to the guest", never a name it was not given)
-     pick   picked up after a move-out - the bundles go to you (act 'pickup'); back to the
-            cabinet only when you check them in there
-   One box: number, Scan (several in a row, green check each), the button. Each bundle goes on
-   the report's key receipt with its keys as they were, what was done, by whom and when. The
-   photo and free text stay as they are. Nothing is required. */
+   The key box: what this inspection does with keys - in the apartment or to the guest (shortstay
+   and move-in, switchable), pick up (move-out) - and Scan key, which opens the one scanner with
+   the photo step. Each confirmed move goes on the report's key receipt with its keys as they
+   were, what was done, by whom and when, and the photos taken with it. */
 const HANDOVER_TYPES = ['Upplåsning','Inflytt','Utflytt'];
 const canHandover = () => !!S && HANDOVER_TYPES.includes(S.type);
 const keyModeOf = () => !S ? 'apt' : S.type === 'Utflytt' ? 'pick' : (S.keyMode === 'apt' || S.keyMode === 'guest') ? S.keyMode : S.type === 'Inflytt' ? 'guest' : 'apt';
-let ho = null;        // in progress: {mode, apt, place, guest, free, got, notes, step}
-
 // The inspection's apartment as the register knows it, when it does: "lgh 1102 TÄRNA" and
-// the object number 112 - the half of a bundle number in front of the colon. An apartment
-// the register has not got yet is named by what the inspection says, address included,
-// since "lgh 1201" alone would not say which house.
+// the object number 112. An apartment the register has not got yet is named by what the
+// inspection says, address included.
 const squash = s => String(s||'').toLowerCase().replace(/[\s,.\-]/g,'');
 function inspApt(){
   const addr = squash(S.address), apt = squash(S.apt);
@@ -4342,13 +4593,9 @@ function inspApt(){
   const place = [S.address, S.apt ? 'lgh ' + S.apt : ''].filter(Boolean).join(', ').trim();
   return { apt: '', place, known: false };
 }
-// The guest the keys go to in 'guest' mode: typed on the card, else the counterparty.
 const inspTo = () => S.keyTo || ((S.counter && S.counter.name) || '');
-const hoDest = () => !ho ? '' : ho.mode === 'pick' ? T('Picked up by you')
-  : ho.mode === 'guest' ? [ho.guest || T('the guest'), ho.place].filter(Boolean).join(' · ')
-  : [T('In the apartment'), ho.place].filter(Boolean).join(' · ');
-const MODE_BTN = { apt:'Leave in apartment', guest:'Leave with guest', pick:'Pick up keys' };
-// What a receipt line says was done.
+const hoDest = () => { if(!S) return ''; const m = keyModeOf(), c = inspApt();
+  return m === 'pick' ? T('Picked up by you') : m === 'guest' ? [inspTo() || T('the guest'), c.place].filter(Boolean).join(' · ') : [T('In the apartment'), c.place].filter(Boolean).join(' · ') };
 const actOf = k => k.act === 'pickup' ? T('picked up') : k.act === 'guest' ? T('to') + ' ' + (k.guest || T('the guest'))
   : k.act === 'apt' ? T('in the apartment') : '';
 
@@ -4362,20 +4609,19 @@ function inspKeyCard(){
   return `<div class="kcard inspkeys" id="inspkeys">
     ${done.map(k => `<div class="hoconf" style="margin:0 0 8px"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
         <b>${esc(k.bundle)}${k.name ? ' · ' + esc(k.name) : ''}</b>
-        <div>${esc(actOf(k))}${actOf(k) ? ' · ' : ''}${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')} · ${stamp(new Date(k.ts))}</div></div>
-        ${S.signedAt || S.closedAt || k.act === 'pickup' ? '' : `<button class="admdel" onclick="hoUndo('${k.bundle}')" aria-label="${T('Remove')}">×</button>`}</div>`).join('')}
+        <div>${esc(actOf(k))}${actOf(k) ? ' · ' : ''}${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')}${(k.photos||[]).length ? ' · ' + k.photos.length + ' ' + T(k.photos.length === 1 ? 'photo' : 'photos') : ''} · ${stamp(new Date(k.ts))}</div></div></div>`).join('')}
     ${mode !== 'pick' ? `<div class="chips" style="margin-bottom:10px">
         <button class="chip${mode==='apt'?' on':''}" onclick="setKeyMode('apt')">${T('In the apartment')}</button>
-        <button class="chip${mode==='guest'?' on':''}" onclick="setKeyMode('guest')">${T('To guest')}</button></div>` : ''}
+        <button class="chip${mode==='guest'?' on':''}" onclick="setKeyMode('guest')">${T('To guest')}</button></div>` : `<div class="hint" style="margin:0 0 10px">${T('Pick up keys')}</div>`}
     ${mode === 'guest' ? (named ? `<div class="hint" style="margin:0 0 10px">${T('To')}: <b>${esc(inspTo())}</b></div>`
         : `<input id="kbguest" autocomplete="off" style="margin-bottom:10px" value="${esc(gname != null ? gname : (S.keyTo || ''))}"
              placeholder="${T("Guest's name (if known)")}" oninput="S.keyTo=this.value.trim();save()">`) : ''}
     <div class="addrow">
       <input id="kbnum" value="${esc(num || '')}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
              onkeydown="if(event.key==='Enter')inspLeave()">
-      <button class="btn ghost small" onclick="inspScan()">${T('Scan')}</button>
+      <button class="btn ghost small" onclick="inspLeave()">${T('Show')}</button>
     </div>
-    <button class="btn" style="margin-top:8px" onclick="inspLeave()">${T(MODE_BTN[mode])}</button>
+    <button class="btn" style="margin-top:8px" onclick="inspScan()">${T('Scan key')}</button>
   </div>`;
 }
 function setKeyMode(m){ if(!S) return; S.keyMode = m; save(); paintInspKeyCard() }
@@ -4396,236 +4642,18 @@ function inspKeyPrime(){
   keyBoot().then(paintInspKeyCard);
   keySync().then(refreshKeyViews);
 }
-async function inspHand(id){ if(!await hoBegin()) return; hoGot(id) }
-
-// Sets up the registration from the inspection. False only when there is no name of yours to
-// log under (set once in the menu).
-async function hoBegin(){
-  if(!canHandover()) return false;
-  await keyBoot();
-  const ctx = inspApt();
-  const name = await koName(); if(!name) return false;
-  const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim();
-  const mode = keyModeOf();
-  ho = { mode, apt: ctx.apt, place: ctx.place, guest: mode === 'guest' ? inspTo().trim() : '', free:false, got:null, notes:[], step:'scan' };
-  return true;
-}
-// Picking up keys outside an inspection (menu): the same scanner, no report.
-async function pickupScan(){
-  await keyBoot();
-  const name = await koName(); if(!name) return;
-  ho = { mode:'pick', apt:'', place:'', guest:'', free:true, got:null, notes:[], step:'scan' };
-  openScan('hand');
-}
+async function inspScan(){ if(!canHandover()) return; const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim(); openScan({ insp:true }) }
+// A typed number opens the same scanner on that bundle, ready for its photos and its move.
 async function inspLeave(){
   const f = document.getElementById('kbnum'), raw = f ? f.value.trim() : '';
   if(!raw){ toast(T('Scan or type a number')); try{ f && f.focus() }catch(e){} return }
   const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
   if(!bundleOf(id)){ await keyBoot(); if(!bundleOf(id)){ toast(`${id} — ${T('not in the register')}`); return } }
-  if(!await hoBegin()) return;
-  hoGot(id);
+  if(f) f.value = '';
+  const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim();
+  openScan({ insp:true, id });
 }
-async function inspScan(){ if(!await hoBegin()) return; openScan('hand') }
-
-// What stands in the way of registering `id`: a reason to skip it, or notes for a second look.
-function hoCheck(id){
-  const s = bstate(id), b = bundleOf(id), k = stKind(s);
-  const sameApt = ho.apt ? s.apt === ho.apt : (!!ho.place && s.place === ho.place);
-  if(b.off) return { skip: `${id} — ${T('Archived')}` };
-  if(ho.mode === 'pick'){
-    if(k === 'out' && sameName(s.holder, keyMe)) return { skip: `${id} — ${T('already with you')}` };
-    const notes = [];
-    if(!keySeenAt) notes.push(T('Not fetched yet'));
-    else if(k === 'out') notes.push(`${T('With')} ${s.holder} · ${stamp(new Date(s.since))}`);
-    else if(ho.apt && !sameApt) notes.push(`${T('In')} ${placeLabel(s)}`);
-    return { notes };
-  }
-  if(ho.mode === 'apt' && k === 'apt' && sameApt) return { skip: `${id} — ${T('already in the apartment')}` };
-  if(ho.mode === 'guest' && k === 'guest' && sameApt && (sameName(s.guest, ho.guest) || (!s.guest && !ho.guest))) return { skip: `${id} — ${T('already with the guest')}` };
-  const notes = [];
-  if(!keySeenAt) notes.push(T('Not fetched yet'));
-  else if(k === 'out' && s.holder && !sameName(s.holder, keyMe)) notes.push(`${T('With')} ${s.holder} · ${stamp(new Date(s.since))}`);
-  else if(s.status === 'placed') notes.push(`${stText(s)} · ${stWhere(s)}`);
-  if(ho.apt && objOf(id) !== ho.apt) notes.push(`${T('Belongs to')} lgh ${b.l}${b.n ? ' ' + b.n : ''}`);
-  return { notes };
-}
-// The tag has been read (typed or tapped). Written straight away when nothing stands in the
-// way; shown for a second look when it is registered elsewhere.
-function hoGot(id){
-  if(!ho || !bundleOf(id)) return;
-  const c = hoCheck(id);
-  if(c.skip){ toast(c.skip); ho = null; return }
-  ho.got = id; ho.notes = c.notes;
-  if(!ho.notes.length) return hoSave();
-  ho.step = 'review'; hoSheet(); paintHandover(); window.scrollTo(0,0);
-}
-// The registration itself: one event, and the line on the report's key receipt. Done (and the
-// green check shown) only once both are on the phone: the event in the queue that goes to the
-// server, and the receipt in the saved inspection.
-async function hoWrite(id){
-  const h = ho, insp = h && !h.free ? S : null;    // taken now: a second tap may replace ho meanwhile
-  if(!h) return null;
-  const name = await koName(); if(!name) return null;
-  const s = bstate(id), b = bundleOf(id);
-  const reason = insp ? ({ 'Upplåsning':'Shortstay', 'Inflytt':'Inflytt', 'Utflytt':'Utflytt' }[insp.type] || '') : '';
-  const ev = h.mode === 'pick'
-    ? await keyWrite(id, 'out', s.status === 'in' ? { who:name, reason } : { who:name, act:'pickup', from: fromOf(s, name), reason })
-    : await keyWrite(id, 'place', { who:name, loc:h.mode, place:h.place || bundleApt(b), guest: h.mode === 'guest' ? h.guest : '',
-                                    apt:h.apt || objOf(id), reason, from: fromOf(s, name) });
-  if(!ev) return null;
-  // The keys are copied off the register as they stood at this moment, so the report says what
-  // was registered even if the register is corrected later. Type, marking and how many only -
-  // the register's fourth field is an internal note. A signed or locked report keeps its
-  // signatures: the key is logged, the receipt is left alone.
-  const locked = !!(insp && (insp.signedAt || insp.closedAt));
-  if(insp && S === insp && !locked){
-    S.keysOut = (S.keysOut || []).filter(k => k.bundle !== id);
-    S.keysOut.push({ bundle:id, name:ev.name||'', place: h.mode === 'pick' ? (ev.from || '') : (ev.place||''), guest:ev.guest||'',
-                     act: h.mode === 'pick' ? 'pickup' : h.mode, ts:ev.ts, who:ev.who||'', evId:ev.id,
-                     keys: b ? b.k.map(k => [k[0]||'', k[1]||'', k[2]||1]) : [] });
-    log(`Key ${id} ${h.mode === 'pick' ? 'picked up' : h.mode === 'guest' ? 'left with ' + (ev.guest || 'the guest') : 'left in the apartment'} by ${ev.who}`);
-    await flushSave();
-  }
-  ev.locked = locked;
-  return ev;
-}
-let hoBusy = false;
-async function hoSave(){
-  if(!ho || !ho.got || hoBusy) return;
-  hoBusy = true;
-  try{
-    const id = ho.got, mode = ho.mode;
-    const ev = await hoWrite(id);
-    if(!ev){ toast(T('Could not save')); return }
-    ho = null;
-    closeHandover();
-    const what = mode === 'pick' ? T('picked up') : mode === 'guest' ? T('to') + ' ' + (ev.guest || T('the guest')) : T('in the apartment');
-    toast(`${id} ${what}${ev.locked ? ' · ' + T('report locked: in the key log only') : ''}`);
-    const f = document.getElementById('kbnum'); if(f) f.value = '';
-    paintInspKeyCard();
-  }finally{ hoBusy = false }
-}
-
-/* In the scanner, one tag after the other: read -> green check and the number -> next. The same
-   tag still in front of the camera is not read twice. A tag that needs a second look stops the
-   scanner on two buttons, Hand over anyway / Skip, and then it goes on. Done closes it. */
-let scanPaused = false, scanLastId = '', scanLastAt = 0, scanDone = [];
-const scanResume = (ms) => setTimeout(() => {
-  if(!scanOn || scanPaused) return;
-  const ok = document.getElementById('scanok'); if(ok) ok.classList.remove('on');
-  scanSince = Date.now(); scanRaf = requestAnimationFrame(scanTick);
-}, ms || 0);
-async function scanHand(id){
-  if(!ho || scanPaused) return;
-  const now = Date.now();
-  if(id === scanLastId && now - scanLastAt < 4000){ scanLastAt = now; return scanResume(300) }
-  scanLastId = id; scanLastAt = now;
-  scanFeedback();
-  const m = document.getElementById('scanman'); if(m) m.value = '';
-  const c = hoCheck(id);
-  if(c.skip){ scanMsg(c.skip); return scanResume(1200) }
-  if(c.notes.length){
-    scanPaused = true;
-    const ask = document.getElementById('scanask');
-    if(ask) ask.innerHTML = `<div class="ask"><b>${esc(id)}</b>${c.notes.map(n => `<div>${esc(n)}</div>`).join('')}
-      <div class="kbtns"><button class="btn go" onclick="scanAsk('${id}',true)">${T(ho.mode === 'pick' ? 'Pick up anyway' : 'Leave anyway')}</button>
-        <button class="btn ghost" onclick="scanAsk('${id}',false)">${T('Skip')}</button></div></div>`;
-    scanMsg('');
-    return;
-  }
-  await scanWrite(id);
-}
-async function scanAsk(id, go){
-  const ask = document.getElementById('scanask'); if(ask) ask.innerHTML = '';
-  scanPaused = false;
-  if(go) return scanWrite(id);
-  scanMsg(T('Hold the tag in the frame')); scanResume(300);
-}
-async function scanWrite(id){
-  const ev = await hoWrite(id);
-  if(!ev){ scanMsg(T('Could not save')); return scanResume(1200) }
-  if(!scanDone.includes(id)) scanDone.push(id);
-  const ok = document.getElementById('scanok');
-  if(ok){ ok.innerHTML = `<b>✓</b><span>${esc(id)}</span>`; ok.classList.add('on') }
-  const list = document.getElementById('scandone');
-  if(list) list.innerHTML = scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('');
-  scanMsg(ev.locked ? T('report locked: in the key log only') : T('Scan the next one, or Done'));
-  scanResume(1100);
-}
-async function scanQuickOut(id){
-  if(scanPaused) return;
-  const now = Date.now();
-  if(id === scanLastId && now - scanLastAt < 4000){ scanLastAt = now; return scanResume(300) }
-  scanLastId = id; scanLastAt = now;
-  const m = document.getElementById('scanman'); if(m) m.value = '';
-  scanFeedback();
-  const name = await koName(); if(!name){ closeScan(); return }
-  const ev = await keyWrite(id, 'out', { who:name });
-  if(!ev){ scanMsg(T('Could not save')); return scanResume(1200) }
-  if(!scanDone.includes(id)) scanDone.push(id);
-  const ok = document.getElementById('scanok');
-  if(ok){ ok.innerHTML = `<b>✓</b><span>${esc(id)}</span>`; ok.classList.add('on') }
-  const list = document.getElementById('scandone');
-  if(list) list.innerHTML = scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('');
-  scanMsg(T('Checked out to you. Scan the next one, or Done'));
-  scanResume(1100);
-}
-async function scanOpenDone(){
-  const any = scanDone.length;
-  scanDone = []; scanLastId = '';
-  closeScan();
-  if(any && view === 'start') await renderStart();
-}
-function scanHandDone(){
-  const free = !!(ho && ho.free);
-  scanPaused = false; scanDone = []; scanLastId = '';
-  closeScan(); ho = null;
-  if(free){ if(view === 'start') renderStart() } else paintInspKeyCard();
-}
-// × on a receipt line (left in the apartment or with the guest): off the report. If the log still
-// has it there from this very registration, it goes back to you - you are standing there holding it.
-async function hoUndo(id){
-  if(!S || S.signedAt || S.closedAt) return;
-  const k = (S.keysOut || []).find(x => x.bundle === id); if(!k || k.act === 'pickup') return;
-  S.keysOut = S.keysOut.filter(x => x.bundle !== id);
-  log(`Key ${id} taken off the receipt`);
-  save();
-  const s = bstate(id);
-  if(k.evId && s.ev && s.ev.id === k.evId){
-    const name = await koName();
-    if(name) await keyWrite(id, 'out', { who:name, from: placeLabel(s), reason:'Rättad' });
-  }
-  paintInspKeyCard();
-}
-function hoSheet(){
-  if(document.getElementById('handover')) return;
-  const el = document.createElement('div');
-  el.className = 'sheet hasbar ksheet'; el.id = 'handover';
-  document.body.appendChild(el);
-}
-function closeHandover(){
-  const el = document.getElementById('handover'); if(el) el.remove();
-  ho = null; closeScan();
-}
-function hoRescan(){ if(!ho) return; ho.step = 'scan'; ho.got = null; ho.notes = []; const el = document.getElementById('handover'); if(el) el.remove(); openScan('hand') }
-// The second look: what the log says about this bundle, where it is about to go, and the
-// choice. Nothing has been written when this is on screen.
-function paintHandover(){
-  const el = document.getElementById('handover'); if(!el || !ho || ho.step !== 'review' || !ho.got) return;
-  const b = bundleOf(ho.got);
-  el.innerHTML = topbar(T(MODE_BTN[ho.mode]), ho.got, null, 'closeHandover()') + `<div class="wrap">
-      <div class="card">
-        <div class="bhead"><span class="bnum">${esc(b.id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
-        ${ho.notes.map(n => `<div class="hint" style="margin-top:8px">${esc(n)}</div>`).join('')}
-        <div style="margin-top:12px;font-size:14px"><b>${esc(hoDest())}</b></div>
-        <div class="kbtns">
-          <button class="btn" onclick="hoSave()">${T(MODE_BTN[ho.mode])}</button>
-          <button class="btn ghost" onclick="hoRescan()">${T('Scan another')}</button>
-        </div>
-      </div>
-    </div>
-    <div class="sheetbar"><button class="btn ghost" onclick="closeHandover()">${T('Cancel')}</button></div>`;
-}
+let scanDone = [];
 
 /* ----- key admin (2026-10-13) -----
    Menu → Key admin: a search box and every bundle. Tap one, change what is wrong, Save. One page
@@ -4755,6 +4783,7 @@ function paintAdminList(){
     if(c === 'status') return r.b.conf && r.b.conf.length ? `<span class="kstat out">${T('Conflict')}</span>`
       : r.b.off ? `<span class="kstat unk">${T('Archived')}</span>` : `<span class="kstat ${stClass(r.k)}">${stText(r.s)}</span>`;
     if(c === 'ts'){ if(!r.ts) return ''; const t = stamp(new Date(r.ts)); return '<span class="klyr">' + esc(t.slice(0,5)) + '</span>' + esc(t.slice(5)) }
+    if(c === 'c') return cmtCell(r.id, r.c);
     return esc(String(r[c] || ''));
   };
   box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['guest','At guest']].map(([f, l]) =>
@@ -4768,6 +4797,53 @@ function paintAdminList(){
     ${rows.length > LIMIT ? `<div class="klcount" style="margin-top:8px">${T('Showing the first')} ${LIMIT}. ${T('Search to narrow it down.')}</div>` : ''}`;
 }
 
+// The comment, editable where it is shown (2026-10-14): a box of its own in the admin table. It
+// says when it has not been saved, while it is being saved, when it is, and when it could not be.
+// Saving changes the register entry's comment and nothing else - not where the bundle is, not
+// any move in its history (a "register changed: kommentar" line is added). Saved on leaving the
+// box, or on Enter.
+const admCmt = {};   // id -> { val, st: 'dirty'|'saving'|'saved'|'error', msg }
+function cmtCell(id, cur){
+  const c = admCmt[id], val = c ? c.val : cur;
+  const st = c ? c.st : '';
+  const label = st === 'dirty' ? T('Not saved') : st === 'saving' ? T('Saving…') : st === 'saved' ? T('Saved') + ' ✓' : st === 'error' ? (c.msg || T('Could not save - try again')) : '';
+  return `<div class="cmtbox" onclick="event.stopPropagation()">
+    <textarea class="cmtin${st ? ' ' + st : ''}" rows="2" data-id="${esc(id)}" placeholder="${T('Comment')}"
+      oninput="cmtInput('${id}', this)" onblur="cmtSave('${id}', this)"
+      onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); this.blur() }">${esc(val)}</textarea>
+    <span class="cmtst ${st}" id="cmtst_${esc(id).replace(/:/g,'_')}">${esc(label)}</span></div>`;
+}
+function cmtPaintState(id){
+  const el = document.getElementById('cmtst_' + id.replace(/:/g, '_')); if(!el) return;
+  const c = admCmt[id] || {};
+  el.className = 'cmtst ' + (c.st || '');
+  el.textContent = c.st === 'dirty' ? T('Not saved') : c.st === 'saving' ? T('Saving…') : c.st === 'saved' ? T('Saved') + ' ✓' : c.st === 'error' ? (c.msg || T('Could not save - try again')) : '';
+  const box = el.previousElementSibling; if(box) box.className = 'cmtin' + (c.st ? ' ' + c.st : '');
+}
+function cmtInput(id, el){
+  const b = bundleOf(id); if(!b) return;
+  const same = el.value.trim() === (b.c || '');
+  admCmt[id] = same ? { val: el.value, st: '' } : { val: el.value, st: 'dirty' };
+  cmtPaintState(id);
+}
+async function cmtSave(id, el){
+  const c = admCmt[id], b = bundleOf(id);
+  if(!c || !b || (c.st !== 'dirty' && c.st !== 'error')) return;
+  const val = (el ? el.value : c.val).trim();
+  if(val === (b.c || '')){ admCmt[id] = { val, st: '' }; return cmtPaintState(id) }
+  admCmt[id] = { val, st: 'saving' }; cmtPaintState(id);
+  const send = (rec, base) => admCall({ op:'reg', op_id: uid() + uid(), rec: { id, ...recOf(rec), c: val, src: fpOf(staticOf(id)) }, base, who: keyMe || '', note: 'kommentar' });
+  let r = await send(b, (keyReg.recs[id] && keyReg.recs[id].rev) || 0);
+  // Someone saved this bundle meanwhile: take their version and change only the comment on it.
+  if(r.status === 409 && r.j.rec) r = await send(r.j.rec, r.j.rec.rev || 0);
+  if(r.status === 403){ admCmt[id] = { val, st: 'error', msg: T('Log in as admin again') }; cmtPaintState(id); setAdm(false); return }
+  if(!r.j || !r.j.ok){ admCmt[id] = { val, st: 'error', msg: r.status === 0 ? T('No contact - nothing saved') : T('Could not save - try again') }; return cmtPaintState(id) }
+  keyReg.recs[id] = r.j.rec; regCache = null; await store.set(KEYREG, keyReg);
+  if(r.j.event) histCache[id] = [r.j.event].concat((histCache[id]||[]).filter(e => e.id !== r.j.event.id));
+  admCmt[id] = { val, st: 'saved' }; cmtPaintState(id);
+  setTimeout(() => { if(admCmt[id] && admCmt[id].st === 'saved'){ delete admCmt[id]; cmtPaintState(id) } }, 2500);
+}
+
 // The bundle being edited: the register entry, and where it is, each with the copy it started
 // from so Save can tell what changed.
 let ae = null, admAfter = null;
@@ -4777,17 +4853,17 @@ const OTHER = 'Annan';
 const ST_LABEL = { cab:'Cabinet', staff:'Staff', apt:'In the apartment', guest:'Guest', other:'Other', box:'Service box', tube:'Key tube' };
 function stForm(id){
   const s = bstate(id), k = stKind(s);
-  if(k === 'out') return { dest: s.reason === OTHER ? 'other' : 'staff', name:s.holder||'', phone:s.phone||'', unit:'', place:'', note:'' };
-  if(k === 'guest') return { dest:'guest', name:s.guest||'', phone:s.phone||'', unit:'', place:'', note:'' };
-  if(k === 'apt') return { dest:'apt', name:'', phone:'', unit:'', place:'', note:'' };
+  if(k === 'out') return { dest: s.reason === OTHER ? 'other' : 'staff', name:s.holder||'', phone:s.phone||'', email:s.email||'', unit:'', place:'', note:'' };
+  if(k === 'guest') return { dest:'guest', name:s.guest||'', phone:s.phone||'', email:s.email||'', unit:'', place:'', note:'' };
+  if(k === 'apt') return { dest:'apt', name:'', phone:'', unit:'', place:'', note:'', email:'' };
   // An older 'left' line: no choice lit, and a note that it may have been either. Picking
   // In the apartment or Guest then records what is actually known.
-  if(k === 'old') return { dest:'old', name:'', phone:'', unit:'', place:'', note:'' };
+  if(k === 'old') return { dest:'old', name:'', phone:'', unit:'', place:'', note:'', email:'' };
   if(k === 'box' || k === 'tube') return { dest:k, name:'', phone:'', unit:s.unit||'', place:s.place||'', note:'' };
-  return { dest:'cab', name:'', phone:'', unit:'', place:'', note:'' };
+  return { dest:'cab', name:'', phone:'', unit:'', place:'', note:'', email:'' };
 }
 const recOf = b => ({ a:b.a||'', l:b.l||'', n:b.n||'', c:b.c||'', k:(b.k||[]).map(r=>[r[0]||'', r[1]||'', r[2]||1, r[3]||'']), off: !!b.off });
-const aeStSig = f => JSON.stringify([f.dest, f.name.trim(), f.phone.trim(), f.unit.trim(), f.place.trim()]);
+const aeStSig = f => JSON.stringify([f.dest, f.name.trim(), f.phone.trim(), (f.email||'').trim(), f.unit.trim(), f.place.trim()]);
 // The nycklar.js line a bundle had when an admin last saved it, as a short fingerprint. When the
 // file later changes that line, the admin's version still wins - so the edit page says so and
 // offers the file's version instead of either side being hidden or brought back unseen.
@@ -4842,6 +4918,7 @@ function aeSet(path, v){
 }
 function aeKeyAdd(){ ae.rec.k.push(['','',1,'']); paintAdmEdit(); const r = document.querySelectorAll('.admkey'); const last = r[r.length-1]; if(last){ const i = last.querySelector('input'); if(i) try{ i.focus() }catch(e){} } }
 function aeKeyDel(i){ ae.rec.k.splice(i, 1); paintAdmEdit() }
+function aeEmailCheck(){ const box = document.getElementById('ae_emailerr'); if(box && ae) box.innerHTML = okEmail(ae.st.email) ? '' : `<div class="ferr">${T(EMAIL_BAD)}</div>` }
 function aeDest(d){ ae.st.dest = d; paintAdmEdit() }
 function aeUseStatic(){ const s = staticOf(ae.id); if(!s) return; const off = ae.rec.off; ae.rec = recOf(s); ae.rec.off = off; paintAdmEdit() }
 function paintAdmEdit(){
@@ -4865,7 +4942,9 @@ function paintAdmEdit(){
       ${!ae.isNew && stKind(bstate(ae.id)) === 'old' ? `<div class="hint" style="margin:-4px 3px 8px">${T('Older entry: left, not recorded whether in the apartment or with the guest.')}${bstate(ae.id).guest ? ' ' + T('guest on record') + ': ' + esc(bstate(ae.id).guest) : ''}</div>` : ''}
       <div class="card">
         <div class="chips">${Object.keys(ST_LABEL).map(d => `<button class="chip${f.dest===d?' on':''}" onclick="aeDest('${d}')">${T(ST_LABEL[d])}</button>`).join('')}</div>
-        ${f.dest === 'staff' || f.dest === 'guest' || f.dest === 'other' ? `<div class="kfrow">${inp('st.name', f.name, f.dest === 'guest' ? 'Guest' : f.dest === 'other' ? 'Who, e.g. property owner' : 'Name', f.dest === 'staff' ? 'list="knames"' : '')}${inp('st.phone', f.phone, 'Phone', 'type="tel"')}</div>` : ''}
+        ${f.dest === 'staff' || f.dest === 'guest' || f.dest === 'other' ? `<div class="kfrow">${inp('st.name', f.name, f.dest === 'guest' ? 'Guest' : f.dest === 'other' ? 'Who, e.g. property owner' : 'Name', f.dest === 'staff' ? 'list="knames"' : '')}${inp('st.phone', f.phone, 'Phone', 'type="tel"')}</div>
+          <div class="kfrow">${inp('st.email', f.email || '', 'E-mail (optional)', 'type="email" autocapitalize="off" id="ae_email" onblur="aeEmailCheck()"')}</div>
+          <div id="ae_emailerr">${okEmail(f.email) ? '' : `<div class="ferr">${T(EMAIL_BAD)}</div>`}</div>` : ''}
         ${f.dest === 'box' || f.dest === 'tube' ? `<div class="kfrow">${inp('st.unit', f.unit, 'Number', 'class="kfnum"')}${inp('st.place', f.place, 'Property / apartment')}</div>` : ''}
         <div style="margin-top:10px">${inp('st.note', f.note, 'Why (shown in the history)')}</div>
       </div>
@@ -4922,10 +5001,10 @@ function aeEvent(){
   const f = ae.st, b = bundleOf(ae.id) || { l: ae.rec.l, n: ae.rec.n };
   const t = { name:f.name.trim(), phone:f.phone.trim(), unit:f.unit.trim(), place:f.place.trim() };
   if(f.dest === 'cab') return { kind:'in' };
-  if(f.dest === 'staff') return { kind:'out', holder:t.name, phone:t.phone };
-  if(f.dest === 'other') return { kind:'out', holder:t.name, phone:t.phone, reason:OTHER };
+  if(f.dest === 'staff') return { kind:'out', holder:t.name, phone:t.phone, email:(f.email||'').trim() };
+  if(f.dest === 'other') return { kind:'out', holder:t.name, phone:t.phone, email:(f.email||'').trim(), reason:OTHER };
   if(f.dest === 'apt') return { kind:'place', loc:'apt', apt:objOf(ae.id), place:bundleApt(b) };
-  if(f.dest === 'guest') return { kind:'place', loc:'guest', apt:objOf(ae.id), place:bundleApt(b), guest:t.name, phone:t.phone };
+  if(f.dest === 'guest') return { kind:'place', loc:'guest', apt:objOf(ae.id), place:bundleApt(b), guest:t.name, phone:t.phone, email:(f.email||'').trim() };
   return { kind:'place', apt:objOf(ae.id), loc:f.dest, unit:t.unit, place:t.place };
 }
 let aeBusy = false;
@@ -4941,6 +5020,7 @@ async function admSave(){
   const stChanged = aeStSig(ae.st) !== ae.stOrig;
   if(!regChanged && !stChanged) return toast(T('No changes'));
   if(stChanged && (ae.st.dest === 'staff' || ae.st.dest === 'other') && !ae.st.name.trim()) return toast(T('Write the name'));
+  if(stChanged && !okEmail(ae.st.email)){ aeEmailCheck(); return toast(T(EMAIL_BAD)) }
   aeBusy = true;
   const btn = document.getElementById('aesave'); if(btn) btn.disabled = true;
   try{

@@ -1,6 +1,6 @@
 // Records a check-out, a check-in or a hand-over in the shared key ledger.
 //   POST /api/keys-event  { events:[{id, bundle, kind:'out'|'in'|'place', who, reason, name, ts, from, apt, place, guest,
-//                                    holder, phone, loc, unit, act}] }
+//                                    holder, phone, email, loc, unit, act}] }
 //   -> { ok, saved:[id] }
 //
 // Three kinds. 'out': someone took the bundle (from the cabinet, or over from a colleague,
@@ -27,7 +27,7 @@
 // exactly what happens when a flaky connection retries - writes the same key twice instead
 // of making a duplicate.
 import { kv, appOk, NO_STORE, clip } from '../../cflib/media.js';
-import { record, fitMeta, cleanPhone } from '../../cflib/keys.js';
+import { record, fitMeta, cleanPhone, cleanEmail } from '../../cflib/keys.js';
 
 const MAX_BATCH = 50;
 const KINDS = ['out', 'in', 'place'];
@@ -73,6 +73,7 @@ export async function onRequest(context) {
       guest: clip(raw.guest, 60),
       holder: kind === 'out' ? clip(raw.holder, 60) : '',
       phone: cleanPhone(raw.phone),
+      email: cleanEmail(raw.email),
       loc: LOCS.includes(raw.loc) ? raw.loc : '',
       unit: clip(raw.unit, 40),
       act: kind === 'out' && raw.act === 'pickup' ? 'pickup' : ''   // picked up from where it was left

@@ -268,7 +268,7 @@
   /* log lines wrap instead of holding the timestamp in a rigid column */
   .ksheet .logline{display:block;font-size:12px;line-height:1.5}
   /* the key log table */
-  #keylog .klwrap{max-width:1100px}
+  #keylog .klwrap, #admin .klwrap{max-width:1100px}
   .klsearch{margin:4px 0 10px}
   .kltabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
   .kltabs .addc{margin-left:10px}
@@ -995,6 +995,12 @@ const SV = {
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
+  'Empty the key log':'Töm nyckelloggen',
+  'Emptied':'Tömd',
+  'Undo':'Ångra',
+  'Empty the key log? Every bundle shows as in the cabinet and the log starts over. It can be undone here.':'Töm nyckelloggen? Alla knippor visas i skåpet och loggen börjar om. Kan ångras här.',
+  'Key log emptied':'Nyckelloggen tömd',
+  'Key log restored':'Nyckelloggen återställd',
   // --- in the apartment / with the guest / picked up (2026-10-14) ---
   'In the apartment':'I lägenheten',
   'To guest':'Till gäst',
@@ -3186,6 +3192,23 @@ const KEYINI  = 'bp:keyini';    // your own initials, when the two letters from 
 const KEYREG  = 'bp:keyreg';    // the admin's register corrections {rev, recs:{id:entry}} (cflib/keyreg.js)
 let keyState = null, keyMe = '', keyIni = '', keyEvents = null, keyBase = null, keyQueue = null;
 let keyReg = { rev: 0, ver: 0, recs: {} };
+// Before this the log was emptied (admin, 2026-10-14): older events are left out everywhere here,
+// as the server leaves them out (cflib/keys.js EPOCH). 0 = never emptied.
+const KEYEPOCH = 'bp:keyepoch';
+let keyEpoch = 0;
+const afterEpoch = e => !!e && (Number(e.ts) || 0) >= keyEpoch;
+async function keyEpochSet(epoch){
+  epoch = Number(epoch) || 0;
+  if(epoch === keyEpoch) return;
+  keyEpoch = epoch;
+  // Test events still waiting on this phone go too: they belong to the log that was emptied.
+  keyEvents = (keyEvents||[]).filter(afterEpoch);
+  keyQueue = (keyQueue||[]).filter(afterEpoch);
+  for(const k in histCache) delete histCache[k];
+  logEv = logEv.filter(afterEpoch);
+  await store.set(KEYEPOCH, keyEpoch);
+  await store.set(KEYQ, keyQueue);
+}
 let keySeenAt = 0, keyFailAt = 0, keySyncP = null;
 
 function loadScript(src, ready){
@@ -3219,6 +3242,7 @@ function keyLocal(){
     keyBase   = (await store.get(KEYBASE))  || [];
     keyQueue  = (await store.get(KEYQ))     || [];
     keySeenAt = (await store.get(KEYSEEN))  || 0;
+    keyEpoch  = (await store.get(KEYEPOCH)) || 0;
     const reg = await store.get(KEYREG);
     if(reg && reg.recs) keyReg = reg;
     applyEvents();
@@ -3261,7 +3285,7 @@ function bstate(id){
 // A bundle's history: what this phone has written, plus what the server has, read only when
 // someone opens the history on the bundle sheet (histLoad).
 const histCache = {};
-const eventsFor = id => { const own = (keyEvents||[]).filter(e=>e.bundle===id), have = new Set(own.map(e=>e.id));
+const eventsFor = id => { const own = (keyEvents||[]).filter(e=>e.bundle===id && afterEpoch(e)), have = new Set(own.map(e=>e.id));
   return own.concat((histCache[id]||[]).filter(e=>!have.has(e.id))).sort((a,b)=>b.ts-a.ts) };
 async function histLoad(id){
   try{
@@ -3296,7 +3320,7 @@ const STATUS_KINDS = ['out','in','place'];
 function applyEvents(){
   const last = {};
   for(const e of (keyBase||[]).concat(keyEvents||[])){
-    if(!e || !okBundle(e.bundle) || !STATUS_KINDS.includes(e.kind)) continue;   // 'edit' is history, not a place
+    if(!e || !okBundle(e.bundle) || !STATUS_KINDS.includes(e.kind) || !afterEpoch(e)) continue;   // 'edit' is history, not a place
     if(!last[e.bundle] || later(e, last[e.bundle])) last[e.bundle] = e;
   }
   const next = {};
@@ -3370,6 +3394,7 @@ function keySync(force){
       const r = await fetch('/api/keys-log?view=state&reg=' + (keyReg.ver || 0), {headers:AUTH});
       if(!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
+      if(typeof j.epoch === 'number') await keyEpochSet(j.epoch);
       if(Array.isArray(j.reg)) await keyRegSet(j.reg, j.regRev, j.regVer);
       if(Array.isArray(j.state)){
         const seen = new Set(j.state.map(e=>e.id));
@@ -3397,7 +3422,7 @@ function keySync(force){
 async function keyWrite(bundle, kind, extra){
   const b = bundleOf(bundle), cur = bstate(bundle).ev;
   const ev = Object.assign({
-    id: uid(), bundle, kind, ts: Math.max(Date.now(), cur ? (cur.ts||0) + 1 : 0),
+    id: uid(), bundle, kind, ts: Math.max(Date.now(), cur ? (cur.ts||0) + 1 : 0, keyEpoch ? keyEpoch + 1 : 0),
     who: keyMe, reason: '', name: b? (b.n || 'lgh ' + b.l) : ''
   }, extra || {});
   keyEvents.unshift(ev);
@@ -3876,7 +3901,7 @@ function exportLog(){
 // What this phone has written and not yet seen come back, on top of the pages read so far.
 function logLines(){
   const have = new Set(logEv.map(e=>e.id));
-  return (keyEvents||[]).filter(e=>!have.has(e.id)).concat(logEv).sort((a,b)=>b.ts-a.ts);
+  return (keyEvents||[]).filter(e=>!have.has(e.id)).concat(logEv).filter(afterEpoch).sort((a,b)=>b.ts-a.ts);
 }
 
 /* ----- the scanner ----- */
@@ -4406,7 +4431,6 @@ function hoCheck(id){
     if(k === 'out' && sameName(s.holder, keyMe)) return { skip: `${id} — ${T('already with you')}` };
     const notes = [];
     if(!keySeenAt) notes.push(T('Not fetched yet'));
-    else if(k === 'in') notes.push(T('In the cabinet'));
     else if(k === 'out') notes.push(`${T('With')} ${s.holder} · ${stamp(new Date(s.since))}`);
     else if(ho.apt && !sameApt) notes.push(`${T('In')} ${placeLabel(s)}`);
     return { notes };
@@ -4440,7 +4464,7 @@ async function hoWrite(id){
   const s = bstate(id), b = bundleOf(id);
   const reason = insp ? ({ 'Upplåsning':'Shortstay', 'Inflytt':'Inflytt', 'Utflytt':'Utflytt' }[insp.type] || '') : '';
   const ev = h.mode === 'pick'
-    ? await keyWrite(id, 'out', { who:name, act:'pickup', from: fromOf(s, name), reason })
+    ? await keyWrite(id, 'out', s.status === 'in' ? { who:name, reason } : { who:name, act:'pickup', from: fromOf(s, name), reason })
     : await keyWrite(id, 'place', { who:name, loc:h.mode, place:h.place || bundleApt(b), guest: h.mode === 'guest' ? h.guest : '',
                                     apt:h.apt || objOf(id), reason, from: fromOf(s, name) });
   if(!ev) return null;
@@ -4639,34 +4663,80 @@ async function admLogin(ev){
   err.style.display = 'block'; pw.value = '';
   return false;
 }
+// Empties the key log for a fresh start: every bundle shows in the cabinet, the log starts over.
+// Nothing is deleted on the server, so it can be taken back (admUnreset). Asks first: this is the
+// one admin step that makes a whole screen of information disappear.
+async function admReset(){
+  if(!confirm(T('Empty the key log? Every bundle shows as in the cabinet and the log starts over. It can be undone here.'))) return;
+  const r = await admCall({op:'reset', confirm:'TOM'});
+  if(!admOk(r)) return;
+  if(!r.j.ok) return toast(T('Could not save') + ' (' + r.status + ')');
+  await keyEpochSet(r.j.epoch); applyEvents(); await keyRemember();
+  if(keySyncP) await keySyncP;    // one already on its way read the log as it was
+  await keySync(true);
+  toast(T('Key log emptied')); paintAdmin();
+}
+async function admUnreset(){
+  const r = await admCall({op:'unreset'});
+  if(!admOk(r)) return;
+  if(!r.j.ok) return toast(T('Could not save') + ' (' + r.status + ')');
+  await keyEpochSet(0);
+  if(keySyncP) await keySyncP;
+  await keySync(true); applyEvents();
+  toast(T('Key log restored')); paintAdmin();
+}
 async function admLogout(){ await admCall({op:'logout'}); setAdm(false); closeAdmin(); toast(T('Logged out')) }
 function paintAdmin(){
   admSheet('admin', topbar(T('Key admin'), '', null, 'closeAdmin()') + `<div class="wrap klwrap">
       <input id="admq" class="klsearch" type="search" value="${esc(admQ)}" autocomplete="off" spellcheck="false"
              placeholder="${T('Search: number, apartment, address, name')}" oninput="admQ=this.value;paintAdminList()">
       <div id="admlist"></div>
-      <button class="addc" style="margin:18px 3px" onclick="admLogout()">${T('Log out admin')}</button>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin:18px 3px">
+        <button class="addc" onclick="admLogout()">${T('Log out admin')}</button>
+        <button class="addc" style="color:var(--rec)" onclick="admReset()">${T('Empty the key log')}</button>
+        ${keyEpoch ? `<button class="addc" onclick="admUnreset()">${T('Emptied')} ${stamp(new Date(keyEpoch))} · ${T('Undo')}</button>` : ''}
+      </div>
     </div>
     <div class="sheetbar"><button class="btn ghost" onclick="closeAdmin()">${T('Close')}</button>
       <button class="btn" onclick="openAdmEdit('')">${T('New bundle')}</button></div>`);
   paintAdminList();
 }
+// The admin list as a table, like the key log (Erik, 2026-10-14): search box, quick filters,
+// click a heading to sort (again to turn it round), tap a row to edit. Every word searched for has
+// to match somewhere in the row.
+const ADM_COLS = [['id','Bundle'], ['apt','Apartment'], ['status','Status'], ['where','Where'], ['keys','Keys'], ['c','Comment'], ['ts','Since']];
+let admSort = ['id', 1];
+function admSortBy(col){ admSort = admSort[0] === col ? [col, -admSort[1]] : [col, col === 'ts' ? -1 : 1]; paintAdminList() }
 function paintAdminList(){
   const box = document.getElementById('admlist'); if(!box) return;
   const ws = qWords(admQ);
-  const kOk = b => { const k = stKind(bstate(b.id)); return admF === 'all' || (admF === 'apt' ? (k === 'apt' || k === 'old') : k === admF) };
-  const rows = regAll().filter(b => kOk(b) && (!ws.length || rowHits([b.id, b.a, 'lgh ' + b.l, b.n, b.c, stWhere(bstate(b.id)), stText(bstate(b.id))].join(' '), ws)))
-    .sort((x, y) => { const p = bundleKey(x.id), q = bundleKey(y.id); return p[0]-q[0] || p[1]-q[1] || String(p[2]).localeCompare(q[2]) });
-  const shown = rows.slice(0, 150);
-  const cnt = f => regAll().filter(b => { const k = stKind(bstate(b.id)); return f === 'apt' ? (k === 'apt' || k === 'old') : k === f }).length;
+  const kOk = k => admF === 'all' || (admF === 'apt' ? (k === 'apt' || k === 'old') : k === admF);
+  const all = regAll().map(b => { const s = bstate(b.id), k = stKind(s);
+    return { id: b.id, b, s, k, status: k, apt: 'lgh ' + b.l + (b.n ? ' ' + b.n : ''), addr: b.a || '', where: stWhere(s),
+             keys: (b.k || []).reduce((n, x) => n + (Number(x[2]) || 1), 0), c: b.c || '', ts: k === 'in' ? 0 : (s.since || 0) } });
+  const [col, dir] = admSort;
+  const cmp = col === 'keys' ? (x, y) => x.keys - y.keys : cmpBy(col);
+  const rows = all.filter(r => kOk(r.k) && (!ws.length || rowHits([r.id, r.apt, r.addr, r.where, r.c, stText(r.s), r.b.off ? T('Archived') : ''].join(' '), ws)))
+    .sort((x, y) => dir * cmp(x, y));
+  const LIMIT = 400, list = rows.slice(0, LIMIT);
+  const cnt = f => all.filter(r => f === 'apt' ? (r.k === 'apt' || r.k === 'old') : r.k === f).length;
+  const cell = (r, c) => {
+    if(c === 'id') return `<b>${esc(r.id)}</b>`;
+    if(c === 'apt') return esc(r.apt) + (r.addr ? `<div class="kladdr">${esc(r.addr)}</div>` : '');
+    if(c === 'status') return r.b.conf && r.b.conf.length ? `<span class="kstat out">${T('Conflict')}</span>`
+      : r.b.off ? `<span class="kstat unk">${T('Archived')}</span>` : `<span class="kstat ${stClass(r.k)}">${stText(r.s)}</span>`;
+    if(c === 'ts'){ if(!r.ts) return ''; const t = stamp(new Date(r.ts)); return '<span class="klyr">' + esc(t.slice(0,5)) + '</span>' + esc(t.slice(5)) }
+    return esc(String(r[c] || ''));
+  };
   box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['guest','At guest']].map(([f, l]) =>
-      `<button class="chip${admF===f?' on':''}" onclick="admF='${f}';paintAdminList()">${T(l)}${f !== 'all' ? ' · ' + cnt(f) : ''}</button>`).join('')}</div>`
-    + `<div class="klcount">${rows.length} ${T('bundles')}</div>` + shown.map(b => { const s = bstate(b.id);
-    return `<button class="admrow" onclick="openAdmEdit('${b.id}')">
-      <span class="admid">${esc(b.id)}</span>
-      <span class="admtx"><b>${esc(b.n || 'lgh ' + b.l)}</b><span>${esc(b.a)}${stWhere(s) ? ' · ' + esc(stWhere(s)) : ''}</span></span>
-      ${b.conf && b.conf.length ? `<span class="kstat out">${T('Conflict')}</span>` : b.off ? `<span class="kstat unk">${T('Archived')}</span>` : `<span class="kstat ${stClass(stKind(s))}">${stText(s)}</span>`}</button>` }).join('')
-    + (rows.length > shown.length ? `<div class="klcount" style="margin-top:8px">${T('Search to narrow it down.')}</div>` : '');
+      `<button class="chip${admF===f?' on':''}" onclick="admF='${f}';paintAdminList()">${T(l)}${f !== 'all' ? ' · ' + cnt(f) : ''}</button>`).join('')}</div>
+    <div class="klcount">${rows.length === all.length ? all.length + ' ' + T('bundles') : rows.length + ' ' + T('of') + ' ' + all.length + ' ' + T('bundles')}</div>
+    <div class="kltable-wrap"><table class="kltable">
+      <thead><tr>${ADM_COLS.map(([c, label]) => `<th onclick="admSortBy('${c}')" class="${c===col?'on':''}">${T(label)}<span class="klarrow">${c===col ? (dir>0?'▲':'▼') : ''}</span></th>`).join('')}</tr></thead>
+      <tbody>${list.map(r => `<tr onclick="openAdmEdit('${r.id}')">${ADM_COLS.map(([c]) => `<td class="kl-${c}">${cell(r, c)}</td>`).join('')}</tr>`).join('')
+        || `<tr><td colspan="${ADM_COLS.length}" class="klnone">${T('No matches')}</td></tr>`}</tbody>
+    </table></div>
+    ${rows.length > LIMIT ? `<div class="klcount" style="margin-top:8px">${T('Showing the first')} ${LIMIT}. ${T('Search to narrow it down.')}</div>` : ''}`;
 }
 
 // The bundle being edited: the register entry, and where it is, each with the copy it started

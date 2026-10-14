@@ -17,7 +17,7 @@
 //
 // Guarded by the login wall in front of the app, and by the app key as well.
 import { kv, appOk, NO_STORE } from '../../cflib/media.js';
-import { migrate, STATUS_KINDS } from '../../cflib/keys.js';
+import { migrate, STATUS_KINDS, readEpoch } from '../../cflib/keys.js';
 import { fresh } from '../../cflib/keyreg.js';
 
 const OK_BUNDLE = /^[A-Za-z0-9:_-]{1,32}$/;
@@ -49,29 +49,33 @@ export async function onRequest(context) {
     // The old oldest-first log is copied into the new layout the first time anyone asks;
     // after that this is one read of a marker.
     await migrate(store);
+    const epoch = await readEpoch(store);
+    const live = e => e && (Number(e.ts) || 0) >= epoch;
 
     if (view === 'state') {
       const all = await fresh(store);   // rebuilt here when a save may be missing from it (cflib/keyreg.js)
       // reg=<regVer>: the copy the phone has, by when it was built - a repair can add an entry
       // without raising the newest rev, so the rev alone cannot say "unchanged".
       const reg = String(all.builtAt || 0) === u.searchParams.get('reg') ? null : Object.values(all.recs);
-      return Response.json({ ok: true, state: await listAll(store, 'kst/', 5), reg, regRev: all.rev || 0, regVer: all.builtAt || 0 }, { headers: NO_STORE });
+      return Response.json({ ok: true, state: (await listAll(store, 'kst/', 5)).filter(live), reg, regRev: all.rev || 0, regVer: all.builtAt || 0, epoch }, { headers: NO_STORE });
     }
     if (view === 'events') {
       const limit = Math.max(1, Math.min(200, Number(u.searchParams.get('limit')) || 50));
       const p = await eventsPage(store, u.searchParams.get('cursor'), limit);
-      return Response.json({ ok: true, events: p.events, cursor: p.cursor }, { headers: NO_STORE });
+      // Newest first: once a page reaches back past the reset there is nothing more to show.
+      const events = p.events.filter(live);
+      return Response.json({ ok: true, events, cursor: events.length < p.events.length ? null : p.cursor, epoch }, { headers: NO_STORE });
     }
     if (view === 'hist') {
       const bundle = u.searchParams.get('bundle') || '';
       if (!OK_BUNDLE.test(bundle)) return new Response('Bad bundle', { status: 400 });
       const v = await store.get('kst/' + bundle, { type: 'json' });
-      return Response.json({ ok: true, events: (v && Array.isArray(v.hist)) ? v.hist : [] }, { headers: NO_STORE });
+      return Response.json({ ok: true, events: ((v && Array.isArray(v.hist)) ? v.hist : []).filter(live), epoch }, { headers: NO_STORE });
     }
     // An app from before this change: the newest 200 and the state, in two list calls.
     // Only moves: an app that old reads every event as a position and knows no 'edit'.
     const p = await eventsPage(store, null, 200);
-    return Response.json({ ok: true, events: p.events.filter(e => STATUS_KINDS.includes(e.kind)), state: await listAll(store, 'kst/', 5) }, { headers: NO_STORE });
+    return Response.json({ ok: true, events: p.events.filter(e => STATUS_KINDS.includes(e.kind) && live(e)), state: (await listAll(store, 'kst/', 5)).filter(live) }, { headers: NO_STORE });
   } catch (e) {
     return new Response('Could not read the log: ' + String(e && e.message).slice(0, 140), { status: 502 });
   }

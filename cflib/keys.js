@@ -25,6 +25,14 @@ export const revKey = (ts, id) => 'kevr/' + String(REV - Math.max(0, Math.min(RE
 export const stKey = bundle => 'kst/' + bundle;
 export const MIGRATED = 'kmeta/v2';
 
+// "Empty the key log" (2026-10-14, before real use): nothing is deleted. The time of the reset is
+// kept here, and everything stamped before it is left out of every read - the bundles show in
+// the cabinet and the log starts over. Removing the key brings it all back.
+export const EPOCH = 'kmeta/epoch';
+export async function readEpoch(kv) {
+  try { return Number(await kv.get(EPOCH)) || 0 } catch (e) { return 0 }
+}
+
 // The same rule the phones use: the later time wins; on a tie, the larger id.
 export const later = (a, b) => !b || a.ts > b.ts || (a.ts === b.ts && String(a.id) > String(b.id));
 

@@ -10,6 +10,8 @@
 //                                   409 with it. Two saves that miss each other (KV lags up to a
 //                                   minute) both land and show as a conflict - never overwritten.
 //                                   An 'edit' event with the note goes in the history.
+//   reset   { confirm:'TOM' }    -> empties the key log: a reset time, nothing deleted (cflib/keys.js)
+//   unreset                      -> takes the reset back
 //   state   { bundle, event, base_ev, op_id, who, note } -> a correction of where the bundle is or who has it,
 //                                   written as an ordinary out/in/place event marked adm, after
 //                                   the bundle's last one. Earlier events stay as they were.
@@ -18,7 +20,7 @@
 // cookie, checked here on every call.
 import { kv, appOk, NO_STORE, clip } from '../../cflib/media.js';
 import { crossSite, clientIp, failsFor, noteFail, MAX_FAILS } from '../../cflib/auth.js';
-import { record, fitMeta, stKey, cleanPhone } from '../../cflib/keys.js';
+import { record, fitMeta, stKey, cleanPhone, readEpoch, EPOCH } from '../../cflib/keys.js';
 import { cleanRec, current, saveVersion, OK_ID } from '../../cflib/keyreg.js';
 import { burst } from './login.js';
 import { adminConfigured, adminPasswordOk, adminIssue, isAdmin, adminCookie, adminClear, ADMIN_FAIL } from '../../cflib/admin.js';
@@ -82,6 +84,17 @@ export async function onRequest(context) {
       return json({ ok: true, rec: r.rec, event: ev });
     }
 
+    if (b.op === 'reset') {
+      if (b.confirm !== 'TOM') return json({ ok: false, error: 'confirm' }, 400);
+      const epoch = Date.now();
+      await store.put(EPOCH, String(epoch));
+      return json({ ok: true, epoch });
+    }
+    if (b.op === 'unreset') {
+      await store.delete(EPOCH);
+      return json({ ok: true, epoch: 0 });
+    }
+
     if (b.op === 'state') {
       const bundle = String(b.bundle || '');
       const raw = b.event || {};
@@ -89,6 +102,10 @@ export async function onRequest(context) {
       // After whatever decides the bundle now, so the correction is what counts.
       let last = null, hist = [];
       try { const r = await store.getWithMetadata(stKey(bundle), { type: 'json' }); last = r && r.metadata; hist = (r && r.value && r.value.hist) || [] } catch (e) {}
+      // Before a reset of the log, the bundle counts as never moved.
+      const epoch = await readEpoch(store);
+      if (last && (Number(last.ts) || 0) < epoch) last = null;
+      hist = hist.filter(e => (Number(e.ts) || 0) >= epoch);
       // The phone names the correction; a retry of one already written gets it back, not a second.
       const id = OK_OP.test(b.op_id || '') ? 'a' + b.op_id : newId();
       const again = hist.find(e => e.id === id);

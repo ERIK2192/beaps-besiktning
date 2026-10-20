@@ -123,7 +123,7 @@ export async function onRequest(context) {
         holder: raw.kind === 'out' ? clip(raw.holder, 60) : '',
         phone: cleanPhone(raw.phone),
         email: cleanEmail(raw.email),
-        loc: ['box', 'tube', 'apt', 'guest'].includes(raw.loc) ? raw.loc : '',
+        loc: ['box', 'tube', 'apt', 'guest', 'lost'].includes(raw.loc) ? raw.loc : '',
         unit: clip(raw.unit, 40)
       });
       await record(store, [ev]);

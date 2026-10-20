@@ -33,7 +33,8 @@ const MAX_BATCH = 50;
 const KINDS = ['out', 'in', 'place'];
 // 2026-10-14: 'apt' = left in the empty apartment, nobody holds it; 'guest' = handed straight to
 // the guest. An event from before has loc '' and may mean either - read as such, never guessed.
-const LOCS = ['box', 'tube', 'apt', 'guest'];
+// 'lost' (2026-10-20): reported lost; nobody has it until it is found.
+const LOCS = ['box', 'tube', 'apt', 'guest', 'lost'];
 
 export async function onRequest(context) {
   const { request, env } = context;

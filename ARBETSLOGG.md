@@ -1851,3 +1851,10 @@ Felsökt utan tillgång till Dropbox; orsakerna nedan är hittade i koden och r�
 - Uppladdning av video får 10 minuter i stället för 2.
 
 Verifierat lokalt: Dropbox-sviten 65 (9 nya: 30 MB-video hel i Dropbox med längd angiven, .mp4/.webm/.mov, ny inspelning = ny fil, Dropbox nere → `failed` men galleriet har den, utan Dropbox → `off`), webbläsare 214 (10 nya: eget id, omförsök, länk till galleriet vid misslyckad kopia och till Dropbox när den lyckas, omspelning skickas, ej sparad video skickas, MP4 föredras), new-property-safety godkänd, övriga sviter gröna. Inte verifierat mot riktig Dropbox. Redan inspelade videor som saknas i Dropbox kommer inte dit av sig själva. En video som appen tidigare räknade som uppladdad skickas inte om; den finns i appens galleri (länken i appen) och kan läggas in i Dropbox för hand.
+
+### 2026-10-20 — Borttappad knippa, inaktiva nycklar
+
+- **Borttappad** är ett läge för hela knippan, registrerat som en vanlig förflyttning (`place`, `loc:'lost'`): valet *Borttappad* sist bland valen på knippbladet och i scannern, med frivilligt *Var/när*. Meningen: "Anmäl 119:2 som borttappad (senast: skåpet)". Ingen har den; den syns som *Borttappad* (röd) i nyckelloggen, adminlistan (eget filter) och på bladet; historiken: "Anders anmälde 119:2 som borttappad · Tappad i trapphuset". Skannas eller öppnas den igen: *Hittad – till* Mig eller Skåpet (`reason:'Hittad'`, `from:'Borttappad'`). Admin kan sätta *Borttappad* under *Var nu*. En knippa som aldrig hittas kan arkiveras som förut.
+- **Inaktiva nycklar** inom en knippa (admin, *Inaktiv* på nyckelns rad): femte fältet i registret (`k[4] = 1`). Nyckeln finns kvar och syns överstruken och onumrerad med *Inaktiv*, men räknas inte och kommer inte med på nya nyckelkvitton. Admintabellen visar "+N inaktiva". Ändringen hamnar i historiken ("nyckel inaktiverad" / "nyckel aktiv igen"); tidigare kvitton ändras inte.
+
+Verifierat lokalt: server 87 (borttappad sparas, inaktiv-märket behålls), webbläsare 232 (anmäla, visas överallt, skanna hittad, admin-filter, inaktivera/aktivera, räkning, kvitto utan inaktiv nyckel, historik); övriga sviter gröna.

@@ -18,7 +18,7 @@
 //                      a minute behind is caught by kreg:dirty (time of the latest save) and run
 //                      again once that save is old enough to be in every listing (`fresh`).
 //
-// Entry: { id, a, l, n, c, k:[[type, marking, quantity, note]], off, src, rev, base, seen, op, by, conf }
+// Entry: { id, a, l, n, c, k:[[type, marking, quantity, note, inactive?]], off, src, rev, base, seen, op, by, conf }
 import { clip } from './media.js';
 
 export const REG_ALL = 'kreg:all';
@@ -39,7 +39,8 @@ export function cleanRec(raw) {
   const k = (Array.isArray(raw.k) ? raw.k : []).slice(0, MAX_KEYS).map(r => {
     const row = Array.isArray(r) ? r : [];
     const q = Math.max(1, Math.min(99, Math.round(Number(row[2]) || 1)));
-    return [txt(row[0], 60), txt(row[1], 60), q, txt(row[3], 120)];
+    // A fifth field marks a key inactive (2026-10-20): kept in the register, not counted or handed over.
+    return row[4] ? [txt(row[0], 60), txt(row[1], 60), q, txt(row[3], 120), 1] : [txt(row[0], 60), txt(row[1], 60), q, txt(row[3], 120)];
   }).filter(r => r[0] || r[1] || r[3]);
   return { id, a: txt(raw.a, 80), l: txt(raw.l, 16), n: txt(raw.n, 40), c: txt(raw.c, 300), k,
            off: raw.off === true, src: txt(raw.src, 40) };

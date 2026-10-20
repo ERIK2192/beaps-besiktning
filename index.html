@@ -241,6 +241,10 @@
   .cmtin.error{border-color:var(--rec)}
   .cmtst{display:block;font-size:11.5px;margin-top:3px;min-height:14px;color:var(--ink2)}
   .cmtst.dirty{color:#8A5E00} .cmtst.saved{color:#2E7D5B} .cmtst.error{color:var(--rec)}
+  .krow.koff{opacity:.55} .krow.koff .kt b,.krow.koff .kt span{text-decoration:line-through}
+  .admkey.koff input{text-decoration:line-through;opacity:.6}
+  .admnoterow{grid-column:1 / span 4;display:flex;gap:8px;align-items:center} .admnoterow input{flex:1;min-width:0}
+  .admnoterow .chip{flex:none;padding:7px 12px;font-size:13px}
   .ferr{margin-top:6px;font-size:13px;color:var(--rec);line-height:1.4}
   .mvsentence{margin-top:12px;padding:10px 12px;border-radius:10px;background:#EEF6F1;color:#14532D;font-weight:650;font-size:14.5px;line-height:1.4}
   .mvphotos{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
@@ -1025,6 +1029,15 @@ const SV = {
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
+  'Lost':'Borttappad',
+  'lost':'borttappad',
+  'Report':'Anmäl',
+  'as lost':'som borttappad',
+  'last':'senast',
+  'Found – to':'Hittad – till',
+  'Where/when (optional)':'Var/när (valfritt)',
+  'Inactive':'Inaktiv',
+  'inactive':'inaktiva',
   'Not saved':'Ej sparad',
   'Could not save - try again':'Kunde inte spara – försök igen',
   'E-mail (optional)':'Mejladress (valfri)',
@@ -3561,6 +3574,7 @@ function evPhrase(e, id){
   if(e.kind === 'place'){
     if(e.loc === 'apt') s = W('left', 'lämnade') + n + W(' in the apartment', ' i lägenheten') + at(e.place);
     else if(e.loc === 'guest') s = W('left', 'lämnade') + n + W(' to ', ' till ') + (e.guest || W('the guest', 'gäst')) + (e.phone ? ' · ' + e.phone : '') + (e.email ? ' · ' + e.email : '') + at(e.place);
+    else if(e.loc === 'lost') s = W('reported', 'anmälde') + n + W(' lost', ' som borttappad') + (e.reason ? ' · ' + e.reason : '');
     else if(e.loc === 'box' || e.loc === 'tube') s = W('put', 'lade') + n + W(' in ', ' i ') + locName(e.loc).toLowerCase() + (e.unit ? ' ' + e.unit : '') + at(e.place);
     else s = W('left', 'lämnade') + n + at(e.place) + (e.guest ? ' · ' + W('guest on record: ', 'gäst enligt uppgift: ') + e.guest : '');
   }
@@ -3584,16 +3598,17 @@ const placeLabel = s => (s.loc === 'box' || s.loc === 'tube') ? [locName(s.loc) 
 // One word for where a bundle is: out, apt (in the apartment), guest (with the guest), old
 // (left before the two were told apart), box, tube, in.
 const stKind = s => !s ? 'in' : s.status === 'out' ? 'out' : s.status !== 'placed' ? 'in'
-  : ['box','tube','apt','guest'].includes(s.loc) ? s.loc : 'old';
-const stClass = k => k === 'out' ? 'out' : k === 'in' ? 'in' : 'pl';
+  : ['box','tube','apt','guest','lost'].includes(s.loc) ? s.loc : 'old';
+const stClass = k => k === 'out' || k === 'lost' ? 'out' : k === 'in' ? 'in' : 'pl';
 const stText = s => { const k = stKind(s);
   return k === 'out' ? T('Out') : k === 'box' ? T('Service box') : k === 'tube' ? T('Key tube')
-       : k === 'apt' ? T('In the apartment') : k === 'guest' ? T('At guest') : k === 'old' ? T('Left (older)') : T('In the cabinet') };
+       : k === 'lost' ? T('Lost') : k === 'apt' ? T('In the apartment') : k === 'guest' ? T('At guest') : k === 'old' ? T('Left (older)') : T('In the cabinet') };
 // Who has it or where it is, in one line: "Kalle · 070-123 45", "Anna · lgh 1102", "Servicebox 2 · Upplandsgatan 91B".
 const stWhere = s => { const k = stKind(s);
   return k === 'out' ? [s.holder, s.phone, s.email, s.reason === 'Annan' ? '' : s.reason].filter(Boolean).join(' · ')
        : k === 'guest' ? [s.guest || T('guest, no name'), s.phone, s.email, s.place].filter(Boolean).join(' · ')
        : k === 'old' ? [s.place, s.guest ? T('guest on record') + ': ' + s.guest : ''].filter(Boolean).join(' · ')
+       : k === 'lost' ? (s.reason || '')
        : k === 'in' ? '' : placeLabel(s) };
 // Whoever last touched a bundle - the one carrying it, or the one who left it somewhere.
 const whoOf = s => s.status === 'out' ? (s.holder||'') : (s.by||'');
@@ -3855,7 +3870,7 @@ async function copyLogLink(){
    the rest when a search has to reach further back. Nothing here is fetched unless this page is
    open. */
 let logTab = 'now', logQ = '', logSort = { now: ['status', 1], apts: ['ts', -1], guests: ['ts', -1], log: ['ts', -1] };
-const STATUS_ORDER = { out: 0, guest: 1, apt: 2, old: 3, box: 4, tube: 5, in: 6 };
+const STATUS_ORDER = { lost: -1, out: 0, guest: 1, apt: 2, old: 3, box: 4, tube: 5, in: 6 };
 const qWords = q => String(q||'').toLowerCase().split(/\s+/).filter(Boolean);
 const rowHits = (hay, ws) => { const h = hay.toLowerCase(); return ws.every(w => h.indexOf(w) >= 0) };
 const aptOf = (id, ev) => { const b = bundleOf(id); return b ? ('lgh ' + b.l + (b.n ? ' ' + b.n : '')) : ((ev && ev.name) || '') };
@@ -4228,8 +4243,8 @@ async function backToStart(){ closeBundle(); closeScan(); if(view==='start') awa
 
    kf: { id, where:'scan'|'sheet', dest, reason, name, phone, unit, place, fresh:'loading'|'ok'|
          'stale'|'unknown', basis: id of the event the screen is based on, note, photos:[data] } */
-const DESTS = ['me','cab','apt','guest','person','box','tube'];
-const DEST_LABEL = { me:'Me', cab:'Cabinet', apt:'In the apartment', guest:'Guest', person:'Someone else', box:'Service box', tube:'Key tube' };
+const DESTS = ['me','cab','apt','guest','person','box','tube','lost'];
+const DEST_LABEL = { me:'Me', cab:'Cabinet', apt:'In the apartment', guest:'Guest', person:'Someone else', box:'Service box', tube:'Key tube', lost:'Lost' };
 let kf = { id:null };
 const bundleApt = b => b ? 'lgh ' + b.l + (b.n ? ' ' + b.n : '') : '';
 const objOf = id => String(id).split(':')[0];
@@ -4244,14 +4259,16 @@ function validDests(id){
   if(kf.fresh === 'unknown' || kf.fresh === 'loading') return [];
   const k = mvKind(id);
   const all = {
-    in:     ['me','apt','guest','person','box','tube'],
-    mine:   ['cab','apt','guest','person','box','tube'],
-    person: ['me','cab','apt','guest','person','box','tube'],
-    apt:    ['me','cab','guest','person','box','tube'],
-    guest:  ['me','cab','apt','person','box','tube'],
-    old:    ['me','cab','apt','guest','person','box','tube'],
-    box:    ['me','cab','apt','guest','person','box','tube'],
-    tube:   ['me','cab','apt','guest','person','box','tube']
+    in:     ['me','apt','guest','person','box','tube','lost'],
+    mine:   ['cab','apt','guest','person','box','tube','lost'],
+    person: ['me','cab','apt','guest','person','box','tube','lost'],
+    apt:    ['me','cab','guest','person','box','tube','lost'],
+    guest:  ['me','cab','apt','person','box','tube','lost'],
+    old:    ['me','cab','apt','guest','person','box','tube','lost'],
+    box:    ['me','cab','apt','guest','person','box','tube','lost'],
+    tube:   ['me','cab','apt','guest','person','box','tube','lost'],
+    // found again: to you, or straight back to the cabinet
+    lost:   ['me','cab']
   }[k] || [];
   return DESTS.filter(d => all.includes(d));
 }
@@ -4278,7 +4295,7 @@ function mvApt(id){
 const mvGuest = () => inInsp() ? (S.keyTo || ((S.counter && S.counter.name) || '')) : (kf.name || '').trim();
 function fromText(id){
   const s = bstate(id), k = mvKind(id);
-  return k === 'in' ? T('the cabinet') : k === 'mine' ? T('you') : k === 'person' ? (s.holder || T('someone'))
+  return k === 'in' ? T('the cabinet') : k === 'mine' ? T('you') : k === 'lost' ? T('lost') : k === 'person' ? (s.holder || T('someone'))
     : k === 'guest' ? [s.guest || T('the guest'), s.place].filter(Boolean).join(' · ')
     : (placeLabel(s) || T('the apartment'));
 }
@@ -4294,11 +4311,13 @@ function toText(id, d){
 const okEmail = e => !String(e || '').trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e).trim());
 const EMAIL_BAD = 'That e-mail address does not look right - write it like name@example.se, or leave it empty.';
 const emailErr = v => okEmail(v) ? '' : `<div class="ferr" id="kf_emailerr">${T(EMAIL_BAD)}</div>`;
-const moveSentence = (id, d) => `${T('Move')} ${id} ${T('from')} ${fromText(id)} ${T('to')} ${toText(id, d)}`;
+const moveSentence = (id, d) => d === 'lost'
+  ? `${T('Report')} ${id} ${T('as lost')} (${T('last')}: ${fromText(id)})`
+  : `${T('Move')} ${id} ${T('from')} ${fromText(id)} ${T('to')} ${toText(id, d)}`;
 // The heading over the choices: what you are about to do from where it is.
 function moveTitle(id){
   const k = mvKind(id), s = bstate(id);
-  return k === 'in' ? T('Check out to') : k === 'mine' ? T('Leave with') : k === 'person' ? `${T('Take over from')} ${s.holder} – ${T('to')}`
+  return k === 'lost' ? T('Found – to') : k === 'in' ? T('Check out to') : k === 'mine' ? T('Leave with') : k === 'person' ? `${T('Take over from')} ${s.holder} – ${T('to')}`
     : T('Pick up – to');
 }
 
@@ -4394,6 +4413,7 @@ function moveHtml(id){
     : d === 'person' ? `<div class="kfwrap"><div class="kfrow">${inp('name', 'Name', 'autocomplete="off" list="knames"')}${inp('phone', 'Phone', 'type="tel" autocomplete="off"')}</div>
         <div class="kfrow">${inp('email', 'E-mail (optional)', 'type="email" autocomplete="off" autocapitalize="off"')}</div>${emailErr(f.email)}</div>${nameList()}`
     : (d === 'box' || d === 'tube') ? `<div class="kfrow">${inp('unit', 'Number', 'autocomplete="off" class="kfnum"')}${inp('place', 'Property / apartment', 'autocomplete="off"')}</div>`
+    : d === 'lost' ? `<div class="kfrow">${inp('reason', 'Where/when (optional)', 'autocomplete="off"')}</div>`
     : '';
   return stateLine + `
     ${already ? `<div class="mvwarn">${scanJob.mode === 'apt' ? T('Already registered in the apartment.') : T('Already registered with the guest.')} ${T('Nothing to do - or choose another move.')}</div>` : ''}
@@ -4481,6 +4501,12 @@ function moveEvent(id, d, name){
   const s = bstate(id), k = mvKind(id), f = kf;
   const reason = (f.reason || '').trim() || (inInsp() ? ({ 'Upplåsning':'Shortstay', 'Inflytt':'Inflytt', 'Utflytt':'Utflytt' }[S.type] || '') : '');
   const a = mvApt(id);
+  if(d === 'lost') return ['place', { who:name, loc:'lost', apt:objOf(id), place:'', reason:(f.reason||'').trim(), from: k === 'mine' ? name : fromOf(s, name) }];
+  if(k === 'lost'){
+    // Found: to you, or back in the cabinet.
+    if(d === 'me') return ['out', { who:name, from:'Borttappad', reason:'Hittad' }];
+    if(d === 'cab') return ['in', { who:name, from:'Borttappad' }];
+  }
   if(d === 'me'){
     if(k === 'in') return ['out', { who:name, reason }];
     if(k === 'person') return ['out', { who:name, from: s.holder || '', reason }];
@@ -4529,7 +4555,7 @@ async function bundleAct(id){
         S.keysOut = (S.keysOut || []).filter(k => k.bundle !== id);
         S.keysOut.push({ bundle:id, name:ev.name||'', place: act === 'pickup' ? (ev.from || '') : (ev.place || ''), guest: ev.guest || '',
                          act, ts:ev.ts, who:ev.who||'', evId:ev.id, photos: pids,
-                         keys: b.k.map(k => [k[0]||'', k[1]||'', k[2]||1]) });
+                         keys: b.k.filter(keyOn).map(k => [k[0]||'', k[1]||'', k[2]||1]) });
       }
       log(`Key ${id}: ${act === 'pickup' ? 'picked up' : act === 'guest' ? 'left with ' + (ev.guest || 'the guest') : act === 'apt' ? 'left in the apartment' : kind} by ${ev.who}`);
       await flushSave();
@@ -4554,14 +4580,19 @@ async function bundleAct(id){
 async function checkOut(id){ kfDest('me'); return bundleAct(id) }
 async function checkIn(id){ kfDest('cab'); return bundleAct(id) }
 
+// A key marked inactive (fifth field, 2026-10-20): kept in the register and shown, but not counted
+// and not put on a new key receipt.
+const keyOn = k => !k[4];
+const keyCount = ks => (ks||[]).filter(keyOn).reduce((n, k) => n + (Number(k[2]) || 1), 0);
+const keyOffCount = ks => (ks||[]).filter(k => !keyOn(k)).reduce((n, k) => n + (Number(k[2]) || 1), 0);
 // The sheet: the bundle, where it is, the move, its keys and its history.
 function paintBundle(id){
   const el = document.getElementById('bundle');
   if(!el) return;
   const b = bundleOf(id); if(!b) return;
   if(kf.id !== id) return mvOpen(id, 'sheet');
-  const keys = b.k.map(k=>({t:k[0], m:k[1]||'', q:k[2]||1, note:k[3]||''}));
-  const total = keys.reduce((n,k)=>n+k.q, 0);
+  const keys = b.k.map(k=>({t:k[0], m:k[1]||'', q:k[2]||1, note:k[3]||'', off:!keyOn(k)}));
+  const total = keyCount(b.k), offN = keyOffCount(b.k);
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   el.innerHTML = topbar(T('Key bundle'), '', null, "closeBundle()") + `
@@ -4572,16 +4603,17 @@ function paintBundle(id){
         ${moveHtml(id)}
       </div>
 
-      <div class="csec">${T('Keys')}<span class="ccount">${total}</span></div>
-      ${(()=>{ // one line per physical key, numbered, so you can count them off the ring
+      <div class="csec">${T('Keys')}<span class="ccount">${total}${offN ? ' · ' + offN + ' ' + T('inactive') : ''}</span></div>
+      ${(()=>{ // one line per physical key, numbered, so you can count them off the ring; an inactive one unnumbered, struck through
         let n = 0;
-        return keys.map(k=>Array.from({length:k.q}, ()=>`<div class="krow">
-          <span class="knum">${++n}</span>
+        return keys.map(k=>Array.from({length:k.q}, ()=>`<div class="krow${k.off ? ' koff' : ''}">
+          <span class="knum">${k.off ? '–' : ++n}</span>
           <span class="kt">
             <b>${esc(k.t)}</b>
             ${k.m? `<span>${esc(k.m)}</span>` : '<span>—</span>'}
             ${k.note? `<span>${esc(k.note)}</span>` : ''}
           </span>
+          ${k.off ? `<span class="kstat unk">${T('Inactive')}</span>` : ''}
         </div>`).join('')).join('');
       })()}
 
@@ -4799,7 +4831,7 @@ function paintAdminList(){
   const kOk = k => admF === 'all' || (admF === 'apt' ? (k === 'apt' || k === 'old') : k === admF);
   const all = regAll().map(b => { const s = bstate(b.id), k = stKind(s);
     return { id: b.id, b, s, k, status: k, apt: 'lgh ' + b.l + (b.n ? ' ' + b.n : ''), addr: b.a || '', where: stWhere(s),
-             keys: (b.k || []).reduce((n, x) => n + (Number(x[2]) || 1), 0), c: b.c || '', ts: k === 'in' ? 0 : (s.since || 0) } });
+             keys: keyCount(b.k), koff: keyOffCount(b.k), c: b.c || '', ts: k === 'in' ? 0 : (s.since || 0) } });
   const [col, dir] = admSort;
   const cmp = col === 'keys' ? (x, y) => x.keys - y.keys : cmpBy(col);
   const rows = all.filter(r => kOk(r.k) && (!ws.length || rowHits([r.id, r.apt, r.addr, r.where, r.c, stText(r.s), r.b.off ? T('Archived') : ''].join(' '), ws)))
@@ -4813,9 +4845,10 @@ function paintAdminList(){
       : r.b.off ? `<span class="kstat unk">${T('Archived')}</span>` : `<span class="kstat ${stClass(r.k)}">${stText(r.s)}</span>`;
     if(c === 'ts'){ if(!r.ts) return ''; const t = stamp(new Date(r.ts)); return '<span class="klyr">' + esc(t.slice(0,5)) + '</span>' + esc(t.slice(5)) }
     if(c === 'c') return cmtCell(r.id, r.c);
+    if(c === 'keys') return r.koff ? `${r.keys} <span class="kladdr">+${r.koff} ${T('inactive')}</span>` : String(r.keys);
     return esc(String(r[c] || ''));
   };
-  box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['guest','At guest']].map(([f, l]) =>
+  box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['guest','At guest'],['lost','Lost']].map(([f, l]) =>
       `<button class="chip${admF===f?' on':''}" onclick="admF='${f}';paintAdminList()">${T(l)}${f !== 'all' ? ' · ' + cnt(f) : ''}</button>`).join('')}</div>
     <div class="klcount">${rows.length === all.length ? all.length + ' ' + T('bundles') : rows.length + ' ' + T('of') + ' ' + all.length + ' ' + T('bundles')}</div>
     <div class="kltable-wrap"><table class="kltable">
@@ -4879,7 +4912,7 @@ let ae = null, admAfter = null;
 // other: anyone who is neither staff nor guest - a property owner, a contractor - typed as you like.
 // Written as a check-out to that person, marked reason 'Annan' so the form knows it again.
 const OTHER = 'Annan';
-const ST_LABEL = { cab:'Cabinet', staff:'Staff', apt:'In the apartment', guest:'Guest', other:'Other', box:'Service box', tube:'Key tube' };
+const ST_LABEL = { cab:'Cabinet', staff:'Staff', apt:'In the apartment', guest:'Guest', other:'Other', box:'Service box', tube:'Key tube', lost:'Lost' };
 function stForm(id){
   const s = bstate(id), k = stKind(s);
   if(k === 'out') return { dest: s.reason === OTHER ? 'other' : 'staff', name:s.holder||'', phone:s.phone||'', email:s.email||'', unit:'', place:'', note:'' };
@@ -4888,10 +4921,11 @@ function stForm(id){
   // An older 'left' line: no choice lit, and a note that it may have been either. Picking
   // In the apartment or Guest then records what is actually known.
   if(k === 'old') return { dest:'old', name:'', phone:'', unit:'', place:'', note:'', email:'' };
+  if(k === 'lost') return { dest:'lost', name:'', phone:'', unit:'', place:'', note:'', email:'' };
   if(k === 'box' || k === 'tube') return { dest:k, name:'', phone:'', unit:s.unit||'', place:s.place||'', note:'' };
   return { dest:'cab', name:'', phone:'', unit:'', place:'', note:'', email:'' };
 }
-const recOf = b => ({ a:b.a||'', l:b.l||'', n:b.n||'', c:b.c||'', k:(b.k||[]).map(r=>[r[0]||'', r[1]||'', r[2]||1, r[3]||'']), off: !!b.off });
+const recOf = b => ({ a:b.a||'', l:b.l||'', n:b.n||'', c:b.c||'', k:(b.k||[]).map(r=>[r[0]||'', r[1]||'', r[2]||1, r[3]||''].concat(r[4] ? [1] : [])), off: !!b.off });
 const aeStSig = f => JSON.stringify([f.dest, f.name.trim(), f.phone.trim(), (f.email||'').trim(), f.unit.trim(), f.place.trim()]);
 // The nycklar.js line a bundle had when an admin last saved it, as a short fingerprint. When the
 // file later changes that line, the admin's version still wins - so the edit page says so and
@@ -4947,6 +4981,8 @@ function aeSet(path, v){
 }
 function aeKeyAdd(){ ae.rec.k.push(['','',1,'']); paintAdmEdit(); const r = document.querySelectorAll('.admkey'); const last = r[r.length-1]; if(last){ const i = last.querySelector('input'); if(i) try{ i.focus() }catch(e){} } }
 function aeKeyDel(i){ ae.rec.k.splice(i, 1); paintAdmEdit() }
+// Inactive or active again: the fifth field set, or taken away (so an untouched key compares equal).
+function aeKeyOff(i){ const k = ae.rec.k[i]; if(!k) return; if(k[4]) k.length = 4; else { k.length = 4; k.push(1) } paintAdmEdit() }
 function aeEmailCheck(){ const box = document.getElementById('ae_emailerr'); if(box && ae) box.innerHTML = okEmail(ae.st.email) ? '' : `<div class="ferr">${T(EMAIL_BAD)}</div>` }
 function aeDest(d){ ae.st.dest = d; paintAdmEdit() }
 function aeUseStatic(){ const s = staticOf(ae.id); if(!s) return; const off = ae.rec.off; ae.rec = recOf(s); ae.rec.off = off; paintAdmEdit() }
@@ -4954,7 +4990,7 @@ function paintAdmEdit(){
   if(!ae) return;
   const r = ae.rec, f = ae.st;
   const inp = (path, val, ph, extra) => `<input value="${esc(val)}" placeholder="${T(ph)}" oninput="aeSet('${path}',this.value)" autocomplete="off" ${extra||''}>`;
-  const total = r.k.reduce((n, k) => n + (Number(k[2]) || 1), 0);
+  const total = keyCount(r.k), offN = keyOffCount(r.k);
   const sc = document.getElementById('aedit'), top = sc ? sc.scrollTop : 0;
   admSheet('aedit', topbar(ae.isNew ? T('New bundle') : ae.id, ae.isNew ? '' : (r.off ? T('Archived') : T('Edit')), null, 'closeAdmEdit()') + `<div class="wrap">
       ${ae.isNew ? `<div class="card"><div class="field"><label class="eyebrow">${T('Bundle number')}</label>
@@ -4978,13 +5014,14 @@ function paintAdmEdit(){
         <div style="margin-top:10px">${inp('st.note', f.note, 'Why (shown in the history)')}</div>
       </div>
 
-      <div class="csec">${T('Keys')}<span class="ccount">${total}</span></div>
+      <div class="csec">${T('Keys')}<span class="ccount">${total}${offN ? ' · ' + offN + ' ' + T('inactive') : ''}</span></div>
       ${r.k.length ? `<div class="admkey admhead"><span>${T('Type')}</span><span>${T('Marking')}</span><span>${T('Qty')}</span><span></span></div>` : ''}
-      ${r.k.map((k, i) => `<div class="admkey">
+      ${r.k.map((k, i) => `<div class="admkey${k[4] ? ' koff' : ''}">
           ${inp('k.' + i + '.0', k[0], 'Type')}${inp('k.' + i + '.1', k[1], 'Marking')}
           <input type="number" min="1" max="99" inputmode="numeric" value="${esc(k[2]||1)}" oninput="aeSet('k.${i}.2',this.value)" aria-label="${T('Quantity')}">
           <button class="admdel" onclick="aeKeyDel(${i})" aria-label="${T('Remove')}">×</button>
-          ${inp('k.' + i + '.3', k[3], 'Note', 'class="admnote"')}
+          <div class="admnoterow">${inp('k.' + i + '.3', k[3], 'Note')}
+            <button class="chip${k[4] ? ' on' : ''}" onclick="aeKeyOff(${i})">${T('Inactive')}</button></div>
         </div>`).join('')}
       <button class="btn ghost small" onclick="aeKeyAdd()">+ ${T('Add key')}</button>
 
@@ -5020,7 +5057,9 @@ function aeNote(){
   if(!!o.off !== !!r.off) out.push(r.off ? 'arkiverad' : 'i bruk igen');
   if(o.a !== r.a || o.l !== r.l || o.n !== r.n) out.push('lägenhet');
   if(o.c !== r.c) out.push('kommentar');
-  if(JSON.stringify(o.k) !== JSON.stringify(r.k)){
+  const offs = k => k.filter(x => x[4]).length;
+  if(offs(o.k) !== offs(r.k)) out.push(offs(r.k) > offs(o.k) ? 'nyckel inaktiverad' : 'nyckel aktiv igen');
+  if(JSON.stringify(o.k.map(x => x.slice(0, 4))) !== JSON.stringify(r.k.map(x => x.slice(0, 4)))){
     const n = k => k.reduce((s, x) => s + (Number(x[2]) || 1), 0);
     out.push(n(o.k) !== n(r.k) ? `nycklar ${n(o.k)} → ${n(r.k)}` : 'nycklar');
   }
@@ -5032,6 +5071,7 @@ function aeEvent(){
   if(f.dest === 'cab') return { kind:'in' };
   if(f.dest === 'staff') return { kind:'out', holder:t.name, phone:t.phone, email:(f.email||'').trim() };
   if(f.dest === 'other') return { kind:'out', holder:t.name, phone:t.phone, email:(f.email||'').trim(), reason:OTHER };
+  if(f.dest === 'lost') return { kind:'place', loc:'lost', apt:objOf(ae.id), place:'' };
   if(f.dest === 'apt') return { kind:'place', loc:'apt', apt:objOf(ae.id), place:bundleApt(b) };
   if(f.dest === 'guest') return { kind:'place', loc:'guest', apt:objOf(ae.id), place:bundleApt(b), guest:t.name, phone:t.phone, email:(f.email||'').trim() };
   return { kind:'place', apt:objOf(ae.id), loc:f.dest, unit:t.unit, place:t.place };

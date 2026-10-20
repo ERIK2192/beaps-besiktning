@@ -22,6 +22,20 @@ export function dropboxName(namn, kind, ts, contentType) {
   return rum + ' ' + stamp + ext;
 }
 
+// A small file is read into memory. A big one (a walkthrough video) is streamed - with its length
+// stated, so Dropbox gets a normal upload with a Content-Length rather than a chunked stream of
+// unknown size, which a long video used to be sent as.
+export async function dbxBody(obj) {
+  const size = obj && obj.size != null ? obj.size : null;
+  if (size != null && size <= 25 * 1024 * 1024) return obj.arrayBuffer();
+  if (size != null && typeof FixedLengthStream === 'function') {
+    const fl = new FixedLengthStream(size);
+    obj.body.pipeTo(fl.writable).catch(() => {});
+    return fl.readable;
+  }
+  return obj.body;
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method !== 'PUT' && request.method !== 'POST') {
@@ -73,19 +87,19 @@ export async function onRequest(context) {
   } catch (e) {}
 
   // File it in Dropbox too. Read the bytes back out of R2 rather than holding the request body,
-  // so a long walkthrough video never has to fit in the worker's memory all at once. Best
-  // effort: the copy that matters is already stored above.
+  // so a long walkthrough video never has to fit in the worker's memory all at once. The copy
+  // that matters is already stored above, so a Dropbox failure does not fail the upload - but the
+  // answer says how it went (2026-10-16), so the phone can try a video again rather than point the
+  // report at a Dropbox folder that has no video in it.
+  let dropbox = 'off';
   if (dbxOn(env) && manifest.dropbox && manifest.dropbox.path) {
     try {
       const obj = await r2(env).get(fileKey(token, id));
-      if (obj) {
-        const body = (obj.size != null && obj.size <= 25 * 1024 * 1024)
-          ? await obj.arrayBuffer()
-          : obj.body;
-        await uploadFile(env, manifest.dropbox.path + '/' + dropboxName(namn, kind, ts, type), body);
-      }
-    } catch (e) {}
+      if (!obj) throw new Error('not in R2');
+      await uploadFile(env, manifest.dropbox.path + '/' + dropboxName(namn, kind, ts, type), await dbxBody(obj));
+      dropbox = 'ok';
+    } catch (e) { dropbox = 'failed' }
   }
 
-  return Response.json({ ok: true }, { headers: NO_STORE });
+  return Response.json({ ok: true, dropbox }, { headers: NO_STORE });
 }

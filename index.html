@@ -2079,6 +2079,15 @@ function shoot(){
   f.style.opacity=.85; setTimeout(()=>f.style.opacity=0,90);
   if(navigator.vibrate) navigator.vibrate(12);
 }
+// MP4 first (iPhone always, Chrome on Android and desktop in newer versions), WebM only when that
+// is all the phone records.
+function recMime(){
+  try{
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
+      .find(t => MediaRecorder.isTypeSupported(t)) || '';
+  }catch(e){ return '' }
+}
 async function toggleRec(){
   if(!cam.stream) return;
   const btn = document.getElementById('camrecbtn'), lab = document.getElementById('camrec');
@@ -2086,7 +2095,8 @@ async function toggleRec(){
   await ensureAudio();
   try{
     cam.chunks=[];
-    const mr = new MediaRecorder(cam.stream, {videoBitsPerSecond:900000});
+    const mime = recMime();
+    const mr = new MediaRecorder(cam.stream, mime ? {videoBitsPerSecond:900000, mimeType:mime} : {videoBitsPerSecond:900000});
     mr.ondataavailable = e => e.data.size && cam.chunks.push(e.data);
     mr.onstop = async ()=>{
       clearInterval(cam.timer); cam.rec=null;
@@ -2107,7 +2117,9 @@ async function saveVideo(blob, dur){
   unlockIfLocked();
   if(videoURL && videoURL.startsWith('blob:')) URL.revokeObjectURL(videoURL);
   videoURL = URL.createObjectURL(blob);
-  S.video = {ts:Date.now(), size:blob.size, dur:dur||null, stored:false};
+  // Its own id (2026-10-16): with one fixed id a re-recorded video counted as already uploaded
+  // and never reached the gallery or Dropbox. A video saved before keeps the id 'video'.
+  S.video = {id:'video-' + uid(), ts:Date.now(), size:blob.size, dur:dur||null, stored:false, type:blob.type||''};
   // Above this the base64 string gets so large that the mobile tab can OOM-crash during saving.
   const limit = NATIVE ? 3.4*1048576 : 60*1048576;
   if(blob.size < limit){
@@ -2381,7 +2393,9 @@ const galleryItems = () => {
       ut.push({id:p.id, kind:'bild', ts:p.ts, name:`${techFile(t)} ${i+1}`});
     });
   });
-  if(S.video && S.video.stored && videoURL) ut.push({id:'video', kind:'video', ts:S.video.ts, name:'Walkthrough'});
+  // Sent whenever the phone still has it - also a video too large to keep in the phone's own
+  // storage, which before this was never sent at all and so never reached Dropbox.
+  if(S.video && videoURL) ut.push({id:videoId(S), kind:'video', ts:S.video.ts, name:'Walkthrough'});
   return ut;
 };
 
@@ -2399,6 +2413,8 @@ const dataUrlToBlob = async d => (await fetch(d)).blob();
 // Shortstay and the old annual and damage types are not filed. The server owns the
 // "Longstay PICTURES" part and accepts only these three branches, so nothing here can write elsewhere.
 const DBX_PARENT = {Inflytt:'MOVE IN', Utflytt:'MOVE OUT', [NEW_PROPERTY]:'NYA OBJEKT'};
+// The video's id in the gallery: its own per recording since 2026-10-16, 'video' before that.
+const videoId = insp => (insp && insp.video && insp.video.id) || 'video';
 const DBX_CODE = {Inflytt:'MIN', Utflytt:'MOU', [NEW_PROPERTY]:'NYTT'};
 const dayOf = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` };
 function dropboxSubfolder(){
@@ -2454,7 +2470,7 @@ async function tidyGallery(){
   // A temporary read failure or switching between checklist and rooms is not a deletion.
   const ids = [...new Set((insp.rooms||[]).concat(insp.checks||[], insp.tech||[])
     .flatMap(item=>(item.photos||[]).map(p=>p.id)))];
-  if(insp.video) ids.push('video');
+  if(insp.video) ids.push(videoId(insp));
   if(!ids.length) return;
   const done = (insp.gallery.done||[]);
   const bortagna = done.some(id=>ids.indexOf(id)<0);
@@ -2562,9 +2578,22 @@ async function uploadGallery(auto, tyst){
                   + `&kind=${it.kind==='video'?'video':'bild'}&ts=${it.ts||0}`;
           const put = await withTimeout(fetch('/api/media-put?'+q, {
             method:'PUT', headers:{'Content-Type': blob.type || 'application/octet-stream', ...AUTH}, body: blob
-          }), 120000);
+          }), it.kind==='video' ? 600000 : 120000);
           ok = put.ok;
           if(!ok) sist = (await put.text().catch(()=>'')).trim().slice(0,80) || ('status ' + put.status);
+          // The video in Dropbox: the server says whether the copy there worked. A failed copy is
+          // tried again on the next upload, up to three times; after that the report links to the
+          // app's own gallery, where the video is, instead of a Dropbox folder without it.
+          if(ok && it.kind==='video' && insp.video){
+            const pj = await put.json().catch(()=>null);
+            const d = pj && pj.dropbox;
+            if(d === 'ok'){ insp.video.dbx = 'ok'; insp.video.dbxFails = 0 }
+            else if(d === 'failed'){
+              insp.video.dbxFails = (insp.video.dbxFails || 0) + 1;
+              if(insp.video.dbxFails < 3){ ok = false; sist = 'Dropbox' }
+              else { insp.video.dbx = 'failed'; if(!tyst) log('Video could not be copied to Dropbox; the report links to the gallery instead') }
+            }
+          }
         }catch(e){ sist = String(e && e.message || e).slice(0,80) }
       }
       if(ok){
@@ -5308,9 +5337,12 @@ async function buildPdf(opts){
   // the document fits in an email — there they are as they were taken, and the video can
   // be played, which it never can in a PDF.
   // The Dropbox folder when the inspection was filed there, otherwise the app's own gallery.
-  const lank = (S.dropbox && S.dropbox.url) || (S.gallery && S.gallery.url) || null;
+  // A video that never made it into Dropbox is still in the gallery: link there instead, so the
+  // link promises nothing the folder does not hold.
+  const vidUte = !!(S.video && S.video.dbx === 'failed' && S.gallery && S.gallery.url);
+  const lank = (!vidUte && S.dropbox && S.dropbox.url) || (S.gallery && S.gallery.url) || null;
   if(lank){
-    const harVideo = !!(S.video && S.video.stored);
+    const harVideo = !!(S.video && (S.video.stored || (S.gallery && (S.gallery.done||[]).includes(videoId(S)))));
     const rubrik = harVideo
       ? 'See the video and zoom into the photos'
       : 'Zoom into the photos';

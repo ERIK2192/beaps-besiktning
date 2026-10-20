@@ -43,7 +43,9 @@ function r2Stub() {
 const D = { folders: new Set(), files: new Map(), calls: [], down: false, strict: false, links: 0 };
 const ROOTDIR = '/Longstay PICTURES';
 const parentOf = p => p.slice(0, p.lastIndexOf('/'));
-function resetDropbox() { D.folders = new Set([ROOTDIR]); D.files = new Map(); D.calls = []; D.down = false; D.strict = false }
+function resetDropbox() { D.folders = new Set([ROOTDIR]); D.files = new Map(); D.calls = []; D.down = false; D.strict = false; D.lens = {} }
+// Workers' FixedLengthStream, as far as the code uses it: a pass-through that knows its length.
+globalThis.FixedLengthStream = class { constructor(n) { const t = new TransformStream(); this.readable = t.readable; this.writable = t.writable; this.readable.expectedLength = n } };
 const j = (o, s) => new Response(JSON.stringify(o), { status: s || 200, headers: { 'Content-Type': 'application/json' } });
 const mails = [];
 globalThis.fetch = async (url, opts) => {
@@ -71,8 +73,10 @@ globalThis.fetch = async (url, opts) => {
     const arg = JSON.parse(h['Dropbox-API-Arg']);
     if (/[^\x00-\x7F]/.test(h['Dropbox-API-Arg'])) return new Response('header not ascii', { status: 400 });
     let p = parentOf(arg.path); while (p && !D.folders.has(p)) { D.folders.add(p); p = parentOf(p) }
+    const announced = opts.body && opts.body.expectedLength != null ? opts.body.expectedLength : null;
     const body = await new Response(opts.body).arrayBuffer();
     D.files.set(arg.path, body.byteLength);
+    D.lens[arg.path] = announced != null ? announced : (opts.body instanceof ArrayBuffer || ArrayBuffer.isView(opts.body) ? body.byteLength : 'stream');
     return j({ path_display: arg.path });
   }
   if (ep === 'sharing/create_shared_link_with_settings') { D.links++; return j({ url: 'https://www.dropbox.com/s/' + encodeURIComponent(JSON.parse(opts.body).path) }) }
@@ -253,6 +257,40 @@ const otherId=sub('NYA OBJEKT','NYTT','Other','1','2026-10-09','dddd3333eee');
 const movesBefore=D.calls.filter(c=>c==='files/move_v2').length;
 await call(mediaSync,post('media-sync',{t:own.body.token,ids:['ownphoto'],subfolder:otherId}),safetyEnv);
 ok(D.calls.filter(c=>c==='files/move_v2').length===movesBefore,'cannot rename into a different inspection identity');
+
+// ---- video (2026-10-16): a long walkthrough reaches Dropbox whole, with its length stated; a
+// failed copy is said so, so the phone tries again instead of linking to a folder without it ----
+resetDropbox();
+{
+  const env = newEnv();
+  const vsub = sub('MOVE OUT', 'MOU', 'Videogatan 1', '1101', '2026-10-16', 'vvvv1111aaa');
+  const g = await init(env, vsub, 'Utflytt');
+  const dir = ROOTDIR + '/' + vsub;
+  const putVideo = (id, bytes, type, ts) => call(mediaPut, new Request(O + '/api/media-put?' + `t=${g.body.token}&id=${id}&name=Walkthrough&kind=video&ts=${ts}`,
+    { method: 'PUT', headers: { ...APP, 'content-type': type, 'content-length': String(bytes.length) }, body: bytes }), env);
+  const big = new Uint8Array(30 * 1024 * 1024); big[0] = 7; big[big.length - 1] = 9;
+  let r = await putVideo('video-abc', big, 'video/mp4', Date.UTC(2026, 9, 16, 8, 0, 0));
+  const f1 = filesUnder(dir).find(p => /Walkthrough 2026-10-16 08-00-00\.mp4$/.test(p));
+  ok(r.status === 200 && r.body.dropbox === 'ok', 'a 30 MB video: stored, and the answer says Dropbox has it', r.body);
+  ok(f1 && D.files.get(f1) === big.length, 'the video is in Dropbox whole, as .mp4', [f1, f1 && D.files.get(f1)]);
+  ok(f1 && D.lens[f1] === big.length, 'sent with its length stated, not as a stream of unknown size', D.lens);
+  const small = new Uint8Array(2 * 1024 * 1024);
+  r = await putVideo('video-def', small, 'video/webm;codecs=vp9,opus', Date.UTC(2026, 9, 16, 8, 5, 0));
+  ok(filesUnder(dir).some(p => /Walkthrough 2026-10-16 08-05-00\.webm$/.test(p)), 'a WebM keeps its own extension');
+  r = await putVideo('video-ghi', small, 'video/quicktime', Date.UTC(2026, 9, 16, 8, 6, 0));
+  ok(filesUnder(dir).some(p => /Walkthrough 2026-10-16 08-06-00\.mov$/.test(p)), 'a MOV keeps its own extension');
+  ok(filesUnder(dir).filter(p => /Walkthrough/.test(p)).length === 3, 'a re-recorded video (new id) is a new file, the earlier one left alone');
+  D.down = true;
+  r = await putVideo('video-jkl', small, 'video/mp4', Date.UTC(2026, 9, 16, 8, 7, 0));
+  ok(r.status === 200 && r.body.dropbox === 'failed', 'Dropbox down: the video is still kept, and the answer says the copy failed', r.body);
+  ok(env.MEDIA.o.size >= 4, 'the gallery copy is there either way');
+  D.down = false;
+  const noDbx = newEnv({ DROPBOX_REFRESH_TOKEN: '' });
+  const g2 = await init(noDbx, vsub, 'Utflytt');
+  const r3 = await call(mediaPut, new Request(O + '/api/media-put?t=' + g2.body.token + '&id=video-x&name=Walkthrough&kind=video&ts=1',
+    { method: 'PUT', headers: { ...APP, 'content-type': 'video/mp4', 'content-length': '3' }, body: new Uint8Array([1, 2, 3]) }), noDbx);
+  ok(r3.status === 200 && r3.body.dropbox === 'off', 'without Dropbox set up the answer says so');
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

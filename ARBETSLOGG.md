@@ -1838,3 +1838,16 @@ Verifierat lokalt: server 82, webbläsare 210 (tömning: läge/logg/historik tom
 - **Kontoret**: ingen egen plats – *Skåpet* gäller (Erik, 2026-10-14).
 
 Verifierat lokalt: server 85, webbläsare 204 (skanna och stäng ändrar inget; tre avläsningar ingen händelse; dubbeltryck på Bekräfta en händelse; *Ta emot från*; felet återskapat och stoppat; flyttad under tiden → inget skrivs; okänt läge → inga val; shortstay med två bilder, granska, ta om, rätt status och loggtext, bild i rapporten och på kvittot, ny skanning av samma nyckel ändrar inget; låst rapport; inflytt med skrivet nummer; utflytt offline med återförsök → en hämtning; meny; kommentar sparad/ej sparad/fel; mejl fel/rätt/ändrad/borttagen/efter omladdning). Nyckelflödet 53 (två förväntningar ändrade: menytexten heter nu *Skanna nyckel*; att öppna en knippa läser den knippan i stället för hela listan), e2e 157, uppgradering 48, nytt objekt 84, nyckelfoto 42, server 321, nycklar 26, dropbox 56.
+
+### 2026-10-16 — Video till Dropbox
+
+Felsökt utan tillgång till Dropbox; orsakerna nedan är hittade i koden och rättade.
+
+- **Omspelad video kom aldrig fram.** Videon hade alltid id `video`. Spelades en ny in räknades den som redan uppladdad: varken galleri eller Dropbox fick den, och galleriet behöll den gamla. Nu får varje inspelning ett eget id (`video-<id>`); gamla besiktningar behåller `video`.
+- **Video som inte fick plats i telefonens lagring skickades aldrig.** Nu skickas den så länge telefonen har den.
+- **Misslyckad kopia till Dropbox syntes inte.** `media-put` svarade OK även när Dropbox-kopian misslyckades, och PDF:en pekade på en Dropbox-mapp utan video. Nu svarar servern `dropbox: ok|failed|off`; telefonen försöker igen (upp till tre gånger), och misslyckas det ändå länkar rapporten till appens galleri, där videon finns, och aktivitetsloggen säger varför.
+- **Stora videor (över 25 MB)** skickades till Dropbox som en ström utan angiven längd. Nu skickas de med längden angiven (`FixedLengthStream`).
+- **Inspelningsformat**: appen spelar nu in MP4 där telefonen kan (iPhone alltid, Chrome på Android i nyare versioner) i stället för WebM, som ofta saknar längd och inte spelas i Dropbox förhandsvisning.
+- Uppladdning av video får 10 minuter i stället för 2.
+
+Verifierat lokalt: Dropbox-sviten 65 (9 nya: 30 MB-video hel i Dropbox med längd angiven, .mp4/.webm/.mov, ny inspelning = ny fil, Dropbox nere → `failed` men galleriet har den, utan Dropbox → `off`), webbläsare 214 (10 nya: eget id, omförsök, länk till galleriet vid misslyckad kopia och till Dropbox när den lyckas, omspelning skickas, ej sparad video skickas, MP4 föredras), new-property-safety godkänd, övriga sviter gröna. Inte verifierat mot riktig Dropbox. Redan inspelade videor som saknas i Dropbox kommer inte dit av sig själva. En video som appen tidigare räknade som uppladdad skickas inte om; den finns i appens galleri (länken i appen) och kan läggas in i Dropbox för hand.

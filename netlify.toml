@@ -56,6 +56,12 @@
   to = "/404.html"
   force = true
 
+[[redirects]]
+  from = "/tags.js"
+  status = 404
+  to = "/404.html"
+  force = true
+
 # publish = "." serves the whole folder, the functions' source and the notes included. No
 # secrets are in the code - they are environment variables - but there is no reason to publish
 # them. The functions are still reached at /api/*.

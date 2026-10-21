@@ -1884,3 +1884,18 @@ Erik: fortfarande för krångligt.
 - **I lägenheten och Hos gäst är samma grupp**: nyckelloggens flikar *I lägenheter* och *Gäster* är en flik, *I lägenheter* (status, gäst och telefon som kolumner); adminlistans filter *Hos gäst* ingår i *I lägenheten*; sorteringen på status lägger dem ihop, nyast först. Status visar fortfarande vilken av dem (detaljen). Äldre poster (*Lämnad (äldre)*) ingår i gruppen.
 
 Verifierat lokalt: webbläsare 254 (nya: översta knappen i skannern, rutan har bara knapp och +, shortstay alltid i lägenheten, ett tryck = kamera med båda knipporna, en bild, flyttad emellan = inget skrivet, en Bekräfta = två händelser med Shortstay, samma bild på båda kvittona, kameran stängd och ✓ i rutan, redan i lägenheten = hoppas över och tas bort ur listan, + öppnar skannern med nummerfält, en flik för lägenhet och gäst, adminfiltret utan Hos gäst), server 87, Dropbox 65, nyfastighet 84, nyckelbild 42, new-property-safety godkänd.
+
+### 2026-10-21 — Brickor: nya nyckelbrickor direkt i Nyckeladmin
+
+Erik: Camilla ska kunna skapa nya koder själv, med våra tre mallar, genom att skriva numret och adressen.
+
+- **Nyckeladmin → Brickor** (ny knapp i nederkanten, mellan *Stäng* och *Ny knippa*), och **Skriv ut bricka** på varje knippas sida.
+- **Mall**: Grön, Mörk persika, Ljus persika – samma tre som de utskrivna arken (koden svart på vitt, telefonnumret, ordmärket på en rad). Valet sparas per enhet. Grön är förvald.
+- **Knippnummer**: ett fält, t.ex. `404:1-3, 404:EXTRA, 112:3`. Intervall inom ett objekt, kommatecken eller mellanslag, samma nummer bara en gång, högst 90 åt gången. Det som inte går att trycka listas i rött med orsaken; *Skriv ut* gör då ingenting.
+- **Nya nummer läggs till i registret** när man skriver ut, med adress, lgh nr och namn **per objektnummer** (objektet är lägenheten). Ett objekt som redan finns i registret fylls i därifrån. Nycklarna läggs till på knippan efteråt. Historiken får raden "ny knippa". Ett nummer som redan finns skrivs bara ut – registret ändras inte (omtryck av sliten bricka). Har någon annan lagt till samma nummer nyss gäller deras uppgifter.
+- **Förhandsvisning** av varje bricka i vald mall, med var den hör hemma.
+- **Utskriften**: A4, 18 brickor per sida (3 × 6), linje ovanför varje par med nummer och adress, kontrollmått 50 mm. Skrivs ut från webbläsarens utskrift (100 %, bakgrundsgrafik på; *Spara som PDF* fungerar också). Bara arket skrivs ut så länge Brickor är öppen.
+- **QR-koden** innehåller bara numret, som förut. Koden görs i appen (`tags.js`, en överföring av `qrgen.cjs`) och läses tillbaka med appens egen läsare innan den visas. Jämförd med `qrgen.cjs`: identisk kod för alla 92 knippor i registret.
+- **Också rättat**: när admininloggningen gått ut mitt i en redigering kom inloggningen upp *under* redigeringssidan. Den kommer nu överst, och sidan man var på kommer tillbaka efter inloggningen.
+
+Verifierat lokalt: brickor 65 (outputs/tagmaker-test: intervall, fel, gissad adress, två lägenheter på en gång, sparat i registret mot riktiga funktioner, omtryck sparar inget, samtidigt tillagt nummer, utgången admininloggning, alla koder på förhandsvisning och utskriftsark lästa tillbaka, sidmått, engelska), nyckeladmin 256 oförändrat grönt. Utskrifts-PDF från Edge granskad (2 sidor, 19 brickor). Inte provat på en riktig skrivare eller från en iPhone.

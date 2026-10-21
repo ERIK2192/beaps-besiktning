@@ -162,6 +162,7 @@
 .tg-page h1{font-size:11pt;margin:0 0 1mm;font-family:Arial,Helvetica,sans-serif;color:#16453E}
 .tg-page p{font-size:7.5pt;margin:0;line-height:1.35}
 .tg-grid{display:grid;grid-template-columns:repeat(3,49mm);column-gap:6mm;grid-auto-rows:41mm;row-gap:1mm;margin-top:2mm}
+.tg-empty{margin-top:3.5mm;width:49mm;height:37.5mm;border:.3mm dashed #c4cfca;box-sizing:border-box}
 .tg-meta{height:3.5mm;font-size:6.5pt;line-height:3.5mm;color:#526b62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tg-foot{display:flex;justify-content:space-between;align-items:center;width:159mm;font-size:6.5pt;margin-top:2mm}
 .tg-ruler{width:50mm;border:.25mm solid #16453E;border-top:0;height:2mm;display:inline-block;margin-left:3mm;vertical-align:middle}
@@ -181,15 +182,20 @@
   const pair = (key, id) => `<div class="tg-pair">${front(key)}${back(key, id)}</div>`;
 
   // The print sheet: 18 pairs to an A4 page, three across and six down, each with a line above
-  // it saying where it belongs. txt carries the words, in the app's language:
+  // it saying where it belongs. Each item may carry its own design (it.tpl); key is the one for
+  // those that do not. txt carries the words, in the app's language:
   //   { title, instr, ruler, count, date }
+  // The same sheet is the paper on screen: opts.slots draws the free places on the last page (and
+  // one empty page when there is nothing), it.mark is an extra class on the item, data-id names it.
   const PER_PAGE = 18;
-  function sheet(key, items, txt) {
+  function sheet(key, items, txt, opts) {
+    opts = opts || {};
     const pages = [];
     for (let i = 0; i < items.length; i += PER_PAGE) pages.push(items.slice(i, i + PER_PAGE));
+    if (!pages.length && opts.slots) pages.push([]);
     return `<style>${CSS}</style>` + pages.map((p, i) => `<section class="tg-page">
       <h1>${esc(txt.title)}</h1><p>${esc(txt.instr)}</p>
-      <div class="tg-grid">${p.map(it => `<div><div class="tg-meta"><b>${esc(it.id)}</b>${it.line ? ' · ' + esc(it.line) : ''}</div>${pair(key, it.id)}</div>`).join('')}</div>
+      <div class="tg-grid">${p.map(it => `<div class="tg-item${it.mark ? ' ' + esc(it.mark) : ''}" data-id="${esc(it.id)}"><div class="tg-meta"><b>${esc(it.id)}</b>${it.line ? ' · ' + esc(it.line) : ''}</div>${pair(it.tpl || key, it.id)}</div>`).join('')}${opts.slots && i === pages.length - 1 ? '<div class="tg-empty"></div>'.repeat(PER_PAGE - p.length) : ''}</div>
       <div class="tg-foot"><span>${esc(txt.ruler)}<span class="tg-ruler"></span></span><span>${esc(txt.date)} · ${i + 1} / ${pages.length} · ${p.length} ${esc(txt.count)}</span></div>
     </section>`).join('');
   }

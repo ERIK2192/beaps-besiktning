@@ -1899,3 +1899,17 @@ Erik: Camilla ska kunna skapa nya koder själv, med våra tre mallar, genom att 
 - **Också rättat**: när admininloggningen gått ut mitt i en redigering kom inloggningen upp *under* redigeringssidan. Den kommer nu överst, och sidan man var på kommer tillbaka efter inloggningen.
 
 Verifierat lokalt: brickor 65 (outputs/tagmaker-test: intervall, fel, gissad adress, två lägenheter på en gång, sparat i registret mot riktiga funktioner, omtryck sparar inget, samtidigt tillagt nummer, utgången admininloggning, alla koder på förhandsvisning och utskriftsark lästa tillbaka, sidmått, engelska), nyckeladmin 256 oförändrat grönt. Utskrifts-PDF från Edge granskad (2 sidor, 19 brickor). Inte provat på en riktig skrivare eller från en iPhone.
+
+### 2026-10-21 — Brickor: ett gemensamt ark som fylls på och skrivs ut i klump
+
+Erik: brickorna görs först, detaljerna fylls i på knippan sedan. Man ska kunna lägga till på ett papper och skriva ut i mass. Förhandsvisningen ska vara direkt på pappret, bredvid knippnummer och resten (breda skärmar), och färgen ska gå att ändra per knippa.
+
+- **Arket** är gemensamt och ligger på servern (en KV-nyckel per bricka, `ktq/<knippa>`, via `/api/keys-admin`: `queue`, `qadd`, `qdel`). Camilla kan lägga till från telefonen och skriva ut från datorn; två som lägger till samtidigt hamnar båda på arket.
+- **Pappret visas som det skrivs ut**: A4 i full storlek till höger om fälten på en bred skärm, nedskalat under fälten på en telefon. Lediga platser är streckade rutor. Det man skriver i *Knippnummer* syns direkt på pappret, streckat, tills man trycker **Lägg på arket**.
+- **Färg per bricka**: klicka på en bricka på pappret – Grön, Mörk persika, Ljus persika eller *Ta bort från arket*. Brickan behåller sin plats. *Mall* till vänster gäller nya brickor. Ett ark kan blanda färger.
+- **Skriv ut arket** skriver ut allt på pappret; det som är skrivet men inte tillagt läggs på först. Efteråt: *Blev de bra? Ta bort dem från arket* – inget försvinner av sig självt (papperstrassel). En bricka som fått ny färg efter utskriften, eller som någon annan lagt till under tiden, ligger kvar.
+- **Nya nummer** läggs till i registret när de läggs på arket. Adress och lägenhet per objektnummer är frivilliga – nu eller senare, på knippan.
+- **Av sig själv**: en knippa som görs med *Ny knippa* läggs på arket ("Sparat · lagd på brickarket"). På varje knippas sida: **Lägg på brickarket** (ett tryck). Knappen i Nyckeladmin visar hur många som väntar: *Brickor · 7*.
+- **Utskriften rättad**: startsidans bottenmarginal följde med in i utskriften och kunde skjuta sidfoten till en tom andra sida. Nollas nu medan arket skrivs ut.
+
+Verifierat lokalt: brickor 68 (outputs/tagmaker-test, mot riktiga funktioner, både bred skärm och telefon: papper bredvid/under, fullstor/nedskalat, streckade, färg per bricka före och efter tillägg, plats behålls, utskrift av allt i sin färg, rensning efter utskrift som lämnar ändrade och andras, en lista en minut efter visar inte borttagna, Ny knippa och knippans sida lägger på arket, samtidigt tillagt nummer, utgången admininloggning, engelska), nyckeladmin 256 och serverns admintester 87 oförändrat gröna. Utskrifts-PDF från Edge granskad (en sida, 16 brickor i tre färger). Inte provat på en riktig skrivare eller från en iPhone.

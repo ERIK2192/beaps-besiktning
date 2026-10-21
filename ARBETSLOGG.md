@@ -1858,3 +1858,14 @@ Verifierat lokalt: Dropbox-sviten 65 (9 nya: 30 MB-video hel i Dropbox med läng
 - **Inaktiva nycklar** inom en knippa (admin, *Inaktiv* på nyckelns rad): femte fältet i registret (`k[4] = 1`). Nyckeln finns kvar och syns överstruken och onumrerad med *Inaktiv*, men räknas inte och kommer inte med på nya nyckelkvitton. Admintabellen visar "+N inaktiva". Ändringen hamnar i historiken ("nyckel inaktiverad" / "nyckel aktiv igen"); tidigare kvitton ändras inte.
 
 Verifierat lokalt: server 87 (borttappad sparas, inaktiv-märket behålls), webbläsare 232 (anmäla, visas överallt, skanna hittad, admin-filter, inaktivera/aktivera, räkning, kvitto utan inaktiv nyckel, historik); övriga sviter gröna.
+
+### 2026-10-20 — Checka ut för shortstay
+
+Färre tryck från skåpet till lämnad nyckel, ingen adress att skriva och ingen ny skanning i lägenheten.
+
+- **I skåpet**: skanna knippan. Ligger den i skåpet finns knappen **Checka ut för shortstay**. Ett tryck checkar ut den till dig (`reason:'Shortstay'`) och skapar en shortstay-besiktning med adress och lägenhet ur nyckelregistret. En andra knippa för **samma lägenhet** läggs i **samma** besiktning (en som inte är avslutad och skapades de senaste 48 timmarna), ingen ny skapas. En annan lägenhet får sin egen. Skannern står kvar för nästa knippa. Besiktningen bär knipporna i `S.keysPlan`.
+- **Startsidan**: en besiktning som väntar på sina nycklar ligger överst med "nycklar 115:2, 115:3 hos dig".
+- **I lägenheten**: nyckelrutan visar knipporna som väntar, "115:2 – Lämna i lägenheten ›". Ett tryck öppnar kameran direkt på den knippan, på bildsteget (ingen skanning). Efter *Bekräfta* kommer nästa väntande knippa upp av sig själv. När alla lämnats är raden borta, också på startsidan.
+- Vanlig *Bekräfta* (checka ut till dig utan besiktning) finns kvar bredvid.
+
+Verifierat lokalt: webbläsare 245 (13 nya: knappen finns bara för knippa i skåpet, utcheckad med Shortstay, besiktning med registrets adress, andra knippan samma lägenhet = samma besiktning, annan lägenhet = egen, startsidan visar väntande nycklar överst, nyckelrutan visar båda, ett tryck = kamera på bildsteget utan skanning, nästa knippa kommer av sig själv, båda i lägenheten med bild på kvittot, inget kvar att vänta på); övriga sviter gröna.

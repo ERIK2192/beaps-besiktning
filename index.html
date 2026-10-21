@@ -233,6 +233,7 @@
   .scansteps span.done{color:#BBF7D0;border-color:#14532D}
   .mvcard{background:#fff;color:var(--ink);border-radius:14px;padding:14px;text-align:left}
   .mvcard .hint{color:var(--ink2)}
+  .cam .mvcard input{background:#fff;color:var(--ink);border:1px solid var(--line);font-family:var(--sans);letter-spacing:normal;text-align:left;font-size:16px}
   .mvstate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:14px}
   .mvwarn{margin-top:10px;padding:10px 12px;border-radius:10px;background:#FFF4E5;color:#7A4B00;font-size:13.5px;line-height:1.45}
   .cmtbox{min-width:200px}
@@ -245,6 +246,11 @@
   .admkey.koff input{text-decoration:line-through;opacity:.6}
   .admnoterow{grid-column:1 / span 4;display:flex;gap:8px;align-items:center} .admnoterow input{flex:1;min-width:0}
   .admnoterow .chip{flex:none;padding:7px 12px;font-size:13px}
+  .planline{font-size:12px;color:#8A5E00;margin-top:2px}
+  .planrow, .kcard .kbrow.planrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:13px 14px;margin:0 0 8px;
+           background:#FFF8E1;border:1px solid #F2D27A;border-radius:12px;border-top:1px solid #F2D27A}
+  .planrow b{font-family:var(--num);font-size:15px} .planrow span{color:var(--ink2);font-size:13px}
+  .planrow .planact{margin-left:auto;color:var(--ink);font-weight:650}
   .ferr{margin-top:6px;font-size:13px;color:var(--rec);line-height:1.4}
   .mvsentence{margin-top:12px;padding:10px 12px;border-radius:10px;background:#EEF6F1;color:#14532D;font-weight:650;font-size:14.5px;line-height:1.4}
   .mvphotos{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
@@ -1029,6 +1035,11 @@ const SV = {
   'Leave anyway':'Lämna ändå',
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
+  'Check out for shortstay':'Checka ut för shortstay',
+  'checked out':'utcheckad',
+  'shortstay created':'shortstay skapad',
+  'added to the shortstay':'lagd till shortstay',
+  'key':'nyckel',
   'Lost':'Borttappad',
   'lost':'borttappad',
   'Report':'Anmäl',
@@ -1372,7 +1383,9 @@ function refOf(r){
 }
 // The row the start screen is painted from, kept beside the inspection in the index.
 const indexRow = s => ({id:s.id, address:s.address, apt:s.apt, aptName:s.aptName||'', type:s.type, created:s.created,
-                        locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt});
+                        locked:!!(s.signedAt||s.closedAt), signed:!!s.signedAt, plan: planPending(s)});
+// Bundles checked out for this inspection (Check out for shortstay) and not yet left in it.
+const planPending = s => ((s && s.keysPlan) || []).filter(id => !((s.keysOut || []).some(k => k.bundle === id)));
 
 function log(txt){ if(!S) return; S.log.push({ts:Date.now(), txt}); paintTicker(); save() }
 function storeErr(){ toast(T('The phone refused a write. Make a backup.')) }
@@ -3167,12 +3180,13 @@ async function renderStart(){
       ${idx.length? `<div class="listhead" style="justify-content:flex-end">
           <button onclick="toggleEdit()">${editList?T('Done'):T('Edit')}</button>
         </div>` : ''}
-      ${idx.length? idx.map(r=>`<div class="rowwrap">
+      ${idx.length? idx.slice().sort((a, b) => (b.plan && b.plan.length ? 1 : 0) - (a.plan && a.plan.length ? 1 : 0)).map(r=>`<div class="rowwrap">
           <button class="list-item" onclick="openInsp('${r.id}')">
             <span class="dot ${r.locked?'filled':''}"></span>
             <span style="min-width:0"><b>${esc(refOf(r))}</b>
             <div style="font-family:var(--mono);font-size:11px;color:var(--ink2)">
-              ${stamp(new Date(r.created))} · ${r.locked? (r.signed?T('signed'):T('finished')):T('draft')}</div></span>
+              ${stamp(new Date(r.created))} · ${r.locked? (r.signed?T('signed'):T('finished')):T('draft')}</div>
+            ${r.plan && r.plan.length && !r.locked ? `<div class="planline">${T(r.plan.length === 1 ? 'key' : 'keys')} ${esc(r.plan.join(', '))} ${T('with you')}</div>` : ''}</span>
             <span class="chev">›</span>
           </button>
           ${editList? `<button class="delbtn" onclick="delInsp('${r.id}')" aria-label="${T('Delete')}">×</button>`:''}
@@ -4466,7 +4480,9 @@ function paintScanFoot(){
         </div>` : (scanJob.insp && locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : '')}
     </div>
     <div class="kbtns">
-      ${kf.dest && !b.off ? `<button class="btn go" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
+      ${!scanJob.insp && !b.off && kf.fresh !== 'unknown' && kf.fresh !== 'loading' && mvKind(id) === 'in'
+        ? `<button class="btn go" id="mvshort" style="flex-basis:100%" onclick="checkoutForShortstay('${id}')"${koBusy ? ' disabled' : ''}>${T('Check out for shortstay')}</button>` : ''}
+      ${kf.dest && !b.off ? `<button class="btn${!scanJob.insp && mvKind(id) === 'in' ? ' ghost' : ' go'}" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
       <button class="btn ghost" onclick="scanAgain()">${T('Scan another')}</button>
     </div>`;
   if(focused && /^(kf_|koreason)/.test(focused)){ const fe = document.getElementById(focused); if(fe){ try{ fe.focus(); if(caret != null) fe.setSelectionRange(caret, caret) }catch(e){} } }
@@ -4569,13 +4585,57 @@ async function bundleAct(id){
       const ok2 = document.getElementById('scanok'); if(ok2) ok2.classList.add('on');
       scanMsg(sentence + (locked ? ' · ' + T('report locked: in the key log only') : ''));
       setTimeout(() => { const o = document.getElementById('scanok'); if(o) o.classList.remove('on') }, 1100);
-      return;
+      // Keys checked out for this inspection and not left yet: the next one comes up by itself.
+      const next = insp && S === insp ? planPending(insp)[0] : null;
+      if(next && bundleOf(next)){ cancelAnimationFrame(scanRaf); mvOpen(next, 'scan') }
+      return ev;
     }
     kf = { id:null };
     await backToStart();
     toast(sentence);
+    return ev;
   }finally{ koBusy = false; if(kf.id === id) paintMove() }
 }
+/* Check out for shortstay (2026-10-20): from the cabinet to you, and a shortstay inspection for
+   the bundle's apartment, address and apartment taken from the register - nothing to type. A
+   second key for the same apartment joins the same inspection (one that is not finished and was
+   made in the last two days), it does not make another. The keys wait in the inspection's key box
+   as "leave in the apartment", so they are not scanned again there. */
+async function checkoutForShortstay(id){
+  if(koBusy || kf.id !== id || !validDests(id).includes('me')) return;
+  kf.dest = 'me'; kf.reason = 'Shortstay';
+  const ev = await bundleAct(id);
+  if(!ev) return;
+  const r = await planShortstay(id);
+  if(r) scanMsg(`${id} ${T('checked out')} · ${T(r.created ? 'shortstay created' : 'added to the shortstay')} · ${bundleApt(bundleOf(id))}`);
+}
+async function planShortstay(id){
+  const b = bundleOf(id); if(!b) return null;
+  const idx = await loadIndex();
+  const same = r => r && r.type === 'Upplåsning' && !r.locked && squash(r.address) === squash(b.a) && squash(r.apt) === squash(b.l)
+    && Date.now() - (r.created || 0) < 48 * 3600e3;
+  const row = idx.find(same);
+  const prev = S;
+  try{
+    if(row) S = await store.get(K.insp(row.id));
+    if(!S){
+      S = { id:uid(), created:Date.now(), address:b.a || '', apt:b.l || '', type:'Upplåsning',
+            inspector:{name:keyMe||''}, counter:{name:'',role:''},
+            rooms:[...DEFAULT_ROOMS.map(n=>mkRoom(n)), mkRoom(KEYS_ROOM,true)],
+            video:null, comp:{in:0,out:0}, checks:null, tech:null, sig:{}, signReq:null, gallery:null,
+            signedAt:null, closedAt:null, log:[], keyMode:'apt' };
+      ensureChecks();
+      S.log.push({ts:Date.now(), txt:'Inspection created from key ' + id});
+    }
+    S.keysPlan = [...new Set((S.keysPlan || []).concat(id))];
+    S.log.push({ts:Date.now(), txt:`Key ${id} checked out for this inspection by ${keyMe}`});
+    await flushSave();
+    return { created: !row, id: S.id };
+  }finally{ S = prev }
+}
+// From the key box: the scanner opens on this bundle, at the photo step - no scanning again.
+function inspPlan(id){ const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim(); openScan({ insp:true, id }) }
+
 // What the sheet had before it had a choice; kept for anything that calls them.
 async function checkOut(id){ kfDest('me'); return bundleAct(id) }
 async function checkIn(id){ kfDest('cab'); return bundleAct(id) }
@@ -4667,7 +4727,11 @@ function inspKeyCard(){
   const keep = id => { const e = document.getElementById(id); return e ? e.value : null };
   const num = keep('kbnum'), gname = keep('kbguest');
   const named = !!(S.counter && S.counter.name) && !isCheck();
+  const plan = planPending(S);
   return `<div class="kcard inspkeys" id="inspkeys">
+    ${plan.map(id => { const b = bundleOf(id); return `<button class="kbrow planrow" onclick="inspPlan('${id}')">
+        <b>${esc(id)}</b><span>${esc(b ? (b.n || 'lgh ' + b.l) : '')}</span>
+        <span class="planact">${T(mode === 'guest' ? 'Leave with guest' : mode === 'pick' ? 'Pick up' : 'Leave in apartment')} ›</span></button>` }).join('')}
     ${done.map(k => `<div class="hoconf" style="margin:0 0 8px"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
         <b>${esc(k.bundle)}${k.name ? ' · ' + esc(k.name) : ''}</b>
         <div>${esc(actOf(k))}${actOf(k) ? ' · ' : ''}${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')}${(k.photos||[]).length ? ' · ' + k.photos.length + ' ' + T(k.photos.length === 1 ? 'photo' : 'photos') : ''} · ${stamp(new Date(k.ts))}</div></div></div>`).join('')}

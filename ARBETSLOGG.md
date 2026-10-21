@@ -1869,3 +1869,17 @@ Färre tryck från skåpet till lämnad nyckel, ingen adress att skriva och inge
 - Vanlig *Bekräfta* (checka ut till dig utan besiktning) finns kvar bredvid.
 
 Verifierat lokalt: webbläsare 245 (13 nya: knappen finns bara för knippa i skåpet, utcheckad med Shortstay, besiktning med registrets adress, andra knippan samma lägenhet = samma besiktning, annan lägenhet = egen, startsidan visar väntande nycklar överst, nyckelrutan visar båda, ett tryck = kamera på bildsteget utan skanning, nästa knippa kommer av sig själv, båda i lägenheten med bild på kvittot, inget kvar att vänta på); övriga sviter gröna.
+
+### 2026-10-21 — Shortstay: ett tryck, en bild, en Bekräfta
+
+Erik: fortfarande för krångligt.
+
+- **Skannern**: för en knippa i skåpet är **Checka ut för shortstay-upplåsning** översta knappen, ovanför knippan. Vanlig *Bekräfta* finns kvar längst ner.
+- **Nyckelrutan i besiktningen** har bara tre saker: ✓-raderna för det som är gjort, en knapp för de utcheckade knipporna – **"Lämna 115:2, 115:3 i lägenheten ›"** – och **+ Nyckel**, som öppnar skannern (där går det också att skriva numret). Borta ur rutan: valen I lägenheten/Till gäst, gästens namn, nummerfältet och *Visa*. Var en enskild knippa ska och gästens namn väljs i skannern.
+- **Lämna-knappen** öppnar kameran för alla knippor på en gång: ingen skanning, en bild, en *Bekräfta*. Varje knippa får sin egen händelse och sin rad på nyckelkvittot; bilden sparas en gång i rapporten och delas av raderna. Knipporna läses från servern när panelen öppnas och igen vid *Bekräfta*; har någon annan flyttat en emellan skrivs ingenting och panelen säger det. En knippa som redan är i lägenheten, är arkiverad eller borttappad hoppas över, sägs, och tas bort ur listan vid *Bekräfta*. Efter *Bekräfta* stängs kameran och rutan visar ✓.
+- Knippor visas inte längre upp av sig själva efter en *Bekräfta* i skannern (det gör Lämna-knappen nu).
+- **Shortstay-upplåsning är alltid I lägenheten**, även om en äldre besiktning sparat något annat. Inflytt är fortfarande Till gäst.
+- **Inaktiv nyckel i admin**: knappen *Inaktiv* såg påslagen ut från start. Nu är det en strömbrytare, **Aktiv**: grön och på för varje nyckel som används, grå och av för en inaktiv (raden överstruken som förut). Sparas på samma sätt som tidigare.
+- **I lägenheten och Hos gäst är samma grupp**: nyckelloggens flikar *I lägenheter* och *Gäster* är en flik, *I lägenheter* (status, gäst och telefon som kolumner); adminlistans filter *Hos gäst* ingår i *I lägenheten*; sorteringen på status lägger dem ihop, nyast först. Status visar fortfarande vilken av dem (detaljen). Äldre poster (*Lämnad (äldre)*) ingår i gruppen.
+
+Verifierat lokalt: webbläsare 254 (nya: översta knappen i skannern, rutan har bara knapp och +, shortstay alltid i lägenheten, ett tryck = kamera med båda knipporna, en bild, flyttad emellan = inget skrivet, en Bekräfta = två händelser med Shortstay, samma bild på båda kvittona, kameran stängd och ✓ i rutan, redan i lägenheten = hoppas över och tas bort ur listan, + öppnar skannern med nummerfält, en flik för lägenhet och gäst, adminfiltret utan Hos gäst), server 87, Dropbox 65, nyfastighet 84, nyckelbild 42, new-property-safety godkänd.

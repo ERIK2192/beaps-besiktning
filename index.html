@@ -245,12 +245,19 @@
   .krow.koff{opacity:.55} .krow.koff .kt b,.krow.koff .kt span{text-decoration:line-through}
   .admkey.koff input{text-decoration:line-through;opacity:.6}
   .admnoterow{grid-column:1 / span 4;display:flex;gap:8px;align-items:center} .admnoterow input{flex:1;min-width:0}
-  .admnoterow .chip{flex:none;padding:7px 12px;font-size:13px}
+  /* a key's on/off switch in admin: on (green) = in use, the normal case; off = inactive, struck through */
+  .tgl{display:inline-flex;align-items:center;gap:8px;flex:none;font-size:13px;color:var(--ink2);padding:6px 0}
+  .tgl i{position:relative;width:42px;height:26px;border-radius:999px;background:#C9CDCE;transition:background .15s}
+  .tgl i::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+                box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+  .tgl.on i{background:#2E7D5B} .tgl.on i::after{transform:translateX(16px)} .tgl.on span{color:var(--ink)}
+  @media (prefers-reduced-motion:reduce){ .tgl i,.tgl i::after{transition:none} }
   .planline{font-size:12px;color:#8A5E00;margin-top:2px}
-  .planrow, .kcard .kbrow.planrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:13px 14px;margin:0 0 8px;
-           background:#FFF8E1;border:1px solid #F2D27A;border-radius:12px;border-top:1px solid #F2D27A}
-  .planrow b{font-family:var(--num);font-size:15px} .planrow span{color:var(--ink2);font-size:13px}
-  .planrow .planact{margin-left:auto;color:var(--ink);font-weight:650}
+  .kbleave{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:14px;margin:0 0 8px;
+           background:var(--brand);color:var(--ink);border-radius:12px;font-size:15px;font-weight:650;line-height:1.35}
+  .kbleave span{margin-left:auto;font-size:18px}
+  .kbadd{display:block;width:100%;padding:12px;border:2px dashed var(--line);border-radius:12px;background:#fafbfb;
+         color:var(--ink2);font-size:15px;font-weight:650}
   .ferr{margin-top:6px;font-size:13px;color:var(--rec);line-height:1.4}
   .mvsentence{margin-top:12px;padding:10px 12px;border-radius:10px;background:#EEF6F1;color:#14532D;font-weight:650;font-size:14.5px;line-height:1.4}
   .mvphotos{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
@@ -1036,6 +1043,10 @@ const SV = {
   'Leave in apartment':'Lämna i lägenheten',
   'Other':'Annan',
   'Check out for shortstay':'Checka ut för shortstay',
+  'Check out for shortstay unlock':'Checka ut för shortstay-upplåsning',
+  'Key':'Nyckel',
+  'Nothing to do':'Inget att göra',
+  'reported lost':'anmäld borttappad',
   'checked out':'utcheckad',
   'shortstay created':'shortstay skapad',
   'added to the shortstay':'lagd till shortstay',
@@ -1048,6 +1059,7 @@ const SV = {
   'Found – to':'Hittad – till',
   'Where/when (optional)':'Var/när (valfritt)',
   'Inactive':'Inaktiv',
+  'Active':'Aktiv',
   'inactive':'inaktiva',
   'Not saved':'Ej sparad',
   'Could not save - try again':'Kunde inte spara – försök igen',
@@ -3638,7 +3650,7 @@ function syncHint(){
 // After a sync that changed something, repaint whichever key screen is showing.
 function refreshKeyViews(moved){
   if(!moved) return;
-  if(document.getElementById('scan') && kf.id && kf.where === 'scan') return paintScanFoot();
+  if(document.getElementById('scan') && ((kf.id && kf.where === 'scan') || lb)) return paintScanFoot();
   const bundleEl = document.getElementById('bundle');
   if(bundleEl) return paintBundle(bundleEl.dataset.bundle);
   const logEl = document.getElementById('keylog');
@@ -3831,7 +3843,7 @@ function keyCard(){
 const LOG_HASH = '#nyckellogg';
 const logLink = () => location.origin + location.pathname + LOG_HASH;
 async function openKeyLog(tab){
-  if(tab) logTab = tab;
+  if(tab) logTab = tab === 'guests' ? 'apts' : tab;   // the guest list is part of In apartments now
   if(document.getElementById('keylog')) return paintLogBody();
   await keyBoot();
   logEv = []; logCursor = null; logLoaded = false;
@@ -3883,8 +3895,10 @@ async function copyLogLink(){
    what is on screen as a file Excel opens. The log is read 50 rows at a time; "Load all" reads
    the rest when a search has to reach further back. Nothing here is fetched unless this page is
    open. */
-let logTab = 'now', logQ = '', logSort = { now: ['status', 1], apts: ['ts', -1], guests: ['ts', -1], log: ['ts', -1] };
-const STATUS_ORDER = { lost: -1, out: 0, guest: 1, apt: 2, old: 3, box: 4, tube: 5, in: 6 };
+let logTab = 'now', logQ = '', logSort = { now: ['status', 1], apts: ['ts', -1], log: ['ts', -1] };
+// In the apartment and with the guest are the same place to us (Erik, 2026-10-21): one group,
+// newest first within it; which of the two stays as the detail on the row.
+const STATUS_ORDER = { lost: -1, out: 0, guest: 1, apt: 1, old: 1, box: 4, tube: 5, in: 6 };
 const qWords = q => String(q||'').toLowerCase().split(/\s+/).filter(Boolean);
 const rowHits = (hay, ws) => { const h = hay.toLowerCase(); return ws.every(w => h.indexOf(w) >= 0) };
 const aptOf = (id, ev) => { const b = bundleOf(id); return b ? ('lgh ' + b.l + (b.n ? ' ' + b.n : '')) : ((ev && ev.name) || '') };
@@ -3903,20 +3917,18 @@ function nowRows(){
       ts: status === 'in' ? (st.ev ? st.ev.ts : 0) : (st.since||0), ev: st.ev };
   });
 }
-// The guest list (2026-10-13): every bundle left in an apartment or with a guest, until ArtIT
-// can tell us who lives where.
-const guestRows = () => nowRows().filter(r => r.status === 'guest');
-// Left in the apartment (2026-10-14), and the older 'left' lines that may be either - marked as such.
-const aptRows = () => nowRows().filter(r => r.status === 'apt' || r.status === 'old');
+// In apartments: every bundle left in an apartment or with a guest, and the older 'left' lines
+// that may be either - one list (2026-10-21), the status saying which.
+const IN_APT = ['apt', 'guest', 'old'];
+const aptRows = () => nowRows().filter(r => IN_APT.includes(r.status));
 function logRows(){
   return logLines().map(e=>({ id: e.bundle, apt: aptOf(e.bundle, e), addr: addrOf(e.bundle), what: evLine(e),
     who: e.who||'', ts: e.ts||0, ev: e, key: e.id }));
 }
 const NOW_COLS = [['id','Bundle'], ['apt','Apartment'], ['status','Status'], ['where','Where'], ['who','By'], ['ts','Since']];
-const GUEST_COLS = [['id','Bundle'], ['at','Apartment'], ['guest','Guest'], ['phone','Phone'], ['ts','Since'], ['who','Handed out by']];
-const APT_COLS = [['id','Bundle'], ['at','Apartment'], ['status','Status'], ['ts','Since'], ['who','Left by']];
+const APT_COLS = [['id','Bundle'], ['at','Apartment'], ['status','Status'], ['guest','Guest'], ['phone','Phone'], ['ts','Since'], ['who','Left by']];
 const LOG_COLS = [['ts','Time'], ['id','Bundle'], ['apt','Apartment'], ['what','What'], ['who','By']];
-const TABS = { now: [NOW_COLS, () => nowRows()], apts: [APT_COLS, () => aptRows()], guests: [GUEST_COLS, () => guestRows()], log: [LOG_COLS, () => logRows()] };
+const TABS = { now: [NOW_COLS, () => nowRows()], apts: [APT_COLS, () => aptRows()], log: [LOG_COLS, () => logRows()] };
 // Bundle numbers sort as numbers: 112:3 before 112:10, 99:1 before 112:1.
 const bundleKey = id => { const m = /^(\d+):?(\d+)?/.exec(id||''); return m ? [Number(m[1]), m[2] != null ? Number(m[2]) : 1e9, id] : [1e12, 0, id] };
 function cmpBy(col){
@@ -3944,7 +3956,6 @@ function keyLogHtml(){
         <button class="kltab${logTab==='now'?' on':''}" data-tab="now" onclick="logTab='now';paintLogBody()">${T('Where now')}</button>
         <button class="kltab${logTab==='log'?' on':''}" data-tab="log" onclick="logTab='log';paintLogBody()">${T('Log')}</button>
         <button class="kltab${logTab==='apts'?' on':''}" data-tab="apts" onclick="logTab='apts';paintLogBody()">${T('In apartments')}</button>
-        <button class="kltab${logTab==='guests'?' on':''}" data-tab="guests" onclick="logTab='guests';paintLogBody()">${T('Guests')}</button>
         <span style="flex:1"></span>
         <button class="addc" onclick="exportLog()">${T('Export to Excel')}</button>
         <button class="addc" onclick="copyLogLink()">${T('Copy link')}</button>
@@ -4011,7 +4022,7 @@ function exportLog(){
   const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = ({ now: 'Nycklar-var-nu-', apts: 'Nycklar-i-lagenheter-', guests: 'Nycklar-hos-gaster-' }[logTab] || 'Nyckellogg-') + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = ({ now: 'Nycklar-var-nu-', apts: 'Nycklar-i-lagenheter-' }[logTab] || 'Nyckellogg-') + new Date().toISOString().slice(0, 10) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
@@ -4031,12 +4042,15 @@ const scanCtx = scanCv.getContext('2d', {willReadFrequently:true});
 // bundle is registered and the moves that are possible from there, and nothing changes until a
 // move is confirmed. From an inspection the same view also takes the photos of the keys.
 let scanJob = { insp:false };
+// Leaving an inspection's planned keys together (lbOpen): { ids, dest:'apt'|'guest',
+// fresh:{id:'loading'|'ok'|'stale'|'unknown'}, basis:{id:event id}, photos:[], note }.
+let lb = null;
 async function openScan(opts){
   await keyBoot();
   keySync().then(refreshKeyViews);   // not awaited; the move panel reads the bundle afresh anyway
   closeScan();            // one scanner at a time, camera released first
   scanJob = { insp: !!(opts && opts.insp && canHandover()), mode: opts && opts.insp ? keyModeOf() : '' };
-  scanDone = []; kf = { id:null };
+  scanDone = []; kf = { id:null }; lb = null;
   const el = document.createElement('div');
   el.className = 'cam'; el.id = 'scan';
   el.innerHTML = `
@@ -4055,8 +4069,9 @@ async function openScan(opts){
   document.body.appendChild(el);
   paintScanFoot();
   if(opts && opts.id){ gotCode(opts.id) }
+  if(opts && opts.batch && scanJob.insp) lbOpen(opts.batch);
 
-  if(!await loadJsQR()) return scanMsg(T('Scanner unavailable — type the number'), true);
+  if(!lb && !await loadJsQR()) return scanMsg(T('Scanner unavailable — type the number'), true);
 
   // Where the browser has a barcode reader of its own it is faster and steadier than
   // anything we can do in JavaScript. Chrome on Android has one; Safari does not, which
@@ -4093,7 +4108,7 @@ async function openScan(opts){
   v.srcObject = scanStream;
   try{ await v.play() }catch(e){}
   scanOn = true;
-  if(!kf.id){ scanMsg(T('Hold the tag in the frame')); scanSince = Date.now(); scanTick() }
+  if(!kf.id && !lb){ scanMsg(T('Hold the tag in the frame')); scanSince = Date.now(); scanTick() }
   else paintScanFoot();
 }
 function scanMsg(txt, hideBox){
@@ -4212,6 +4227,7 @@ function closeScan(){
   if(scanStream){ scanStream.getTracks().forEach(t=>{ try{ t.stop() }catch(e){} }); scanStream = null }
   const el = document.getElementById('scan'); if(el) el.remove();
   if(kf.where === 'scan') kf = { id:null };
+  lb = null;
 }
 async function scanFinish(){
   const any = scanDone.length, insp = scanJob.insp;
@@ -4443,8 +4459,9 @@ function moveHtml(id){
 // The scanner's lower half: reading, or the bundle and its move (with photos in an inspection).
 function scanStepsHtml(){
   if(!scanJob.insp) return '';
-  const step = !kf.id ? 1 : !kf.photos.length ? 2 : 3;
-  const names = [T('Scan'), T('Photo'), T('Confirm')];
+  // Leaving the planned keys: nothing to scan, the photo and the confirm.
+  const step = lb ? (lb.photos.length ? 2 : 1) : !kf.id ? 1 : !kf.photos.length ? 2 : 3;
+  const names = lb ? [T('Photo'), T('Confirm')] : [T('Scan'), T('Photo'), T('Confirm')];
   return names.map((n, i) => `<span class="${i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}">${i + 1} ${n}</span>`).join('');
 }
 const keyPhotoTarget = () => !S ? null : isCheck() ? (S.checks||[]).find(c => c.key === 'nycklar_foto') : keysRoom();
@@ -4452,8 +4469,9 @@ function paintScanFoot(){
   const foot = document.getElementById('scanfoot'); if(!foot) return;
   const steps = document.getElementById('scansteps'); if(steps) steps.innerHTML = scanStepsHtml();
   // The frame says "reading": hidden while a bundle is shown and nothing is being read.
-  const sb = document.getElementById('scanbox'); if(sb && scanOn) sb.classList.toggle('hidden', !!kf.id);
+  const sb = document.getElementById('scanbox'); if(sb && scanOn) sb.classList.toggle('hidden', !!(kf.id || lb));
   const done = scanDone.length ? `<div class="scandone" id="scandone">${scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('')}</div>` : '';
+  if(lb) return paintLeave(foot, done);
   if(!kf.id){
     const keepMsg = (document.getElementById('scanmsg') || {}).textContent;
     foot.innerHTML = `${scanJob.insp ? `<div class="dest">→ ${esc(hoDest())}</div>` : ''}${done}
@@ -4466,44 +4484,49 @@ function paintScanFoot(){
   const id = kf.id, b = bundleOf(id), locked = !!(S && (S.signedAt || S.closedAt));
   const photoOk = scanJob.insp && !!keyPhotoTarget() && !locked && kf.fresh !== 'unknown' && !b.off;
   const need = kf.dest === 'apt' || kf.dest === 'guest' ? 1 : 0;
+  // From the cabinet, outside an inspection: Check out for shortstay unlock first, above everything.
+  const short = !scanJob.insp && !b.off && kf.fresh !== 'unknown' && mvKind(id) === 'in';
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
-  foot.innerHTML = `${done}
+  foot.innerHTML = `${short ? `<button class="btn go" id="mvshort" onclick="checkoutForShortstay('${id}')"${koBusy || kf.fresh === 'loading' ? ' disabled' : ''}>${T('Check out for shortstay unlock')}</button>` : ''}
+    ${done}
     <div class="mvcard">
       <div class="bhead"><span class="bnum">${esc(id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
       ${moveHtml(id)}
-      ${photoOk ? `<div class="mvphotos">
-          <div class="mvphead">${T('Photos of the keys')}: ${kf.photos.length}${need ? ' · ' + (kf.photos.length >= need ? T('done') : need - kf.photos.length + ' ' + T('left')) : ''}</div>
-          <div class="mvthumbs">${kf.photos.map((p, i) => `<span class="mvthumb"><img src="${p}" alt="" onclick="mvReview(${i})"><button onclick="mvDropPhoto(${i})" aria-label="${T('Remove')}">×</button></span>`).join('')}
-            ${scanOn ? `<button class="mvshot" onclick="mvShoot()" aria-label="${T('Take photo')}">${T('Photo')}</button>`
-              : `<label class="mvshot">${T('Photo')}<input type="file" accept="image/*" capture="environment" class="hidden" onchange="mvPickPhoto(this)"></label>`}</div>
-        </div>` : (scanJob.insp && locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : '')}
+      ${photoOk ? photosHtml(kf.photos, need) : (scanJob.insp && locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : '')}
     </div>
     <div class="kbtns">
-      ${!scanJob.insp && !b.off && kf.fresh !== 'unknown' && kf.fresh !== 'loading' && mvKind(id) === 'in'
-        ? `<button class="btn go" id="mvshort" style="flex-basis:100%" onclick="checkoutForShortstay('${id}')"${koBusy ? ' disabled' : ''}>${T('Check out for shortstay')}</button>` : ''}
-      ${kf.dest && !b.off ? `<button class="btn${!scanJob.insp && mvKind(id) === 'in' ? ' ghost' : ' go'}" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
+      ${kf.dest && !b.off ? `<button class="btn${short ? ' ghost' : ' go'}" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
       <button class="btn ghost" onclick="scanAgain()">${T('Scan another')}</button>
     </div>`;
   if(focused && /^(kf_|koreason)/.test(focused)){ const fe = document.getElementById(focused); if(fe){ try{ fe.focus(); if(caret != null) fe.setSelectionRange(caret, caret) }catch(e){} } }
 }
+// The photos row: what has been taken, and the button for the next one.
+const photosHtml = (ph, need) => `<div class="mvphotos">
+    <div class="mvphead">${T('Photos of the keys')}: ${ph.length}${need ? ' · ' + (ph.length >= need ? T('done') : need - ph.length + ' ' + T('left')) : ''}</div>
+    <div class="mvthumbs">${ph.map((p, i) => `<span class="mvthumb"><img src="${p}" alt="" onclick="mvReview(${i})"><button onclick="mvDropPhoto(${i})" aria-label="${T('Remove')}">×</button></span>`).join('')}
+      ${scanOn ? `<button class="mvshot" onclick="mvShoot()" aria-label="${T('Take photo')}">${T('Photo')}</button>`
+        : `<label class="mvshot">${T('Photo')}<input type="file" accept="image/*" capture="environment" class="hidden" onchange="mvPickPhoto(this)"></label>`}</div>
+  </div>`;
+// The photos being taken: for the planned keys together, or for the bundle on screen.
+const mvPh = () => lb ? lb.photos : kf.photos;
 // Photos from the scanner's own picture - the camera never closes between scanning and photographing.
 function mvShoot(){
   const v = document.getElementById('scanview');
-  if(!v || !v.videoWidth || !kf.id) return;
-  kf.photos.push(draw(v, v.videoWidth, v.videoHeight));
+  if(!v || !v.videoWidth || (!kf.id && !lb)) return;
+  mvPh().push(draw(v, v.videoWidth, v.videoHeight));
   const f = document.getElementById('scanflash'); if(f){ f.style.opacity = .85; setTimeout(()=>f.style.opacity = 0, 90) }
   paintScanFoot();
 }
 async function mvPickPhoto(input){
   const file = input.files && input.files[0]; input.value = '';
-  if(!file || !kf.id) return;
-  const r = await compressFile(file); if(r){ kf.photos.push(r.data); paintScanFoot() }
+  if(!file || (!kf.id && !lb)) return;
+  const r = await compressFile(file); if(r){ mvPh().push(r.data); paintScanFoot() }
 }
-function mvDropPhoto(i){ kf.photos.splice(i, 1); paintScanFoot() }
+function mvDropPhoto(i){ mvPh().splice(i, 1); paintScanFoot() }
 // Look at a photo before confirming; Retake removes it so the next one takes its place.
 function mvReview(i){
-  const p = kf.photos[i]; if(!p) return;
+  const p = mvPh()[i]; if(!p) return;
   const el = document.createElement('div');
   el.className = 'mvreview'; el.id = 'mvreview';
   el.innerHTML = `<img src="${p}" alt=""><div class="kbtns"><button class="btn ghost" onclick="mvDropPhoto(${i});document.getElementById('mvreview').remove()">${T('Retake')}</button>
@@ -4585,9 +4608,6 @@ async function bundleAct(id){
       const ok2 = document.getElementById('scanok'); if(ok2) ok2.classList.add('on');
       scanMsg(sentence + (locked ? ' · ' + T('report locked: in the key log only') : ''));
       setTimeout(() => { const o = document.getElementById('scanok'); if(o) o.classList.remove('on') }, 1100);
-      // Keys checked out for this inspection and not left yet: the next one comes up by itself.
-      const next = insp && S === insp ? planPending(insp)[0] : null;
-      if(next && bundleOf(next)){ cancelAnimationFrame(scanRaf); mvOpen(next, 'scan') }
       return ev;
     }
     kf = { id:null };
@@ -4633,8 +4653,106 @@ async function planShortstay(id){
     return { created: !row, id: S.id };
   }finally{ S = prev }
 }
-// From the key box: the scanner opens on this bundle, at the photo step - no scanning again.
-function inspPlan(id){ const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim(); openScan({ insp:true, id }) }
+/* Leaving the planned keys (2026-10-21): the key box's one button - "Lämna 115:2, 115:3 i
+   lägenheten" - opens the camera on all of them at once: nothing to scan, one photo, one Confirm.
+   Each bundle is read from the server when the panel opens and again on Confirm; if one was moved
+   by someone else in between, nothing is written and the panel says so. One already in the
+   apartment, archived or reported lost is left out, said so, and taken off the plan on Confirm -
+   there is nothing more to do with it here. Each bundle gets its own event and its own receipt
+   line, written as the scanner writes them; the photo is saved once and shared by them. */
+const LB_DONE = ['not in the register', 'Archived', 'reported lost', 'already in the apartment', 'already with the guest'];
+function inspLeavePlan(){ if(!canHandover()) return; const ids = planPending(S); if(ids.length) openScan({ insp:true, batch:ids }) }
+async function lbOpen(ids){
+  const me = lb = { ids: ids.slice(), dest: keyModeOf() === 'guest' ? 'guest' : 'apt', fresh:{}, basis:{}, photos:[], note:'' };
+  ids.forEach(id => me.fresh[id] = 'loading');
+  paintScanFoot();
+  await Promise.all(ids.map(async id => {
+    const r = await fetchLast(id);
+    me.fresh[id] = r ? 'ok' : (keySeenAt || bstate(id).ev) ? 'stale' : 'unknown';
+    me.basis[id] = (bstate(id).ev && bstate(id).ev.id) || '';
+  }));
+  if(lb === me) paintScanFoot();
+}
+// Why a planned bundle is not moved: '' when it is, 'loading' while it is being read.
+function lbSkip(id){
+  const b = bundleOf(id), f = lb.fresh[id];
+  if(!b) return 'not in the register';
+  if(b.off) return 'Archived';
+  if(f === 'loading') return 'loading';
+  if(f === 'unknown') return 'could not be read';
+  const k = mvKind(id);
+  if(k === 'lost') return 'reported lost';
+  if(k === lb.dest) return lb.dest === 'apt' ? 'already in the apartment' : 'already with the guest';
+  return '';
+}
+const lbWhere = dest => dest === 'guest' ? T('to') + ' ' + (inspTo() || T('the guest')) : T('in the apartment');
+function lbSentence(ids){
+  if(!ids.length) return T('Nothing to do');
+  const place = inspApt().place || bundleApt(bundleOf(ids[0]));
+  return `${T('Leave')} ${ids.join(', ')} ${lbWhere(lb.dest)}${lb.dest === 'guest' ? ' ·' : ''} ${place}`;
+}
+function paintLeave(foot, done){
+  const locked = !!(S && (S.signedAt || S.closedAt)), wait = lb.ids.some(id => lb.fresh[id] === 'loading');
+  const skips = lb.ids.map(id => [id, lbSkip(id)]).filter(([, w]) => w && w !== 'loading');
+  foot.innerHTML = `${done}
+    <div class="mvcard">
+      <div class="mvsentence" id="mvsentence" style="margin-top:0">${esc(lbSentence(lb.ids.filter(id => !lbSkip(id) || lbSkip(id) === 'loading')))}</div>
+      ${wait ? `<div class="hint" style="margin-top:8px">${T('Reading where it is…')}</div>` : ''}
+      ${skips.map(([id, w]) => `<div class="mvwarn">${esc(id)}: ${T(w)}</div>`).join('')}
+      ${lb.note ? `<div class="mvwarn">${esc(lb.note)}</div>` : ''}
+      ${locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : keyPhotoTarget() ? photosHtml(lb.photos, 1) : ''}
+    </div>
+    <div class="kbtns">
+      <button class="btn go" id="lbgo" onclick="lbConfirm()"${koBusy || wait ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>
+    </div>`;
+}
+async function lbConfirm(){
+  if(koBusy || !lb || !S || lb.ids.some(id => lb.fresh[id] === 'loading')) return;
+  const me = lb, insp = S, locked = !!(insp.signedAt || insp.closedAt);
+  koBusy = true; me.note = ''; paintScanFoot();
+  try{
+    const name = await koName(); if(!name) return;
+    // Read every bundle again; one moved by someone else since it was shown: nothing is written.
+    let moved = false;
+    await Promise.all(me.ids.map(async id => {
+      if(!await fetchLast(id)) return;
+      const now = (bstate(id).ev && bstate(id).ev.id) || '';
+      me.fresh[id] = 'ok';
+      if(now !== me.basis[id]){ me.basis[id] = now; moved = true }
+    }));
+    if(moved){ me.note = T('Moved by someone else just now - check and confirm again'); return }
+    const go = me.ids.filter(id => !lbSkip(id)), drop = me.ids.filter(id => LB_DONE.includes(lbSkip(id)));
+    const why = drop.map(id => lbSkip(id));
+    const made = [];
+    for(const id of go){
+      kf = { id, where:'scan', dest:me.dest, reason:'', name:'', phone:'', email:'', unit:'', place:'', fresh:'ok', basis:me.basis[id], note:'', photos:[] };
+      const [kind, extra] = moveEvent(id, me.dest, name);
+      const ev = await keyWrite(id, kind, extra);
+      if(ev) made.push([id, ev]);
+    }
+    kf = { id:null };
+    if(go.length && !made.length){ me.note = T('Could not save'); return }
+    if(S === insp && !locked){
+      const tgt = keyPhotoTarget(), pids = [];
+      if(tgt && made.length) for(const p of me.photos){ if(await savePhoto(tgt.id, p)) pids.push(tgt.photos[tgt.photos.length - 1].id) }
+      for(const [id, ev] of made){
+        S.keysOut = (S.keysOut || []).filter(k => k.bundle !== id);
+        S.keysOut.push({ bundle:id, name:ev.name||'', place:ev.place||'', guest:ev.guest||'', act:me.dest, ts:ev.ts, who:ev.who||'', evId:ev.id,
+                         photos:pids, keys:bundleOf(id).k.filter(keyOn).map(k => [k[0]||'', k[1]||'', k[2]||1]) });
+        log(`Key ${id}: ${me.dest === 'guest' ? 'left with ' + (ev.guest || 'the guest') : 'left in the apartment'} by ${ev.who}`);
+      }
+      if(drop.length){
+        S.keysPlan = (S.keysPlan || []).filter(id => !drop.includes(id));
+        log(`Keys not left by this inspection: ${drop.map((id, i) => id + ' (' + why[i] + ')').join(', ')}`);
+      }
+      await flushSave();
+    }
+    const said = made.length ? `✓ ${made.map(([id]) => id).join(', ')} ${lbWhere(me.dest)}` : T('Nothing to do');
+    koBusy = false;
+    await scanFinish();
+    toast(said + (made.length && locked ? ' · ' + T('report locked: in the key log only') : ''));
+  }finally{ koBusy = false; if(lb === me) paintScanFoot() }
+}
 
 // What the sheet had before it had a choice; kept for anything that calls them.
 async function checkOut(id){ kfDest('me'); return bundleAct(id) }
@@ -4696,13 +4814,15 @@ function paintBundle(id){
 }
 
 /* ----- keys in an inspection (2026-10-14) -----
-   The key box: what this inspection does with keys - in the apartment or to the guest (shortstay
-   and move-in, switchable), pick up (move-out) - and Scan key, which opens the one scanner with
-   the photo step. Each confirmed move goes on the report's key receipt with its keys as they
+   What this inspection does with keys - in the apartment (shortstay), to the guest (move-in),
+   pick up (move-out) - and the one scanner with the photo step, opened from the key box. Each confirmed move goes on the report's key receipt with its keys as they
    were, what was done, by whom and when, and the photos taken with it. */
 const HANDOVER_TYPES = ['Upplåsning','Inflytt','Utflytt'];
 const canHandover = () => !!S && HANDOVER_TYPES.includes(S.type);
-const keyModeOf = () => !S ? 'apt' : S.type === 'Utflytt' ? 'pick' : (S.keyMode === 'apt' || S.keyMode === 'guest') ? S.keyMode : S.type === 'Inflytt' ? 'guest' : 'apt';
+// Shortstay unlock: always in the apartment (Erik, 2026-10-21). A move-in: to the guest, unless an
+// older inspection chose otherwise. A single bundle can still go elsewhere in the scanner.
+const keyModeOf = () => !S ? 'apt' : S.type === 'Utflytt' ? 'pick' : S.type === 'Upplåsning' ? 'apt'
+  : (S.keyMode === 'apt' || S.keyMode === 'guest') ? S.keyMode : S.type === 'Inflytt' ? 'guest' : 'apt';
 // The inspection's apartment as the register knows it, when it does: "lgh 1102 TÄRNA" and
 // the object number 112. An apartment the register has not got yet is named by what the
 // inspection says, address included.
@@ -4720,46 +4840,27 @@ const hoDest = () => { if(!S) return ''; const m = keyModeOf(), c = inspApt();
 const actOf = k => k.act === 'pickup' ? T('picked up') : k.act === 'guest' ? T('to') + ' ' + (k.guest || T('the guest'))
   : k.act === 'apt' ? T('in the apartment') : '';
 
+// The key box (2026-10-21): what is done (✓), the keys checked out for this inspection as one button
+// - "Lämna 115:2, 115:3 i lägenheten", one photo and Confirm for them all - and + for any other key,
+// which opens the scanner. Nothing else: where a single key goes, and a guest's name, are chosen in
+// the scanner, with the bundle in front of you.
 function inspKeyCard(){
   if(!canHandover()) return '';
-  const mode = keyModeOf();
+  const mode = keyModeOf(), locked = !!(S.signedAt || S.closedAt);
   const done = (S.keysOut || []).filter(k => k.bundle);
-  const keep = id => { const e = document.getElementById(id); return e ? e.value : null };
-  const num = keep('kbnum'), gname = keep('kbguest');
-  const named = !!(S.counter && S.counter.name) && !isCheck();
-  const plan = planPending(S);
+  const plan = locked || mode === 'pick' ? [] : planPending(S);
   return `<div class="kcard inspkeys" id="inspkeys">
-    ${plan.map(id => { const b = bundleOf(id); return `<button class="kbrow planrow" onclick="inspPlan('${id}')">
-        <b>${esc(id)}</b><span>${esc(b ? (b.n || 'lgh ' + b.l) : '')}</span>
-        <span class="planact">${T(mode === 'guest' ? 'Leave with guest' : mode === 'pick' ? 'Pick up' : 'Leave in apartment')} ›</span></button>` }).join('')}
     ${done.map(k => `<div class="hoconf" style="margin:0 0 8px"><span class="hocheck">✓</span><div style="flex:1;min-width:0">
         <b>${esc(k.bundle)}${k.name ? ' · ' + esc(k.name) : ''}</b>
         <div>${esc(actOf(k))}${actOf(k) ? ' · ' : ''}${(k.keys||[]).reduce((n, x) => n + (x[2] || 1), 0)} ${T('keys')}${(k.photos||[]).length ? ' · ' + k.photos.length + ' ' + T(k.photos.length === 1 ? 'photo' : 'photos') : ''} · ${stamp(new Date(k.ts))}</div></div></div>`).join('')}
-    ${mode !== 'pick' ? `<div class="chips" style="margin-bottom:10px">
-        <button class="chip${mode==='apt'?' on':''}" onclick="setKeyMode('apt')">${T('In the apartment')}</button>
-        <button class="chip${mode==='guest'?' on':''}" onclick="setKeyMode('guest')">${T('To guest')}</button></div>` : `<div class="hint" style="margin:0 0 10px">${T('Pick up keys')}</div>`}
-    ${mode === 'guest' ? (named ? `<div class="hint" style="margin:0 0 10px">${T('To')}: <b>${esc(inspTo())}</b></div>`
-        : `<input id="kbguest" autocomplete="off" style="margin-bottom:10px" value="${esc(gname != null ? gname : (S.keyTo || ''))}"
-             placeholder="${T("Guest's name (if known)")}" oninput="S.keyTo=this.value.trim();save()">`) : ''}
-    <div class="addrow">
-      <input id="kbnum" value="${esc(num || '')}" placeholder="112:3" autocapitalize="characters" autocomplete="off" spellcheck="false"
-             onkeydown="if(event.key==='Enter')inspLeave()">
-      <button class="btn ghost small" onclick="inspLeave()">${T('Show')}</button>
-    </div>
-    <button class="btn" style="margin-top:8px" onclick="inspScan()">${T('Scan key')}</button>
+    ${plan.length ? `<button class="kbleave" id="kbleave" onclick="inspLeavePlan()">${esc(T('Leave') + ' ' + plan.join(', ') + ' ' + lbWhere(mode))}<span>›</span></button>` : ''}
+    <button class="kbadd" id="kbadd" onclick="inspScan()" aria-label="${T('Scan key')}">+ ${T('Key')}</button>
   </div>`;
 }
-function setKeyMode(m){ if(!S) return; S.keyMode = m; save(); paintInspKeyCard() }
 // Repaint the card in place - never the whole view, which would wipe a comment mid-typing.
 function paintInspKeyCard(){
   const el = document.getElementById('inspkeys'); if(!el || !S) return;
-  const focused = document.activeElement && document.activeElement.id;
-  const caret = focused ? document.activeElement.selectionStart : null;
   el.outerHTML = inspKeyCard();
-  if(focused === 'kbnum' || focused === 'kbguest'){
-    const f = document.getElementById(focused);
-    if(f){ try{ f.focus(); if(caret != null) f.setSelectionRange(caret, caret) }catch(e){} }
-  }
 }
 // Fetch the register and the shared state behind the card, then repaint it once.
 function inspKeyPrime(){
@@ -4767,17 +4868,8 @@ function inspKeyPrime(){
   keyBoot().then(paintInspKeyCard);
   keySync().then(refreshKeyViews);
 }
-async function inspScan(){ if(!canHandover()) return; const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim(); openScan({ insp:true }) }
-// A typed number opens the same scanner on that bundle, ready for its photos and its move.
-async function inspLeave(){
-  const f = document.getElementById('kbnum'), raw = f ? f.value.trim() : '';
-  if(!raw){ toast(T('Scan or type a number')); try{ f && f.focus() }catch(e){} return }
-  const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
-  if(!bundleOf(id)){ await keyBoot(); if(!bundleOf(id)){ toast(`${id} — ${T('not in the register')}`); return } }
-  if(f) f.value = '';
-  const gn = document.getElementById('kbguest'); if(gn) S.keyTo = gn.value.trim();
-  openScan({ insp:true, id });
-}
+// + in the key box: the scanner, which also takes a typed number.
+async function inspScan(){ if(!canHandover()) return; openScan({ insp:true }) }
 let scanDone = [];
 
 /* ----- key admin (2026-10-13) -----
@@ -4892,7 +4984,7 @@ function admSortBy(col){ admSort = admSort[0] === col ? [col, -admSort[1]] : [co
 function paintAdminList(){
   const box = document.getElementById('admlist'); if(!box) return;
   const ws = qWords(admQ);
-  const kOk = k => admF === 'all' || (admF === 'apt' ? (k === 'apt' || k === 'old') : k === admF);
+  const kOk = k => admF === 'all' || (admF === 'apt' ? IN_APT.includes(k) : k === admF);
   const all = regAll().map(b => { const s = bstate(b.id), k = stKind(s);
     return { id: b.id, b, s, k, status: k, apt: 'lgh ' + b.l + (b.n ? ' ' + b.n : ''), addr: b.a || '', where: stWhere(s),
              keys: keyCount(b.k), koff: keyOffCount(b.k), c: b.c || '', ts: k === 'in' ? 0 : (s.since || 0) } });
@@ -4901,7 +4993,7 @@ function paintAdminList(){
   const rows = all.filter(r => kOk(r.k) && (!ws.length || rowHits([r.id, r.apt, r.addr, r.where, r.c, stText(r.s), r.b.off ? T('Archived') : ''].join(' '), ws)))
     .sort((x, y) => dir * cmp(x, y));
   const LIMIT = 400, list = rows.slice(0, LIMIT);
-  const cnt = f => all.filter(r => f === 'apt' ? (r.k === 'apt' || r.k === 'old') : r.k === f).length;
+  const cnt = f => all.filter(r => f === 'apt' ? IN_APT.includes(r.k) : r.k === f).length;
   const cell = (r, c) => {
     if(c === 'id') return `<b>${esc(r.id)}</b>`;
     if(c === 'apt') return esc(r.apt) + (r.addr ? `<div class="kladdr">${esc(r.addr)}</div>` : '');
@@ -4912,7 +5004,7 @@ function paintAdminList(){
     if(c === 'keys') return r.koff ? `${r.keys} <span class="kladdr">+${r.koff} ${T('inactive')}</span>` : String(r.keys);
     return esc(String(r[c] || ''));
   };
-  box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['guest','At guest'],['lost','Lost']].map(([f, l]) =>
+  box.innerHTML = `<div class="chips" style="margin:0 0 10px">${[['all','All'],['apt','In the apartment'],['lost','Lost']].map(([f, l]) =>
       `<button class="chip${admF===f?' on':''}" onclick="admF='${f}';paintAdminList()">${T(l)}${f !== 'all' ? ' · ' + cnt(f) : ''}</button>`).join('')}</div>
     <div class="klcount">${rows.length === all.length ? all.length + ' ' + T('bundles') : rows.length + ' ' + T('of') + ' ' + all.length + ' ' + T('bundles')}</div>
     <div class="kltable-wrap"><table class="kltable">
@@ -5085,7 +5177,7 @@ function paintAdmEdit(){
           <input type="number" min="1" max="99" inputmode="numeric" value="${esc(k[2]||1)}" oninput="aeSet('k.${i}.2',this.value)" aria-label="${T('Quantity')}">
           <button class="admdel" onclick="aeKeyDel(${i})" aria-label="${T('Remove')}">×</button>
           <div class="admnoterow">${inp('k.' + i + '.3', k[3], 'Note')}
-            <button class="chip${k[4] ? ' on' : ''}" onclick="aeKeyOff(${i})">${T('Inactive')}</button></div>
+            <button class="tgl${k[4] ? '' : ' on'}" role="switch" aria-checked="${k[4] ? 'false' : 'true'}" onclick="aeKeyOff(${i})"><i></i><span>${T('Active')}</span></button></div>
         </div>`).join('')}
       <button class="btn ghost small" onclick="aeKeyAdd()">+ ${T('Add key')}</button>
 

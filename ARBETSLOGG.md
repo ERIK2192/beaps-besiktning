@@ -1937,3 +1937,13 @@ Erik: "lägg in ny mall" där man kan rita och skriva själv – en mini-variant
 - **Utskriften** väntar tills bilderna är klara innan den startar.
 
 Verifierat lokalt: brickor 106 (34 nya för ritprogrammet: penna, ångra/gör om, Ctrl+Z/Y, sudd, ifylld rektangel, ellips, fyllhink som stannar vid kanter, kodens plats bara visad, text, ordmärke, pipett, nummerfärg, förhandsvisningens QR läses, stäng frågar vid osparat, spara/öppna igen/ändra/läsa om/radera, ingenting på servern, utskrift med bilderna), både bred skärm och telefon; nyckeladmin 260.
+
+### 2026-10-21 — Egna mallar: textrutor som går att ändra och centrera
+
+Erik: text ska gå att centrera; gör "textruta" så att man enkelt kan ändra där det redan finns text.
+
+- **Textrutor** i stället för text som bränns in i bilden. *Textruta* (verktyget) gör en ruta där man klickar och man skriver direkt i den. Klicka på en befintlig ruta (med *Markera*, *Textruta* eller *Ordmärke*) för att ändra text, storlek, typsnitt, fet, färg och radjustering (vänster/mitten/höger). Dra för att flytta – rutan fastnar i mitten av sidan, med en hjälplinje. **Centrera på sidan**: Vågrätt, Lodrätt, Mitt på. *Radera* eller Delete tar bort rutan, piltangenterna flyttar den (Skift = 10 steg), Esc släpper den. En ruta som lämnas tom försvinner.
+- **Ordmärket** är också en ruta (bredd 15/20/26/33 mm, flyttas och centreras likadant). *Börja från* lägger ordmärket och telefonnumret som rutor, så texten som redan finns går att ändra.
+- **Lager**: det som ritas (penna, former, hink, sudd) ligger under, rutorna alltid ovanpå. Mallen sparas både som utskriftsbild och med lagren isär, så rutorna är rutor när mallen öppnas igen. Mallar sparade före detta öppnas som förut, med texten i bilden.
+
+Verifierat lokalt: brickor 124 (18 nya: rutor från Börja från, ny ruta skriv direkt, centrera vågrätt/mitt på, ångra, vänsterjustera, ändra telefonnumret på plats, storlek, färg på vald ruta, dra, fäst i mitten, Delete + ångra, tom ruta försvinner, ordmärket som ruta och bredd, rutorna kvar efter spara och öppna, äldre mall utan lager), bred skärm och telefon; nyckeladmin 258.

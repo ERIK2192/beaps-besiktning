@@ -270,6 +270,21 @@
   .mvreview{position:fixed;inset:0;z-index:95;background:#000;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:16px}
   .mvreview img{max-width:100%;max-height:75vh;object-fit:contain;margin:0 auto}
   .mvreview .btn.ghost{background:transparent;color:#fff;border-color:#555}
+  /* a tag just read: its number in a ring that fills, then the bundle (holdThen) */
+  .scanhit{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+           pointer-events:none;background:rgba(0,0,0,.5)}
+  .scanhit.on{display:flex}
+  .scanhit .ring{position:relative;width:min(56vw,210px);aspect-ratio:1;display:grid;place-items:center;animation:scanin .25s ease-out}
+  .scanhit svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .scanhit circle{fill:none;stroke-width:5}
+  .scanhit .trk{stroke:rgba(255,255,255,.22)}
+  .scanhit .arc{stroke:var(--brand);stroke-linecap:round;stroke-dasharray:276.5;stroke-dashoffset:276.5;
+                animation:scanfill var(--hold,2s) cubic-bezier(.45,0,.25,1) forwards}
+  .scanhit b{font-family:var(--num);font-size:34px;font-weight:700;color:#fff} .scanhit b.long{font-size:25px}
+  .scanhit span{font-size:15px;color:#E5E7EB;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  @keyframes scanfill{85%{stroke:var(--brand)} to{stroke-dashoffset:0;stroke:#22C55E}}
+  @keyframes scanin{from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .scanhit .ring{animation:none} .scanhit .arc{animation:none;stroke-dashoffset:0} }
   .scanok{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
   .scanok.on{display:flex}
   .scanok b{width:96px;height:96px;border-radius:50%;background:#22C55E;color:#fff;font-size:56px;line-height:96px;text-align:center}
@@ -1123,6 +1138,7 @@ const SV = {
   'left':'kvar',
   'Retake':'Ta om',
   'Reading where it is…':'Läser var den är…',
+  'Reading':'Läser',
   'Where this bundle is could not be read.':'Det gick inte att läsa var knippan är.',
   'Nothing is changed. Try again with a connection.':'Inget ändras. Försök igen med uppkoppling.',
   'Correct (admin)':'Rätta (admin)',
@@ -4156,12 +4172,13 @@ async function openScan(opts){
       <video id="scanview" playsinline muted autoplay></video>
       <div class="scanbox" id="scanbox"><i></i></div>
       <div class="scanok" id="scanok"></div>
+      <div class="scanhit" id="scanhit"></div>
       <div class="flash" id="scanflash"></div>
     </div>
     <div class="scanfoot" id="scanfoot"></div>`;
   document.body.appendChild(el);
   paintScanFoot();
-  if(opts && opts.id){ gotCode(opts.id) }
+  if(opts && opts.id){ gotCode(opts.id, true) }
   if(opts && opts.batch && scanJob.insp) lbOpen(opts.batch);
 
   if(!lb && !await loadJsQR()) return scanMsg(T('Scanner unavailable — type the number'), true);
@@ -4275,7 +4292,7 @@ function scanFeedback(){
 }
 function scanManual(){
   const el = document.getElementById('scanman');
-  if(el && el.value.trim()) gotCode(el.value.trim());
+  if(el && el.value.trim()) gotCode(el.value.trim(), true);
 }
 /* A tag holds "112:3" or "112:EXTRA" - or, on newer tags, a link the phone's own camera
    can open: https://beaps.se/#nyckel=112:3. Out in the world that link lands on the
@@ -4294,7 +4311,8 @@ function tagNumber(raw){
     return m ? decodeURIComponent(m[1]) : '';
   }catch(e){ return '' }
 }
-function gotCode(raw){
+// typed: the number was written in, not read by the camera - no pause, it opens at once.
+function gotCode(raw, typed){
   const id = tagNumber(raw).toUpperCase().replace(/\s+/g,'');
   const b = bundleOf(id);
   if(!b){
@@ -4309,14 +4327,40 @@ function gotCode(raw){
     return;
   }
   // The same tag read again while it is on screen: nothing to do.
-  if(kf.id === id && document.getElementById('scan')) return;
+  if((kf.id === id && document.getElementById('scan')) || scanHold === id) return;
   scanFeedback();
   // Identified - and nothing more. The scanner stops looking while the move is on screen.
   cancelAnimationFrame(scanRaf);
-  mvOpen(id, 'scan');
+  if(typed) mvOpen(id, 'scan');
+  else holdThen(id);
+}
+/* A tag read by the camera is held on screen for a moment before the bundle opens (Erik,
+   2026-10-21: so fast it felt like nothing happened): its number, its name and a ring filling
+   round it, SCAN_HOLD long. Where the bundle is is read from the server meanwhile, so the pause
+   costs nothing - the bundle comes up already knowing. */
+let SCAN_HOLD = 2000, scanHold = null;
+function holdThen(id){
+  const b = bundleOf(id), pre = fetchLast(id);
+  scanHold = id;
+  const hit = document.getElementById('scanhit');
+  if(hit){
+    hit.innerHTML = `<div class="ring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="44"/><circle class="arc" cx="50" cy="50" r="44"/></svg>
+        <b class="${id.length > 6 ? 'long' : ''}">${esc(id)}</b></div>
+      <span>${esc([b.n, b.l ? 'lgh ' + b.l : ''].filter(Boolean).join(' · '))}</span>`;
+    hit.style.setProperty('--hold', SCAN_HOLD + 'ms');
+    hit.classList.add('on');
+  }
+  const sb = document.getElementById('scanbox'); if(sb) sb.classList.add('hidden');
+  scanMsg(`${T('Reading')} ${id}…`);
+  setTimeout(() => {
+    if(scanHold !== id) return;
+    scanHold = null;
+    const h = document.getElementById('scanhit'); if(h) h.classList.remove('on');
+    if(document.getElementById('scan')) mvOpen(id, 'scan', pre);
+  }, SCAN_HOLD);
 }
 function closeScan(){
-  scanOn = false; cancelAnimationFrame(scanRaf);
+  scanOn = false; cancelAnimationFrame(scanRaf); scanHold = null;
   if(scanStream){ scanStream.getTracks().forEach(t=>{ try{ t.stop() }catch(e){} }); scanStream = null }
   const el = document.getElementById('scan'); if(el) el.remove();
   if(kf.where === 'scan') kf = { id:null };
@@ -4331,7 +4375,7 @@ async function scanFinish(){
 }
 // Back to reading tags, the camera still running: after a move, or "Scan another".
 function scanAgain(){
-  kf = { id:null };
+  kf = { id:null }; scanHold = null;
   const ok = document.getElementById('scanok'); if(ok) ok.classList.remove('on');
   paintScanFoot();
   if(scanOn){ scanMsg(T('Hold the tag in the frame')); scanSince = Date.now(); scanRaf = requestAnimationFrame(scanTick) }
@@ -4460,11 +4504,12 @@ async function fetchLast(id){
     return { ev };
   }catch(e){ return null }
 }
-async function mvOpen(id, where){
+// pre: the server read already under way (started while the tag was held on screen).
+async function mvOpen(id, where, pre){
   const b = bundleOf(id), place = b ? [b.a, b.l ? 'lgh ' + b.l : ''].filter(Boolean).join(' ') : '';
   kf = { id, where, dest:null, reason:'', name:'', phone:'', email:'', unit:'', place, fresh:'loading', basis:'', note:'', photos:[] };
   paintMove();
-  const r = await fetchLast(id);
+  const r = await (pre || fetchLast(id));
   if(kf.id !== id || kf.where !== where) return;
   kf.fresh = r ? 'ok' : (keySeenAt || bstate(id).ev) ? 'stale' : 'unknown';
   kf.basis = (bstate(id).ev && bstate(id).ev.id) || '';
@@ -4565,7 +4610,7 @@ function paintScanFoot(){
   const foot = document.getElementById('scanfoot'); if(!foot) return;
   const steps = document.getElementById('scansteps'); if(steps) steps.innerHTML = scanStepsHtml();
   // The frame says "reading": hidden while a bundle is shown and nothing is being read.
-  const sb = document.getElementById('scanbox'); if(sb && scanOn) sb.classList.toggle('hidden', !!(kf.id || lb));
+  const sb = document.getElementById('scanbox'); if(sb && scanOn) sb.classList.toggle('hidden', !!(kf.id || lb || scanHold));
   const done = scanDone.length ? `<div class="scandone" id="scandone">${scanDone.map(x => `<span>✓ ${esc(x)}</span>`).join('')}</div>` : '';
   if(lb) return paintLeave(foot, done);
   if(!kf.id){

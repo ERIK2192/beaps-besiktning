@@ -1044,6 +1044,7 @@ const SV = {
   'Other':'Annan',
   'Check out for shortstay':'Checka ut för shortstay',
   'Check out for shortstay unlock':'Checka ut för shortstay-upplåsning',
+  'Other errand':'Annat ärende',
   'Key':'Nyckel',
   'Nothing to do':'Inget att göra',
   'reported lost':'anmäld borttappad',
@@ -4390,7 +4391,9 @@ function kfSet(field, v){
     if(ok && er) er.remove();
     else if(!ok && !er){ const box = document.getElementById('kf_email'); if(box) box.closest('.kfwrap').insertAdjacentHTML('beforeend', emailErr(v)) } }
 }
-function kfDest(d){ if(validDests(kf.id).includes(d)) kf.dest = d; kf.note = ''; paintMove() }
+function kfDest(d){ if(validDests(kf.id).includes(d)) kf.dest = d; kf.note = ''; kf.more = true; paintMove() }
+// "Other errand": every move from the cabinet, in place of the shortstay-first view.
+function mvMore(){ if(!kf.id) return; kf.more = true; paintMove() }
 let koBusy = false;
 const REASONS = ['Visning','Service','Hantverkare','Städ','Besiktning','Utflytt'];
 function koPick(btn, reason){
@@ -4413,8 +4416,9 @@ async function koName(){
 // Where it was before, when that was not the cabinet: the person, the guest or the place.
 const fromOf = (s, name) => s.status === 'placed' ? placeLabel(s) : (s.status === 'out' && s.holder && !sameName(s.holder, name) ? s.holder : '');
 
-// The state line and the choices, the same in the scanner and on the sheet.
-function moveHtml(id){
+// The state line and the choices, the same in the scanner and on the sheet. Brief: the state line
+// only (the scanner's shortstay-first view of a bundle in the cabinet).
+function moveHtml(id, brief){
   const b = bundleOf(id), s = bstate(id), k = stKind(s), f = kf;
   const inp = (fld, ph, extra) => `<input id="kf_${fld}" value="${esc(f[fld])}" placeholder="${T(ph)}" oninput="kfSet('${fld}',this.value)" ${extra||''}>`;
   const stateLine = f.fresh === 'loading' ? `<div class="hint">${T('Reading where it is…')}</div>`
@@ -4428,7 +4432,7 @@ function moveHtml(id){
        ${isQueued(s.ev) ? `<div class="kwait" style="margin-top:6px">${T('waiting')}</div>` : ''}`;
   if(b.off) return stateLine + `<div class="mvwarn"><b>${T('Archived')}</b> · ${T('This bundle is no longer in use. Hand it to an admin.')}</div>`;
   const v = validDests(id);
-  if(!v.length) return stateLine;
+  if(!v.length || brief) return stateLine + (brief && f.note ? `<div class="mvwarn">${esc(f.note)}</div>` : '');
   const already = inInsp() && !f.dest && scanJob.mode !== 'pick' && mvKind(id) === scanJob.mode;
   const d = f.dest;
   const fields = d === 'me' && mvKind(id) === 'in' ? `
@@ -4484,19 +4488,21 @@ function paintScanFoot(){
   const id = kf.id, b = bundleOf(id), locked = !!(S && (S.signedAt || S.closedAt));
   const photoOk = scanJob.insp && !!keyPhotoTarget() && !locked && kf.fresh !== 'unknown' && !b.off;
   const need = kf.dest === 'apt' || kf.dest === 'guest' ? 1 : 0;
-  // From the cabinet, outside an inspection: Check out for shortstay unlock first, above everything.
-  const short = !scanJob.insp && !b.off && kf.fresh !== 'unknown' && mvKind(id) === 'in';
+  // From the cabinet, outside an inspection, nine times in ten it is a shortstay unlock (Erik,
+  // 2026-10-21): that one button, the bundle and where it is - every other move behind "Other errand".
+  const short = !scanJob.insp && !b.off && kf.fresh !== 'unknown' && mvKind(id) === 'in' && !kf.more;
   const focused = document.activeElement && document.activeElement.id;
   const caret = focused ? document.activeElement.selectionStart : null;
   foot.innerHTML = `${short ? `<button class="btn go" id="mvshort" onclick="checkoutForShortstay('${id}')"${koBusy || kf.fresh === 'loading' ? ' disabled' : ''}>${T('Check out for shortstay unlock')}</button>` : ''}
     ${done}
     <div class="mvcard">
       <div class="bhead"><span class="bnum">${esc(id)}</span>${b.n ? `<span class="bname">${esc(b.n)}</span>` : ''}<span class="baddr">${esc(b.a)} · lgh ${esc(b.l)}</span></div>
-      ${moveHtml(id)}
+      ${moveHtml(id, short)}
       ${photoOk ? photosHtml(kf.photos, need) : (scanJob.insp && locked ? `<div class="hint">${T('The report is locked: photos are not added.')}</div>` : '')}
     </div>
     <div class="kbtns">
-      ${kf.dest && !b.off ? `<button class="btn${short ? ' ghost' : ' go'}" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
+      ${short ? `<button class="btn ghost" id="mvmore" onclick="mvMore()">${T('Other errand')}</button>`
+        : kf.dest && !b.off ? `<button class="btn go" id="mvgo" onclick="bundleAct('${id}')"${koBusy ? ' disabled' : ''}>${koBusy ? T('Saving…') : T('Confirm')}</button>` : ''}
       <button class="btn ghost" onclick="scanAgain()">${T('Scan another')}</button>
     </div>`;
   if(focused && /^(kf_|koreason)/.test(focused)){ const fe = document.getElementById(focused); if(fe){ try{ fe.focus(); if(caret != null) fe.setSelectionRange(caret, caret) }catch(e){} } }

@@ -425,10 +425,15 @@
   /* Key admin → Tags: the three designs to pick from, and the tags as they will print. The tags
      themselves are drawn in mm by tags.js. While the tag sheet is up for printing, it is the only
      thing printed. */
-  .tgpick{display:flex;gap:10px}
+  .tgpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .tgopt-w{position:relative;display:flex;min-width:0}
   .tgopt{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px 10px;
          background:#fff;border:1px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;line-height:1.2}
+  .tgopt > span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
   .tgopt.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .tgedit{position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:8px;background:#fff;border:1px solid var(--line);font-size:15px;line-height:1}
+  .tgnewt{justify-content:center;border-style:dashed;color:var(--ink2);min-height:120px}
+  .tgplus{font-size:34px;line-height:1;font-weight:400}
   .tgapt{margin-top:14px}
   .tgobj{font-family:var(--num);font-size:13px;font-weight:700;margin-bottom:8px}
   .tgapt + .tgapt{border-top:1px solid var(--line);padding-top:14px}
@@ -1241,7 +1246,51 @@ const SV = {
   'Take them off the sheet':'Ta bort dem från arket',
   'Keep':'Behåll',
   'taken off the sheet':'borttagna från arket',
-  'The sheet could not be read.':'Arket gick inte att hämta.',
+  'The sheet is kept on this device only.':'Arket sparas bara på den här enheten.',
+  // --- drawing a tag design (2026-10-21) ---
+  'New design':'Ny mall',
+  'Edit design':'Ändra mall',
+  'Own design':'Egen mall',
+  'Start from':'Börja från',
+  'Blank':'Tom',
+  'Tools':'Verktyg',
+  'Pen':'Penna',
+  'Eraser':'Sudd',
+  'Line':'Linje',
+  'Rectangle':'Rektangel',
+  'Ellipse':'Ellips',
+  'Fill':'Fyll',
+  'Text':'Text',
+  'Eyedropper':'Pipett',
+  'Wordmark':'Ordmärke',
+  'Size':'Storlek',
+  'Outline':'Kontur',
+  'Filled':'Ifylld',
+  'Width':'Bredd',
+  'Font':'Typsnitt',
+  'Bold':'Fet',
+  'Phone number':'Telefonnumret',
+  'Colour':'Färg',
+  'Other colour':'Annan färg',
+  'Fill the whole side':'Fyll hela sidan',
+  'The number on the back':'Numret på baksidan',
+  'Redo':'Gör om',
+  'Front side':'Framsida',
+  'Back side':'Baksida',
+  'the code and the number go on top':'koden och numret läggs ovanpå',
+  'As it prints':'Som den skrivs ut',
+  'QR code':'QR-kod',
+  'Save design':'Spara mallen',
+  'Delete design':'Ta bort mallen',
+  'Design saved':'Mallen sparad',
+  'Design deleted':'Mallen borttagen',
+  'Delete this design? Tags on the sheet in it go back to green.':'Ta bort mallen? Brickor på arket i den blir gröna.',
+  'The eraser paints with the side\'s background colour.':'Sudden målar med sidans bakgrundsfärg.',
+  'Click in an area to fill it with the colour.':'Klicka i ett område för att fylla det med färgen.',
+  'Click on the tag to take its colour.':'Klicka på brickan för att ta färgen därifrån.',
+  'Click where the wordmark goes.':'Klicka där ordmärket ska stå.',
+  'Write the text first, then click where it goes':'Skriv texten först och klicka sedan där den ska stå',
+  'Could not save on this device':'Kunde inte spara på enheten',
   'Click a tag on the paper to change its design or take it off. Dashed: not on the sheet yet.':'Klicka på en bricka på arket för att byta mall eller ta bort den. Streckad: inte lagd på arket än.',
   'The sheet is empty. Write numbers above - a bundle made with New bundle comes here by itself.':'Arket är tomt. Skriv nummer ovan – en knippa som görs med Ny knippa hamnar här av sig själv.',
   'on the sheet':'på arket',
@@ -5451,8 +5500,8 @@ function admOk(r){
 
 /* ----- key tags (2026-10-21) -----
    Key admin → Tags. Tags are made first and the bundle is filled in afterwards, and they are
-   printed in bulk (Erik): the page is a shared sheet - the tags waiting to be printed, kept on
-   the server, so one person can add from a phone and another print from a computer. The paper is
+   printed in bulk (Erik): the page is a sheet - the tags waiting to be printed, kept on this
+   device and nowhere else (tqLoad). The paper is
    shown as it will print, beside the number field: write numbers and they appear on it, dashed,
    until Add to the sheet. Click a tag on the paper to give it another design or take it off.
    A number the register has not got is added to it when it goes on the sheet, with the address
@@ -5464,65 +5513,132 @@ function admOk(r){
    to a page, printed at 100 %, like the sheets made before. */
 const loadTags = () => loadScript('tags.js', ()=>!!window.BEAPS_TAGS);
 const TAG_MAX = 90;
-const TAG_TPLS = ['green', 'darkpeach', 'lightpeach'];
+// A design: one of the three printed ones, or one drawn on this device (tagpaint.js, 'c' + an id).
+const tplOk = k => /^(green|darkpeach|lightpeach|c[a-z0-9]{6,20})$/.test(String(k || ''));
 // { tpl, q, objs: {object: {a, l, n, typed}}, tplFor: {id: design}, ops: {id: op_id}, busy, t, sel, printed: {items, ts} }
 let tg = null;
 const tagLine = b => [b.a, [b.l ? 'lgh ' + b.l : '', b.n].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-const tagTplPref = () => { try{ const v = localStorage.getItem('beaps-tagtpl'); return TAG_TPLS.includes(v) ? v : 'green' }catch(e){ return 'green' } };
+const tagTplPref = () => { try{ const v = localStorage.getItem('beaps-tagtpl'); return tplOk(v) ? v : 'green' }catch(e){ return 'green' } };
 
-// The sheet as last read, with this phone's own adds and removals laid over it until every
-// listing has them: a KV listing can be a minute behind a write made elsewhere.
+// The sheet is kept on this device only, in the app's own storage beside the saved inspections
+// (Erik: not in the database): [{id, tpl, at, rev}] in the order put on. rev counts changes to a
+// tag, so clearing after a print leaves one given a new design since.
+const TAGQ = 'bp:tagsheet';
 let tq = null;
-const tqLocal = { added:{}, gone:{} };
-const TQ_SETTLE = 120000;
-function tqMerge(list){
-  const now = Date.now(), map = {};
-  for(const it of list || []) if(it && okBundle(it.id)) map[it.id] = it;
-  for(const id of Object.keys(tqLocal.added)){
-    const it = tqLocal.added[id];
-    if(now - it.seenAt > TQ_SETTLE){ delete tqLocal.added[id]; continue }
-    if(!map[id] || (map[id].rev || 0) < it.rev) map[id] = it;
-  }
-  for(const id of Object.keys(tqLocal.gone)){
-    const g = tqLocal.gone[id];
-    if(now - g.seenAt > TQ_SETTLE){ delete tqLocal.gone[id]; continue }
-    if(map[id] && (map[id].rev || 0) <= g.rev) delete map[id];
-  }
-  return Object.values(map).sort((a, b) => (a.at || 0) - (b.at || 0) || (a.id < b.id ? -1 : 1));
-}
 const onSheet = id => !!(tq && tq.some(x => x.id === id));
 async function tqLoad(){
-  const r = await admCall({op:'queue'});
-  if(r.status === 200 && r.j.ok){ tq = tqMerge(r.j.items); return true }
-  return false;
-}
-// [{id, tpl}] onto the sheet. quiet: says nothing itself (New bundle reports it in its own words).
-async function tqAdd(items, quiet){
-  if(!tq) await tqLoad();
-  const r = await admCall({op:'qadd', items, who: keyMe || ''});
-  if(!(r.status === 200 && r.j.ok)){
-    if(!quiet && admOk(r)) toast(T('Could not save') + ' (' + r.status + ')');
-    return null;
+  if(!tq){
+    const v = await store.get(TAGQ);
+    if(!tq) tq = Array.isArray(v) ? v.filter(it => it && okBundle(it.id) && tplOk(it.tpl)) : [];
   }
-  const now = Date.now();
-  for(const it of r.j.items || []){ tqLocal.added[it.id] = { ...it, seenAt: now }; delete tqLocal.gone[it.id] }
-  tq = tqMerge(tq || []);
-  return r.j.items || [];
+  await tqFromServer();
+  return true;
+}
+// For a day (2026-10-21) the sheet lived on the server. What was put on it there comes to the
+// first device that opens it, once: saved here first, only then deleted there, so a failed save
+// loses nothing. Nothing writes the sheet to the server any more.
+let tqMoving = null;
+function tqFromServer(){
+  try{ if(localStorage.getItem('beaps-tagq-moved')) return Promise.resolve() }catch(e){ return Promise.resolve() }
+  return tqMoving || (tqMoving = (async () => {
+    const r = await admCall({op:'queue'});
+    if(!(r.status === 200 && r.j.ok)) return;           // tried again next time
+    const items = (r.j.items || []).filter(it => it && okBundle(it.id));
+    if(items.length){
+      const next = tq.concat(items.filter(it => !onSheet(it.id)).map(it => ({ id: it.id, tpl: tplOk(it.tpl) ? it.tpl : 'green', at: Number(it.at) || Date.now(), rev: 1 })))
+        .sort((a, b) => a.at - b.at);
+      if(!await store.set(TAGQ, next)) return;
+      tq = next;
+      const d = await admCall({op:'qdel', items: items.map(it => ({ id: it.id, rev: it.rev }))});
+      if(!(d.status === 200 && d.j.ok)) return;
+    }
+    try{ localStorage.setItem('beaps-tagq-moved', '1') }catch(e){}
+  })().finally(() => { tqMoving = null }));
+}
+// [{id, tpl}] onto the sheet; one already on it keeps its place and takes the design. quiet: says
+// nothing itself (New bundle reports it in its own words).
+async function tqAdd(items, quiet){
+  await tqLoad();
+  const now = Date.now(), next = tq.map(t => ({ ...t }));
+  items.forEach((x, i) => {
+    const cur = next.find(t => t.id === x.id);
+    if(cur){ if(cur.tpl !== x.tpl){ cur.tpl = x.tpl; cur.rev = (cur.rev || 0) + 1 } }
+    else next.push({ id: x.id, tpl: tplOk(x.tpl) ? x.tpl : 'green', at: now + i, rev: 1 });
+  });
+  if(!await store.set(TAGQ, next)){ if(!quiet) toast(T('Could not save on this device')); return null }
+  tq = next;
+  return items;
 }
 // Each one only as it was: [{id, rev}].
 async function tqRemove(items){
-  const r = await admCall({op:'qdel', items: items.map(it => ({ id: it.id, rev: it.rev })), who: keyMe || ''});
-  if(!(r.status === 200 && r.j.ok)){ if(admOk(r)) toast(T('Could not save') + ' (' + r.status + ')'); return false }
-  const now = Date.now();
-  for(const it of items){
-    tqLocal.gone[it.id] = { rev: it.rev, seenAt: now };
-    const a = tqLocal.added[it.id]; if(a && a.rev <= it.rev) delete tqLocal.added[it.id];
-  }
-  tq = tqMerge(tq || []);
+  await tqLoad();
+  const next = tq.filter(t => !items.some(it => it.id === t.id && (t.rev || 0) <= (it.rev || 0)));
+  if(!await store.set(TAGQ, next)){ toast(T('Could not save on this device')); return false }
+  tq = next;
   return true;
 }
 const tagBtnLabel = () => T('Tags') + (tq && tq.length ? ' · ' + tq.length : '');
 function tagBtnPaint(){ const b = document.getElementById('admtags'); if(b) b.textContent = tagBtnLabel() }
+
+// Designs drawn here (tagpaint.js), kept on this device like the sheet: [{id, name, front, back
+// (PNG data URLs), num, bg: {front, back}, created, updated}]. Handed to tags.js as blob URLs, so
+// the paper - painted again on every key - does not carry the pictures as text each time.
+const TAGTPLS = 'bp:tagtpls';
+let tagTpls = null;
+const tagTplUrls = {};
+const loadPaint = () => loadScript('tagpaint.js', () => typeof window.paintOpen === 'function');
+function pngUrl(d){
+  const bin = atob(String(d).split(',')[1] || ''), u = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([u], { type: 'image/png' }));
+}
+const okPng = d => /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(d || ''));
+function tagTplRegister(t){
+  const B = window.BEAPS_TAGS; if(!B) return;
+  const had = tagTplUrls[t.id];
+  if(had && had.u === t.updated && B.TEMPLATES[t.id]) return;
+  if(had){ URL.revokeObjectURL(had.f); URL.revokeObjectURL(had.b) }
+  const f = pngUrl(t.front), b = pngUrl(t.back);
+  tagTplUrls[t.id] = { f, b, u: t.updated };
+  B.setCustom(t.id, { name: t.name, front: f, back: b, num: t.num, bg: (t.bg && t.bg.back) || '#FFFFFF', fbg: (t.bg && t.bg.front) || '#FFFFFF' });
+}
+async function tagTplsLoad(){
+  if(!tagTpls){
+    const v = await store.get(TAGTPLS);
+    if(!tagTpls) tagTpls = Array.isArray(v) ? v.filter(t => t && /^c[a-z0-9]{6,20}$/.test(t.id) && okPng(t.front) && okPng(t.back)) : [];
+  }
+  tagTpls.forEach(tagTplRegister);
+}
+async function tagTplPut(rec){
+  await tagTplsLoad();
+  const list = tagTpls.filter(t => t.id !== rec.id).concat([rec]);
+  if(!await store.set(TAGTPLS, list)) return false;
+  tagTpls = list;
+  tagTplRegister(rec);
+  return true;
+}
+// Tags on the sheet in a deleted design go back to green; so does a choice made with it.
+async function tagTplDel(id){
+  await tagTplsLoad();
+  const list = tagTpls.filter(t => t.id !== id);
+  if(!await store.set(TAGTPLS, list)) return false;
+  tagTpls = list;
+  const B = window.BEAPS_TAGS; if(B) B.dropCustom(id);
+  const had = tagTplUrls[id]; if(had){ URL.revokeObjectURL(had.f); URL.revokeObjectURL(had.b); delete tagTplUrls[id] }
+  await tqLoad();
+  const on = tq.filter(x => x.tpl === id);
+  if(on.length) await tqAdd(on.map(x => ({ id: x.id, tpl: 'green' })), true);
+  try{ if(localStorage.getItem('beaps-tagtpl') === id) localStorage.setItem('beaps-tagtpl', 'green') }catch(e){}
+  if(tg){ if(tg.tpl === id) tg.tpl = 'green'; for(const k of Object.keys(tg.tplFor)) if(tg.tplFor[k] === id) delete tg.tplFor[k]; paintTags(false) }
+  return true;
+}
+async function openTplEditor(id){
+  closeTagMenu();
+  if(!await loadPaint()) return toast(T('Could not load the tags. Check the connection and try again.'));
+  window.paintOpen(id || '');
+}
+// A design just saved is the one chosen for new tags.
+function tagTplChosen(id){ if(tg && window.BEAPS_TAGS.TEMPLATES[id]) tagPick(id) }
 
 const tagBar = btns => `<div class="sheetbar"><button class="btn ghost" onclick="closeTags()">${T('Close')}</button>${btns || ''}</div>`;
 async function openTags(pre){
@@ -5533,6 +5649,8 @@ async function openTags(pre){
   if(!document.getElementById('atags')) return;
   if(!ok) return admSheet('atags', topbar(T('Tags'), T('Key admin'), null, 'closeTags()') + `<div class="wrap"><div class="card"><div class="hint" style="margin:0">${T('Could not load the tags. Check the connection and try again.')}</div></div></div>` + tagBar());
   if(!document.getElementById('tagcss')){ const st = document.createElement('style'); st.id = 'tagcss'; st.textContent = window.BEAPS_TAGS.CSS; document.head.appendChild(st) }
+  await tagTplsLoad();
+  if(!document.getElementById('atags')) return;
   tg = { tpl: tagTplPref(), q: pre || '', objs:{}, tplFor:{}, ops:{}, busy:false, t:0, sel:'', printed:null, loading:true };
   const el = admSheet('atags', topbar(T('Tags'), T('Key admin'), null, 'closeTags()') + `<div class="wrap tgwide"><div class="tglayout">
       <div class="tgside">
@@ -5643,7 +5761,9 @@ function paintTags(withNew){
   const fresh = P.ids.filter(id => !bundleOf(id));
   const groups = [...new Set(fresh.map(objOf))].map(obj => ({ obj, o: tagApt(obj), ids: fresh.filter(id => objOf(id) === obj) }));
   const sample = P.ids[0] || '112:3';
-  $('#tgpick').innerHTML = B.ORDER.map(k => `<button class="tgopt${tg.tpl === k ? ' on' : ''}" onclick="tagPick('${k}')" aria-pressed="${tg.tpl === k}">${B.back(k, sample)}<span>${T(B.TEMPLATES[k].name)}</span></button>`).join('');
+  $('#tgpick').innerHTML = B.ORDER.map(k => `<div class="tgopt-w"><button class="tgopt${tg.tpl === k ? ' on' : ''}" onclick="tagPick('${k}')" aria-pressed="${tg.tpl === k}">${B.back(k, sample)}<span>${esc(T(B.TEMPLATES[k].name))}</span></button>${B.TEMPLATES[k].custom
+      ? `<button class="tgedit" onclick="openTplEditor('${k}')" title="${T('Edit design')}" aria-label="${T('Edit design')}">✎</button>` : ''}</div>`).join('')
+    + `<button class="tgopt tgnewt" onclick="openTplEditor('')"><span class="tgplus">+</span><span>${T('New design')}</span></button>`;
   $('#tgbad').innerHTML = P.bad.map(b => `<div class="ferr">${esc(b.text)} – ${T(b.why)}</div>`).join('')
     + (P.over ? `<div class="ferr">${T('At most')} ${TAG_MAX} ${T('at a time')}</div>` : '')
     + (P.ids.some(id => !id.includes(':')) ? `<div class="hint">${T('Usually written object:bundle, e.g. 404:1')}</div>` : '');
@@ -5663,16 +5783,14 @@ function paintTags(withNew){
         <div style="display:flex;gap:10px;margin-top:12px"><button class="btn small" onclick="tagClearPrinted()">${T('Take them off the sheet')}</button>
           <button class="btn ghost small" onclick="tg.printed=null;paintTags(false)">${T('Keep')}</button></div></div>` : '')
     + (tg.loading ? `<div class="hint">${T('Updating…')}</div>`
-      : !tq ? `<div class="card"><div class="hint" style="margin:0">${T('The sheet could not be read.')} <button class="addc" onclick="tagReload()">${T('Try again')}</button></div></div>`
       : `<div class="hint">${items.length ? T('Click a tag on the paper to change its design or take it off. Dashed: not on the sheet yet.')
-          : T('The sheet is empty. Write numbers above - a bundle made with New bundle comes here by itself.')}</div>`);
+          : T('The sheet is empty. Write numbers above - a bundle made with New bundle comes here by itself.')} ${T('The sheet is kept on this device only.')}</div>`);
   $('#tgpapers').innerHTML = B.sheet(tg.tpl, items, tagSheetTxt(items), { slots: true });
   tagFit();
   const add = $('#tgadd'), btn = $('#tgbtn'), np = P.ids.filter(id => !onSheet(id)).length;
   if(add){ add.textContent = T('Add to the sheet') + (np ? ' (' + np + ')' : ''); add.className = np ? 'btn' : 'btn ghost' }
   if(btn){ btn.textContent = T('Print the sheet') + (items.length ? ' (' + items.length + ')' : ''); btn.className = np ? 'btn ghost' : 'btn' }
 }
-async function tagReload(){ if(!tg) return; tg.loading = true; paintTags(false); await tqLoad(); if(!tg) return; tg.loading = false; paintTags(false) }
 
 // Onto the sheet: what is typed and not on it yet, each in its design. A number the register has
 // not got is added to the register first. True when everything typed is on the sheet.
@@ -5685,7 +5803,7 @@ async function tagAdd(){
   tg.busy = true;
   const btns = [$('#tgadd'), $('#tgbtn')]; btns.forEach(b => { if(b) b.disabled = true });
   try{
-    if(!tq && !await tqLoad()){ toast(T('The sheet could not be read.')); return false }
+    await tqLoad();
     const ids = P.ids.filter(id => !onSheet(id));
     for(const id of ids.filter(id => !bundleOf(id))){
       // op_id: a second tap, or a retry after a lost answer, adds the bundle once.
@@ -5741,7 +5859,8 @@ function tagPaperClick(e){
   const m = document.createElement('div');
   m.id = 'tgmenu'; m.className = 'tgmenu';
   m.innerHTML = `<div class="tgmhead"><b>${esc(id)}</b>${q ? '' : ' · ' + T('not on the sheet yet')}</div>
-    ${B.ORDER.map(k => `<button class="tgsw${cur === k ? ' on' : ''}" onclick="tagRecolor('${id}','${k}')"><i style="background:${B.TEMPLATES[k].bg}"></i>${T(B.TEMPLATES[k].name)}</button>`).join('')}
+    ${B.ORDER.map(k => { const t = B.TEMPLATES[k];
+      return `<button class="tgsw${cur === k ? ' on' : ''}" onclick="tagRecolor('${id}','${k}')"><i style="background:${esc(t.bg)}${t.custom ? ` url('${esc(t.back)}') center/cover` : ''}"></i>${esc(T(t.name))}</button>` }).join('')}
     ${q ? `<button class="tgsw tgoff" onclick="tagUnqueue('${id}')">${T('Take off the sheet')}</button>` : ''}`;
   document.body.appendChild(m);
   const w = m.offsetWidth, h = m.offsetHeight;
@@ -5787,7 +5906,8 @@ function tagSheetPrint(items){
   if(!st){ st = document.createElement('style'); st.id = 'tagpage'; document.head.appendChild(st) }
   st.textContent = '@page{size:A4 portrait;margin:12mm}';
   document.body.classList.add('tagprinting');
-  setTimeout(() => window.print(), 60);
+  // A drawn design is a picture: let every one be ready before the page is printed.
+  Promise.all([...el.querySelectorAll('img')].map(i => i.decode().catch(() => {}))).then(() => setTimeout(() => window.print(), 60));
 }
 function tagPrintDone(){
   document.body.classList.remove('tagprinting');

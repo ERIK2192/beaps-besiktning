@@ -1914,3 +1914,25 @@ Erik: brickorna görs först, detaljerna fylls i på knippan sedan. Man ska kunn
 - **Utskriften rättad**: startsidans bottenmarginal följde med in i utskriften och kunde skjuta sidfoten till en tom andra sida. Nollas nu medan arket skrivs ut.
 
 Verifierat lokalt: brickor 68 (outputs/tagmaker-test, mot riktiga funktioner, både bred skärm och telefon: papper bredvid/under, fullstor/nedskalat, streckade, färg per bricka före och efter tillägg, plats behålls, utskrift av allt i sin färg, rensning efter utskrift som lämnar ändrade och andras, en lista en minut efter visar inte borttagna, Ny knippa och knippans sida lägger på arket, samtidigt tillagt nummer, utgången admininloggning, engelska), nyckeladmin 256 och serverns admintester 87 oförändrat gröna. Utskrifts-PDF från Edge granskad (en sida, 16 brickor i tre färger). Inte provat på en riktig skrivare eller från en iPhone.
+
+### 2026-10-21 — Brickarket sparas lokalt, inte i databasen
+
+Erik: arket ska inte sparas i databasen, utan lokalt.
+
+- **Arket ligger nu bara på enheten**, i appens egen lagring bredvid de sparade besiktningarna (`bp:tagsheet`). Inget om arket skrivs till servern. Sidan säger "Arket sparas bara på den här enheten." Telefon och dator har alltså var sitt ark.
+- **Det som redan låg på serverns ark** (`ktq/` i KV, sedan 9573b7e) flyttas en gång till den första enhet som öppnar Brickor: sparas där först, raderas på servern först därefter – misslyckas sparningen ligger det kvar på servern och flyttas nästa gång. Sedan frågar enheten aldrig servern igen. `qadd` är borttagen; `queue` och `qdel` finns kvar bara för den flytten.
+- **Oförändrat**: nya knippnummer läggs fortfarande till i nyckelregistret (annars går brickan inte att skanna). Färg per bricka, Ny knippa och *Lägg på brickarket* fungerar som förut, mot enhetens ark.
+
+Verifierat lokalt: brickor 73 (bl.a. flytten från servern: misslyckad sparning lämnar den kvar, lyckad raderar den, servern tillfrågas aldrig igen; inget om arket på servern efter alla flöden; arket läst på nytt från enheten), nyckeladmin 256, serverns admintester 87.
+
+### 2026-10-21 — Egna mallar: ett litet ritprogram för brickor
+
+Erik: "lägg in ny mall" där man kan rita och skriva själv – en mini-variant av Paint.
+
+- **Brickor → + Ny mall** (en ruta bredvid de tre mallarna). Egna mallar får en penna (✎) för att ändras. De väljs som de andra: för nya brickor under *Mall*, eller per bricka via klick på pappret.
+- **Ritprogrammet** (`tagpaint.js`, laddas bara när det öppnas): fram- och baksidan i samma skala bredvid varandra (på telefon överst, verktygen under). Verktyg: penna, sudd (målar med sidans bakgrundsfärg), linje, rektangel och ellips (kontur eller ifylld), fyllhink, text (storlek i pt, typsnitt, fet, knapp för telefonnumret), pipett och Beaps-ordmärket (20/26/33 mm). Tio färger plus valfri färg, *Fyll hela sidan*, ångra/gör om (även Ctrl+Z / Ctrl+Y). *Börja från* ritar Grön, Mörk persika, Ljus persika eller tom att bygga vidare på; nya mallar börjar från Grön.
+- **Baksidan**: QR-koden (på sitt vita fält) och numret läggs ovanpå ritningen när brickan görs, så en egen bricka skannas som alla andra. Editorn visar var de hamnar; numrets färg väljs separat. *Som den skrivs ut* visar brickan som den blir.
+- **Sparas på enheten**, som arket (`bp:tagtpls`): två PNG-bilder i 12 px/mm (ca 300 dpi). Inget till servern. Raderas en mall blir brickor i den på arket gröna.
+- **Utskriften** väntar tills bilderna är klara innan den startar.
+
+Verifierat lokalt: brickor 106 (34 nya för ritprogrammet: penna, ångra/gör om, Ctrl+Z/Y, sudd, ifylld rektangel, ellips, fyllhink som stannar vid kanter, kodens plats bara visad, text, ordmärke, pipett, nummerfärg, förhandsvisningens QR läses, stäng frågar vid osparat, spara/öppna igen/ändra/läsa om/radera, ingenting på servern, utskrift med bilderna), både bred skärm och telefon; nyckeladmin 260.

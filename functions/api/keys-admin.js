@@ -15,13 +15,11 @@
 //   state   { bundle, event, base_ev, op_id, who, note } -> a correction of where the bundle is or who has it,
 //                                   written as an ordinary out/in/place event marked adm, after
 //                                   the bundle's last one. Earlier events stay as they were.
-//   queue                        -> { items:[{id, tpl, at, rev, by}] }  the tag sheet: bundles waiting
-//                                   for a printed tag, in the order put on (at) (2026-10-21)
-//   qadd    { items:[{id, tpl}] } -> puts them on the sheet. One key each (ktq/<bundle>), so two admins
-//                                   adding at once both land. One already there keeps its place and
-//                                   takes the new design (rev = when it last changed).
-//   qdel    { items:[{id, rev}] } -> takes them off, each only as it was then: one changed after `rev`
-//                                   (a new design after the print) stays.
+//   queue                        -> { items:[{id, tpl, at, rev, by}] }  what is left of the tag sheet
+//                                   that lived here for a day (2026-10-21, ktq/<bundle>). The sheet
+//   qdel    { items:[{id, rev}] } -> is kept on each device now (Erik: not in the database); these two
+//                                   only let the first device that opens it take what was here - read,
+//                                   saved there, then deleted here. Nothing writes ktq/ any more.
 //
 // Behind the team login (middleware) and the app key; reg and state also need the admin
 // cookie, checked here on every call.
@@ -36,9 +34,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const json = (obj, status, extra) => Response.json(obj, { status: status || 200, headers: { ...NO_STORE, ...(extra || {}) } });
 const OK_OP = /^[A-Za-z0-9_-]{6,24}$/;
 const newId = () => 'a' + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join('');
-// The tag sheet. The value is nothing; what matters is in the metadata, so one list() reads it all.
+// The tag sheet as it was kept here for a day: the metadata held everything, so one list() reads it.
 const TQ = 'ktq/';
-const TQ_TPL = ['green', 'darkpeach', 'lightpeach'];
 const TQ_MAX = 200;
 // A few at a time: a KV call each, and the free plan allows only so many in flight.
 async function inBatches(list, fn) { for (let i = 0; i < list.length; i += 20) await Promise.all(list.slice(i, i + 20).map(fn)) }
@@ -107,25 +104,6 @@ export async function onRequest(context) {
       } while (cursor && ++pages < 5);
       items.sort((x, y) => (x.at || 0) - (y.at || 0) || (x.id < y.id ? -1 : 1));
       return json({ ok: true, items });
-    }
-    if (b.op === 'qadd') {
-      const now = Date.now(), seen = new Set(), list = [];
-      for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, TQ_MAX)) {
-        const id = String((it && it.id) || '');
-        if (!OK_ID.test(id) || seen.has(id)) continue;
-        seen.add(id);
-        list.push({ id, tpl: TQ_TPL.includes(it.tpl) ? it.tpl : 'green', i: list.length });
-      }
-      const out = [];
-      // Each one a millisecond apart, so the sheet keeps the order they were added in.
-      await inBatches(list, async x => {
-        let m = null;
-        try { m = (await store.getWithMetadata(TQ + x.id)).metadata } catch (e) {}
-        const meta = { id: x.id, tpl: x.tpl, at: m && Number(m.at) ? Number(m.at) : now + x.i, rev: now + x.i, by: who };
-        await store.put(TQ + x.id, '1', { metadata: meta });
-        out[x.i] = meta;
-      });
-      return json({ ok: true, items: out });
     }
     if (b.op === 'qdel') {
       const list = (Array.isArray(b.items) ? b.items : []).slice(0, TQ_MAX)

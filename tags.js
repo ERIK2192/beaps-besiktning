@@ -140,6 +140,14 @@
   };
   const ORDER = ['green', 'darkpeach', 'lightpeach'];
   const PHONE = '08-528 006 00';
+  // Designs drawn in the app (Tags → New design, tagpaint.js): a picture of each face, kept on the
+  // device. On the back the code and the number still go on top, so the tag scans like any other.
+  // hidden: drawn with, never offered (the editor's own preview).
+  function setCustom(key, t, hidden) {
+    TEMPLATES[key] = { name: t.name, custom: true, front: t.front, back: t.back, fbg: t.fbg || '#FFFFFF', bg: t.bg || '#FFFFFF', num: t.num || '#000000', text: t.num || '#000000' };
+    if (!hidden && !ORDER.includes(key)) ORDER.push(key);
+  }
+  function dropCustom(key) { delete TEMPLATES[key]; const i = ORDER.indexOf(key); if (i >= 0) ORDER.splice(i, 1) }
 
   // The wordmark on one line: the two rows of beaps-web-logo.svg set side by side (tags.cjs).
   const WORDMARK = '<svg class="tg-wm" xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1.6 389.2 25.6" role="img" aria-label="Beautiful Apartments"><g fill="currentColor"><path d="M27,17.8v-5.4h7.2V8.6H27V4.4h9.8v-4H22.7v21.5h14.5v-4.1H27z"/><path d="M15.4,10.3c1-1,2.3-4.1,0.7-6.9C14.7,0.9,12.7,0.4,9,0.4c-1.5,0-7,0-7,0l0.7,1.6v20c0,0,5.4,0,7.4,0     c5.7,0,7.9-1.3,8.9-5.1C19.4,14.5,19,12.2,15.4,10.3z M6.9,4.2h2c2.1,0,3.6,0,3.6,2.5c0,2-1.2,2.2-3,2.2H6.9V4.2z M11.9,18.1h-5     v-5.2h4.9c2.1,0,2.9,0.9,2.9,2.5C14.8,17.5,13.7,18.1,11.9,18.1z"/><path d="M44.4,21.9l1-2.5h8.8l1,2.5h4.7L49.8,0L39.7,21.9H44.4z M49.8,8.6l2.9,7h-5.7L49.8,8.6z"/><path d="M74.3,0.3v13.6c0,2.2-1.9,4-4.4,4c-2.9,0-4.7-1.8-4.7-4V0.3H61v13.2c0,4.6,3.4,8.3,9,8.3     c4.9,0,8.5-3.7,8.5-8.2V0.3H74.3z"/><path d="M145.8,0.3v13.6c0,2.2-1.9,4-4.4,4c-2.9,0-4.7-1.8-4.7-4V0.3h-4.2v13.2c0,4.6,3.4,8.3,9,8.3     c4.9,0,8.5-3.7,8.5-8.2V0.3H145.8z"/><path d="M99.7,0.4H82v3.9h6.7v17.6H93V4.3h6.7V0.4z"/><path d="M154.4,21.9h13.4V18h-9.2V0.4h-4.2V21.9z"/><path d="M108.3,21.9V0.4h-4.2v21.5H108.3z"/><path d="M128.3,4.3V0.4h-13.6l-0.1,0.2v21.3h4.2v-8.1h7.8v-4h-7.8V4.3H128.3z"/><g transform="translate(178.8,-28.6)"><path d="M41.9,50.4l1-2.5h8.8l1,2.5h4.7L47.3,28.7L37.2,50.4H41.9z M47.3,37.1l2.9,7h-5.7L47.3,37.1z"/><path d="M4.7,50.4l1-2.5h8.8l1,2.5h4.7L10.1,28.7L0,50.4H4.7z M10.1,37.1l2.9,7H7.2L10.1,37.1z"/><path d="M129.3,46.4V41h7.2v-3.8h-7.2V33h9.8v-4H125v21.5h14.5v-4.1H129.3z"/><path d="M96,29H78.3v3.9H85v17.6h4.2V32.9H96V29z"/><path d="M182.3,29h-17.7v3.9h6.8v17.6h4.2V32.9h6.8V29z"/><path d="M77.9,50.4L72,42.1c2.1-0.9,3.7-3,3.7-5.5c0-4.7-2.4-7.6-8.1-7.6c-1.9,0-8.1,0-8.1,0l0.7,1.6v19.9     c0,0,2.3,0,4.1,0l0.1-7.5c0.8,0,2-0.1,3.1-0.1l5.4,7.6H77.9z M64.4,32.9h3.7c1.5,0,3.1,0.8,3.1,3.1c0,2-1.4,3-3.1,3h-3.7     L64.4,32.9L64.4,32.9z"/><path d="M109.7,40.4L99.4,28.6v21.9h4.3v-11h0.2l5.8,7.2l5.8-7.2h0.2v11h4.3V28.6L109.7,40.4z"/><path d="M157.2,29v12.4l-13.6-12.8v21.9h4.3V38.1l13.6,12.8V29H157.2z"/><path d="M197.3,40.2c-0.8-0.7-5.5-3-6.8-3.7c-0.6-0.4-1.2-0.9-1.2-1.7s0.3-2.1,2.7-2.1c2.1,0,3.1,1.3,4,2.4l2.9-2.2     c-1.9-2.6-3.8-4.1-7.2-4.1c-4.6,0-6.9,3.7-6.9,5.6c0,0.7,0,3,2.5,5c0,0,0,0,0,0c0,0,0,0,0,0c1.1,0.8,1.9,1.1,4.1,2.2     c1.1,0.6,3.6,1.4,3.6,3c0,0.8-0.3,2.5-2.9,2.5c-3.2,0-4.5-1.9-5.3-3l-2.9,2.1c1.5,2.5,4.5,4.7,8.1,4.7c5.6,0,7.4-3.8,7.4-5.9     C199.4,44.3,199.7,42.3,197.3,40.2z"/><path d="M205.1,51c1.6,0,2.9-1.3,2.9-3c0-1.6-1.3-3-2.9-3s-2.9,1.3-2.9,3C202.1,49.7,203.4,51,205.1,51z"/><path d="M30.2,29c-1.9,0-7.4,0-7.4,0h-0.7l0.7,1.6v19.9c0,0,2.3,0,4.1,0l0.1-7.5c1.7,0,5.3-0.3,6.5-0.5     c2.6-0.6,4.8-3,4.8-5.8C38.4,31.9,36,29,30.2,29z M30.8,39h-3.7v-6.2h3.7c1.5,0,3.1,0.8,3.1,3.1C33.9,38,32.5,39,30.8,39z"/></g></g></svg>';
@@ -157,6 +165,9 @@
 .tg-qr svg{width:100%;height:100%;display:block}
 .tg-num{font-family:Arial,Helvetica,sans-serif;font-size:16.5pt;font-weight:700;line-height:1;white-space:nowrap}
 .tg-num.long{font-size:10pt}
+.tg-cfront{position:absolute;width:37.5mm;height:23.5mm;left:-7mm;top:7mm;transform:rotate(-90deg);display:block}
+.tg-cback{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.tg-back .tg-qr,.tg-back .tg-num{position:relative}
 .tg-page{font-family:Arial,Helvetica,sans-serif;color:#16453E;break-after:page;page-break-after:always;background:#fff}
 .tg-page:last-child{break-after:auto;page-break-after:auto}
 .tg-page h1{font-size:11pt;margin:0 0 1mm;font-family:Arial,Helvetica,sans-serif;color:#16453E}
@@ -171,13 +182,15 @@
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const tpl = key => TEMPLATES[key] || TEMPLATES.green;
 
+  // A drawn design is a picture, so it prints whether or not the browser prints background colours.
   function front(key) {
     const t = tpl(key);
+    if (t.custom) return `<div class="tg-face" style="background:${esc(t.fbg)}"><img class="tg-cfront" src="${esc(t.front)}" alt=""></div>`;
     return `<div class="tg-face" style="background:${t.bg}"><div class="tg-front" style="color:${t.text}">${WORDMARK}<div class="tg-tel">${PHONE}</div></div></div>`;
   }
   function back(key, id) {
     const t = tpl(key);
-    return `<div class="tg-face tg-back" style="background:${t.bg}"><div class="tg-qr">${svgFor(id, '#000000')}</div><div class="tg-num${id.length > 6 ? ' long' : ''}" style="color:${t.num}">${esc(id)}</div></div>`;
+    return `<div class="tg-face tg-back" style="background:${esc(t.bg)}">${t.custom ? `<img class="tg-cback" src="${esc(t.back)}" alt="">` : ''}<div class="tg-qr">${svgFor(id, '#000000')}</div><div class="tg-num${id.length > 6 ? ' long' : ''}" style="color:${esc(t.num)}">${esc(id)}</div></div>`;
   }
   const pair = (key, id) => `<div class="tg-pair">${front(key)}${back(key, id)}</div>`;
 
@@ -200,5 +213,5 @@
     </section>`).join('');
   }
 
-  window.BEAPS_TAGS = { TEMPLATES, ORDER, CSS, MAX_BYTES, PER_PAGE, problem, svgFor, front, back, pair, sheet };
+  window.BEAPS_TAGS = { TEMPLATES, ORDER, CSS, MAX_BYTES, PER_PAGE, PHONE, WORDMARK, problem, svgFor, front, back, pair, sheet, setCustom, dropCustom };
 })();
